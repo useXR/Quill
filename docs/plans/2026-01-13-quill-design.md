@@ -81,7 +81,20 @@ Documents are chunked and embedded for semantic search. When generating or refin
 
 - **Frontend**: Next.js with TipTap (ProseMirror-based) editor
 - **Backend**: Next.js API Routes + Supabase
-- **AI**: Claude Code CLI (initially), architected to swap to direct API later
+- **AI**: Claude Code CLI via subprocess (leverages existing Claude subscription)
+
+### Claude Code CLI Integration
+
+API routes spawn Claude Code CLI as a subprocess, passing document context and instructions via stdin/files. This approach:
+- Leverages existing Claude Pro/Team subscription (no separate API costs)
+- Provides access to Claude's full capabilities
+- Can be swapped to direct Anthropic API later if needed for scale
+
+**Context Management:** For long documents, the system sends relevant sections rather than full content:
+- Current section being edited (always included)
+- Surrounding sections for context (truncated if needed)
+- Top-N relevant vault chunks by semantic similarity
+- Recent chat history (summarized if long)
 
 ### Supabase Services
 
@@ -160,10 +173,11 @@ Upload → Extract text → Chunk → Embed → Store
 - Right sidebar: AI chat (collapsible)
 - Bottom: diff panel slides up when reviewing AI edits
 
-## MVP Scope
+## Phased Roadmap
 
 ### v1 (MVP)
 
+**Core Features:**
 - Single-user (no collaboration)
 - Core editor with selection/cursor/chat AI modes
 - Knowledge Vault with file uploads
@@ -171,11 +185,98 @@ Upload → Extract text → Chunk → Embed → Store
 - Basic citation fetching (Semantic Scholar)
 - Export to DOCX/PDF
 
-### v2+ (Future)
+**Essential UX (from critique):**
+- Word/page count display with configurable limits and warnings
+- Basic undo for AI changes (auto-snapshot before AI edits)
+- Loading/progress indicators during AI generation
+- Global edit confirmation ("I'll modify sections 2, 4, 7. Proceed?")
 
-- Multiple AI models (GPT option)
+**MVP Simplifications:**
+- Single document context for AI (not full-grant awareness)
+- Simple flat vault (no tags/folders)
+- Basic error handling (retry on failure)
+
+---
+
+### v2 (Polish & Trust)
+
+**Version Control:**
+- Full version history with visual diffs
+- Named checkpoints ("Pre-review draft")
+- Compare any two versions
+
+**Vault Improvements:**
+- "Sources used" display after AI generation
+- Tag/folder organization within vaults
+- Exclude items from AI context without deleting
+- Search within vault items
+
+**AI Transparency:**
+- Optional "Show reasoning" for AI responses
+- Writing style settings (formal/accessible, concise/detailed)
+- Citation verification workflow (DOI links, manual editing)
+
+**Grant-Specific:**
+- Cross-document consistency checking
+- Full-grant context option for AI (with smart truncation)
+
+---
+
+### v3 (Professional Features)
+
+**Compliance & Formatting:**
+- Funder profiles (NIH, NSF, DOE preset formatting)
+- Real-time compliance validation
+- Section completeness tracking against RFP requirements
+
+**Resubmission Support:**
+- Import prior submission + reviewer feedback
+- Track all changes since prior version
+- Generate "Introduction" summary of changes
+
+**Workflow:**
+- Deadline management with reminders
+- Project dashboard view
+- Onboarding flow for new users
+
+---
+
+### v4+ (Scale & Collaboration)
+
+- Multiple AI models (GPT option, direct Anthropic API)
 - Real-time collaboration
-- Version history / snapshots
-- Template library
-- More citation sources
+- Offline support with sync
+- Rate limiting and usage tracking
+- Advanced security (sandboxed file extraction)
 - Direct submission integrations
+- Biosketch builder
+- Budget worksheet integration
+
+---
+
+## Known Limitations & Trade-offs
+
+### Claude Code CLI Approach
+
+**Trade-offs accepted for MVP:**
+- Single-user focused (CLI not designed for concurrent users)
+- Slightly higher latency than direct API
+- Requires Claude subscription on the server
+
+**Mitigations:**
+- Context management layer prevents token overflow
+- Auto-retry on transient failures
+- Architected for easy swap to direct API if needed
+
+### Context Window Management
+
+For documents exceeding context limits:
+- AI operates on current section + relevant context
+- Global edits process document in chunks
+- User warned when full-document operations may be truncated
+
+### Citation Accuracy
+
+AI-fetched citations carry hallucination risk:
+- v1: User responsibility to verify via provided links
+- v2: Verification workflow with DOI validation
