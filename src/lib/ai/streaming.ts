@@ -80,7 +80,16 @@ export class ClaudeStream {
         const sanitizedPrompt = sanitizePrompt(prompt);
         const sanitizedContext = context ? sanitizeContext(context) : undefined;
 
-        const args = ['-p', sanitizedPrompt, '--output-format', 'stream-json', '--verbose'];
+        const args = [
+          '-p',
+          sanitizedPrompt,
+          '--output-format',
+          'stream-json',
+          '--verbose',
+          '--disable-slash-commands', // Skip skill/command loading
+          '--tools',
+          '', // Disable all tools - we just need text generation
+        ];
         if (sanitizedContext) {
           args.push('--context', sanitizedContext);
         }

@@ -42,35 +42,52 @@ export async function POST(request: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       const claudeStream = new ClaudeStream();
+      let controllerClosed = false;
+
+      const safeEnqueue = (data: Uint8Array) => {
+        if (!controllerClosed && !request.signal.aborted) {
+          try {
+            controller.enqueue(data);
+          } catch {
+            controllerClosed = true;
+          }
+        }
+      };
+
+      const safeClose = () => {
+        if (!controllerClosed) {
+          try {
+            controller.close();
+            controllerClosed = true;
+          } catch {
+            controllerClosed = true;
+          }
+        }
+      };
 
       request.signal.addEventListener('abort', () => {
         console.log('[AI Generate] Request aborted');
         claudeStream.cancel();
-        controller.close();
+        safeClose();
       });
 
       console.log('[AI Generate] Calling claudeStream.stream()');
       await claudeStream.stream(prompt, {
         onChunk: (chunk: StreamChunk) => {
           console.log('[AI Generate] Received chunk:', chunk.sequence, chunk.content?.substring(0, 50));
-          if (request.signal.aborted) return;
           const data = JSON.stringify(chunk);
-          controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+          safeEnqueue(encoder.encode(`data: ${data}\n\n`));
         },
         onComplete: () => {
           console.log('[AI Generate] Stream complete');
-          if (!request.signal.aborted) {
-            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-            controller.close();
-          }
+          safeEnqueue(encoder.encode('data: [DONE]\n\n'));
+          safeClose();
         },
         onError: (error) => {
           console.log('[AI Generate] Stream error:', error);
-          if (!request.signal.aborted) {
-            const errorData = JSON.stringify({ error });
-            controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
-            controller.close();
-          }
+          const errorData = JSON.stringify({ error });
+          safeEnqueue(encoder.encode(`data: ${errorData}\n\n`));
+          safeClose();
         },
       });
       console.log('[AI Generate] claudeStream.stream() returned');
