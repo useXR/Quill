@@ -11,6 +11,7 @@ import { setupMockClaude } from './mocks/mock-claude-cli';
 const mocks = vi.hoisted(() => {
   return {
     spawn: vi.fn(),
+    exec: vi.fn(),
   };
 });
 
@@ -18,6 +19,7 @@ const mocks = vi.hoisted(() => {
 vi.mock('child_process', () => {
   const mockModule = {
     spawn: mocks.spawn,
+    exec: mocks.exec,
     ChildProcess: class {},
   };
   return {
@@ -26,8 +28,8 @@ vi.mock('child_process', () => {
   };
 });
 
-// Import module under test - uses the mocked spawn
-import { invokeClaude, cancelClaude } from '../claude-cli';
+// Import module under test - uses the mocked spawn and exec
+import { invokeClaude, cancelClaude, validateClaudeCLI, ClaudeCLIProvider } from '../claude-cli';
 
 describe('invokeClaude', () => {
   beforeEach(() => {
@@ -120,5 +122,186 @@ describe('invokeClaude', () => {
 
     expect(result.content).toBe('First second');
     expect(result.error).toBeUndefined();
+  });
+});
+
+describe('validateClaudeCLI', () => {
+  beforeEach(() => {
+    mocks.exec.mockReset();
+  });
+
+  it('should return ready status with valid version and auth', async () => {
+    // Mock exec to simulate callback-based API used by promisify
+    mocks.exec.mockImplementation(
+      (
+        _cmd: string,
+        _opts: unknown,
+        callback?: (error: Error | null, result: { stdout: string; stderr: string }) => void
+      ) => {
+        // Handle both 2-arg and 3-arg calls (promisify passes callback)
+        const cb = typeof _opts === 'function' ? _opts : callback;
+        if (cb) {
+          setImmediate(() => cb(null, { stdout: 'claude version 1.2.3\n', stderr: '' }));
+        }
+        return { stdout: '', stderr: '' };
+      }
+    );
+
+    const result = await validateClaudeCLI();
+
+    expect(result.status).toBe('ready');
+    expect(result.version).toBe('1.2.3');
+  });
+
+  it('should return not_installed when CLI is missing (ENOENT)', async () => {
+    mocks.exec.mockImplementation(
+      (_cmd: string, _opts: unknown, callback?: (error: NodeJS.ErrnoException | null) => void) => {
+        const cb = typeof _opts === 'function' ? _opts : callback;
+        if (cb) {
+          const error = new Error('Command not found') as NodeJS.ErrnoException;
+          error.code = 'ENOENT';
+          setImmediate(() => cb(error));
+        }
+        return { stdout: '', stderr: '' };
+      }
+    );
+
+    const result = await validateClaudeCLI();
+
+    expect(result.status).toBe('not_installed');
+  });
+
+  it('should return auth_required when auth test fails', async () => {
+    let callCount = 0;
+    mocks.exec.mockImplementation(
+      (
+        cmd: string,
+        _opts: unknown,
+        callback?: (error: Error | null, result?: { stdout: string; stderr: string }) => void
+      ) => {
+        const cb = typeof _opts === 'function' ? _opts : callback;
+        callCount++;
+        if (cb) {
+          // First call: version check succeeds
+          if (callCount === 1) {
+            setImmediate(() => cb(null, { stdout: 'claude version 1.2.3\n', stderr: '' }));
+          } else {
+            // Second call: auth test fails
+            setImmediate(() => cb(new Error('Not authenticated')));
+          }
+        }
+        return { stdout: '', stderr: '' };
+      }
+    );
+
+    const result = await validateClaudeCLI();
+
+    expect(result.status).toBe('auth_required');
+    expect(result.version).toBe('1.2.3');
+    expect(result.message).toBe('Please run: claude login');
+  });
+
+  it('should return outdated when version is below minimum', async () => {
+    mocks.exec.mockImplementation(
+      (
+        _cmd: string,
+        _opts: unknown,
+        callback?: (error: Error | null, result: { stdout: string; stderr: string }) => void
+      ) => {
+        const cb = typeof _opts === 'function' ? _opts : callback;
+        if (cb) {
+          setImmediate(() => cb(null, { stdout: 'claude version 0.1.0\n', stderr: '' }));
+        }
+        return { stdout: '', stderr: '' };
+      }
+    );
+
+    const result = await validateClaudeCLI();
+
+    expect(result.status).toBe('outdated');
+    expect(result.version).toBe('0.1.0');
+    expect(result.message).toContain('0.1.0');
+    expect(result.message).toContain('1.0.0');
+  });
+
+  it('should return error when version cannot be parsed', async () => {
+    mocks.exec.mockImplementation(
+      (
+        _cmd: string,
+        _opts: unknown,
+        callback?: (error: Error | null, result: { stdout: string; stderr: string }) => void
+      ) => {
+        const cb = typeof _opts === 'function' ? _opts : callback;
+        if (cb) {
+          setImmediate(() => cb(null, { stdout: 'claude unknown version\n', stderr: '' }));
+        }
+        return { stdout: '', stderr: '' };
+      }
+    );
+
+    const result = await validateClaudeCLI();
+
+    expect(result.status).toBe('error');
+    expect(result.message).toBe('Could not parse CLI version');
+  });
+});
+
+describe('ClaudeCLIProvider', () => {
+  let provider: ClaudeCLIProvider;
+
+  beforeEach(() => {
+    provider = new ClaudeCLIProvider();
+    mocks.spawn.mockReset();
+    mocks.exec.mockReset();
+  });
+
+  afterEach(() => {
+    provider.cancel();
+  });
+
+  it('should generate responses using invokeClaude', async () => {
+    setupMockClaude(
+      {
+        scenario: 'success',
+        responseChunks: ['{"content":"Provider response"}'],
+      },
+      mocks.spawn
+    );
+
+    const result = await provider.generate({ prompt: 'Test prompt' });
+
+    expect(result.content).toBe('Provider response');
+    expect(result.error).toBeUndefined();
+  });
+
+  it('should throw error for stream method', async () => {
+    const iterator = provider.stream({ prompt: 'Test' });
+
+    await expect(async () => {
+      for await (const _chunk of iterator) {
+        // Should throw before yielding
+      }
+    }).rejects.toThrow('Use streamClaude for streaming');
+  });
+
+  it('should delegate getStatus to validateClaudeCLI', async () => {
+    mocks.exec.mockImplementation(
+      (
+        _cmd: string,
+        _opts: unknown,
+        callback?: (error: Error | null, result: { stdout: string; stderr: string }) => void
+      ) => {
+        const cb = typeof _opts === 'function' ? _opts : callback;
+        if (cb) {
+          setImmediate(() => cb(null, { stdout: 'claude version 2.0.0\n', stderr: '' }));
+        }
+        return { stdout: '', stderr: '' };
+      }
+    );
+
+    const status = await provider.getStatus();
+
+    expect(status.status).toBe('ready');
+    expect(status.version).toBe('2.0.0');
   });
 });
