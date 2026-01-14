@@ -120,7 +120,25 @@ export class ClaudeStream {
           for (const line of lines.filter(Boolean)) {
             try {
               const parsed = JSON.parse(line);
-              if (parsed.content !== undefined) {
+
+              // Handle Claude Code protocol format
+              // Look for assistant messages with content
+              if (parsed.type === 'assistant' && parsed.message?.content) {
+                for (const block of parsed.message.content) {
+                  if (block.type === 'text' && block.text) {
+                    const chunk: StreamChunk = {
+                      id: this.streamId,
+                      sequence: this.sequence++,
+                      content: block.text,
+                      done: false,
+                    };
+                    this.chunks.push(chunk);
+                    callbacks.onChunk(chunk);
+                  }
+                }
+              }
+              // Also handle simple content format as fallback
+              else if (parsed.content !== undefined && typeof parsed.content === 'string') {
                 const chunk: StreamChunk = {
                   id: this.streamId,
                   sequence: this.sequence++,
