@@ -34,3 +34,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Playwright
+playwright-report/
+test-results/
+playwright/.auth/
+
+# Test environment
+.env.test.local
