@@ -17,3 +17,8 @@ export const logger = pino({
 export function createLogger(context: Record<string, unknown>) {
   return logger.child(context);
 }
+
+// Typed logger for vault operations
+export function vaultLogger(context: { userId?: string; itemId?: string; projectId?: string }) {
+  return logger.child({ module: 'vault', ...context });
+}

@@ -1,0 +1,3 @@
+This is a sample text file for testing the Knowledge Vault extraction pipeline.
+It contains multiple sentences to test chunking behavior.
+The content should be extracted and embedded correctly.

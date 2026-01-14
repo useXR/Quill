@@ -1,0 +1,3 @@
+Test document for E2E testing.
+This file validates the complete upload and extraction flow.
+Search queries should find this content.
