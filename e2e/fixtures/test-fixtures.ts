@@ -1,27 +1,30 @@
 /**
  * Custom Playwright fixtures for worker isolation and test data management.
  */
-import { test as base, expect } from '@playwright/test';
+import { test as base, expect, type WorkerInfo } from '@playwright/test';
 import { getWorkerAccount } from './test-accounts';
 import { TIMEOUTS, HYDRATION_WAIT } from '../config/timeouts';
 
 // Worker context for parallel test isolation
-interface WorkerContext {
+export interface WorkerContext {
   workerIndex: number;
   account: { email: string; password: string; name: string };
   prefix: (name: string) => string;
 }
 
 // Define custom fixtures
-type Fixtures = {
-  workerCtx: WorkerContext;
+type TestFixtures = {
   loginAsWorker: () => Promise<void>;
 };
 
-export const test = base.extend<Fixtures, { workerCtx: WorkerContext }>({
+type WorkerFixtures = {
+  workerCtx: WorkerContext;
+};
+
+export const test = base.extend<TestFixtures, WorkerFixtures>({
   // Worker-scoped: shared across all tests in a worker
   workerCtx: [
-    async ({}, use, workerInfo) => {
+    async ({}, use: (ctx: WorkerContext) => Promise<void>, workerInfo: WorkerInfo) => {
       const runId = Math.random().toString(36).substring(2, 6);
       const account = getWorkerAccount(workerInfo.parallelIndex);
 
