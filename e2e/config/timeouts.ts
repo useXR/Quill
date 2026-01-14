@@ -22,6 +22,10 @@ export const TIMEOUTS = {
   AUTH: 5000, // Auth operations
   LOGIN_REDIRECT: 30000, // Login to dashboard redirect
 
+  // Autosave
+  AUTOSAVE_DEBOUNCE: 2000, // Autosave debounce delay (matches AUTOSAVE.DEBOUNCE_MS)
+  AUTOSAVE_WAIT: 2500, // Wait time for autosave to complete
+
   // Animations
   ANIMATION: 100, // Short CSS transitions
   ANIMATION_SETTLE: 600, // Longer animations (a11y testing)
@@ -38,3 +42,4 @@ export const VISIBILITY_WAIT = { timeout: TIMEOUTS.ELEMENT_VISIBLE };
 export const TOAST_WAIT = { timeout: TIMEOUTS.TOAST };
 export const PAGE_LOAD_WAIT = { timeout: TIMEOUTS.PAGE_LOAD };
 export const HYDRATION_WAIT = { timeout: TIMEOUTS.HYDRATION };
+export const AUTOSAVE_WAIT_OPT = { timeout: TIMEOUTS.AUTOSAVE_WAIT };

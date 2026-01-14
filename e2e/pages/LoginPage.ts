@@ -15,10 +15,11 @@ export class LoginPage {
 
   constructor(page: Page) {
     this.page = page;
-    this.emailInput = page.locator('[name="email"]');
-    this.passwordInput = page.locator('[name="password"]');
+    this.emailInput = page.locator('#email');
+    this.passwordInput = page.locator('#password');
     this.submitButton = page.locator('[type="submit"]');
-    this.errorMessage = page.locator('[role="alert"]');
+    // Use form-specific selector to avoid matching route announcer
+    this.errorMessage = page.locator('[data-testid="login-form"] [role="alert"]');
   }
 
   async goto() {

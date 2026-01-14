@@ -1,4 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load test environment variables
+dotenv.config({ path: path.resolve(__dirname, '.env.test') });
 
 // Use isolated port 3099 to avoid conflicts with dev server
 const PORT = process.env.PORT || 3099;
@@ -51,6 +56,16 @@ export default defineConfig({
   // Browser projects with serial/parallel separation
   projects: [
     // ============================================
+    // UNAUTHENTICATED TESTS - No auth state needed
+    // Use for login form, public pages
+    // ============================================
+    {
+      name: 'chromium-unauth',
+      testMatch: '**/auth/**/*.spec.ts',
+      use: { ...devices['Desktop Chrome'] },
+    },
+
+    // ============================================
     // SERIAL TESTS - Shared state, role-based
     // Use for onboarding flows, invite sequences
     // ============================================
@@ -67,22 +82,22 @@ export default defineConfig({
     // ============================================
     {
       name: 'chromium',
-      testIgnore: ['**/onboarding/**/*.spec.ts', '**/invites/**/*.spec.ts'],
+      testIgnore: ['**/auth/**/*.spec.ts', '**/onboarding/**/*.spec.ts', '**/invites/**/*.spec.ts'],
       use: { ...devices['Desktop Chrome'] },
     },
     {
       name: 'firefox',
-      testIgnore: ['**/onboarding/**/*.spec.ts', '**/invites/**/*.spec.ts'],
+      testIgnore: ['**/auth/**/*.spec.ts', '**/onboarding/**/*.spec.ts', '**/invites/**/*.spec.ts'],
       use: { ...devices['Desktop Firefox'] },
     },
     {
       name: 'webkit',
-      testIgnore: ['**/onboarding/**/*.spec.ts', '**/invites/**/*.spec.ts'],
+      testIgnore: ['**/auth/**/*.spec.ts', '**/onboarding/**/*.spec.ts', '**/invites/**/*.spec.ts'],
       use: { ...devices['Desktop Safari'] },
     },
     {
       name: 'mobile',
-      testIgnore: ['**/onboarding/**/*.spec.ts', '**/invites/**/*.spec.ts'],
+      testIgnore: ['**/auth/**/*.spec.ts', '**/onboarding/**/*.spec.ts', '**/invites/**/*.spec.ts'],
       use: { ...devices['iPhone 12'] },
     },
   ],

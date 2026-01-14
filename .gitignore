@@ -39,9 +39,11 @@ next-env.d.ts
 playwright-report/
 test-results/
 playwright/.auth/
+e2e/.auth/
 
 # Test environment
 .env.test.local
+.env.test
 
 # Supabase
 supabase/.branches
