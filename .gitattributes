@@ -1,0 +1,7 @@
+# Ensure LF line endings for scripts and SQL (prevents issues on Windows/WSL)
+*.sh text eol=lf
+*.sql text eol=lf
+*.bash text eol=lf
+
+# Auto-detect for other text files
+* text=auto
