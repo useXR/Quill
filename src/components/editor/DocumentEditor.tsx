@@ -54,7 +54,7 @@ export function DocumentEditor({
 
         const doc = data as Document;
         setDocument(doc);
-        setVersion(doc.version);
+        setVersion(doc.version ?? 1);
       } catch (err) {
         setFetchError(err instanceof Error ? err : new Error('Failed to fetch document'));
       } finally {
@@ -89,7 +89,7 @@ export function DocumentEditor({
           const latestResponse = await fetch(`/api/documents/${documentId}`);
           const latestDoc = (await latestResponse.json()) as Document;
 
-          onConflict?.(latestDoc.version, version);
+          onConflict?.(latestDoc.version ?? 1, version);
           throw new Error('Version conflict: document was modified elsewhere');
         }
 
@@ -98,7 +98,7 @@ export function DocumentEditor({
 
       const savedDoc = data as Document;
       setDocument(savedDoc);
-      setVersion(savedDoc.version);
+      setVersion(savedDoc.version ?? version + 1);
       onSave?.(savedDoc);
     },
     [documentId, version, onSave, onConflict]
@@ -122,7 +122,7 @@ export function DocumentEditor({
   }, [saveNow]);
 
   // Get initial content from document
-  const initialContent = document?.content ? JSON.stringify(document.content as TipTapDocument) : '';
+  const initialContent = document?.content ? JSON.stringify(document.content as unknown as TipTapDocument) : '';
 
   if (isLoading) {
     return (
