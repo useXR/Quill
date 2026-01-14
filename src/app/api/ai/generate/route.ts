@@ -37,28 +37,35 @@ export async function POST(request: NextRequest) {
   const streamId = crypto.randomUUID();
   const encoder = new TextEncoder();
 
+  console.log('[AI Generate] Starting stream for prompt:', prompt.substring(0, 100) + '...');
+
   const stream = new ReadableStream({
     async start(controller) {
       const claudeStream = new ClaudeStream();
 
       request.signal.addEventListener('abort', () => {
+        console.log('[AI Generate] Request aborted');
         claudeStream.cancel();
         controller.close();
       });
 
+      console.log('[AI Generate] Calling claudeStream.stream()');
       await claudeStream.stream(prompt, {
         onChunk: (chunk: StreamChunk) => {
+          console.log('[AI Generate] Received chunk:', chunk.sequence, chunk.content?.substring(0, 50));
           if (request.signal.aborted) return;
           const data = JSON.stringify(chunk);
           controller.enqueue(encoder.encode(`data: ${data}\n\n`));
         },
         onComplete: () => {
+          console.log('[AI Generate] Stream complete');
           if (!request.signal.aborted) {
             controller.enqueue(encoder.encode('data: [DONE]\n\n'));
             controller.close();
           }
         },
         onError: (error) => {
+          console.log('[AI Generate] Stream error:', error);
           if (!request.signal.aborted) {
             const errorData = JSON.stringify({ error });
             controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
@@ -66,6 +73,7 @@ export async function POST(request: NextRequest) {
           }
         },
       });
+      console.log('[AI Generate] claudeStream.stream() returned');
     },
   });
 

@@ -85,10 +85,15 @@ export class ClaudeStream {
           args.push('--context', sanitizedContext);
         }
 
+        console.log('[ClaudeStream] Spawning claude with args:', args.slice(0, 3).join(' '), '...');
+
+        // Pass full environment to ensure PATH includes nvm, homebrew, etc.
         this.process = spawn('claude', args, {
           shell: false,
-          env: { PATH: process.env.PATH, HOME: process.env.HOME } as unknown as NodeJS.ProcessEnv,
+          env: process.env as NodeJS.ProcessEnv,
         });
+
+        console.log('[ClaudeStream] Process spawned, pid:', this.process.pid);
 
         let errorOutput = '';
 
@@ -113,7 +118,9 @@ export class ClaudeStream {
         this.process.stdout!.on('data', (data: Buffer) => {
           if (this.cancelled) return;
 
-          this.buffer += data.toString();
+          const dataStr = data.toString();
+          console.log('[ClaudeStream] stdout data received, length:', dataStr.length);
+          this.buffer += dataStr;
           const lines = this.buffer.split('\n');
           this.buffer = lines.pop() || '';
 
@@ -155,10 +162,13 @@ export class ClaudeStream {
         });
 
         this.process.stderr!.on('data', (data: Buffer) => {
-          errorOutput += data.toString();
+          const errStr = data.toString();
+          console.log('[ClaudeStream] stderr:', errStr);
+          errorOutput += errStr;
         });
 
         this.process.on('close', (code: number | null) => {
+          console.log('[ClaudeStream] Process closed with code:', code);
           if (this.cancelled) {
             resolve();
             return;
