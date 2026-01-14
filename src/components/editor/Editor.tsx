@@ -76,7 +76,7 @@ export function Editor({
     },
     editorProps: {
       attributes: {
-        class: `prose prose-lg max-w-none focus:outline-none min-h-[200px] p-4 ${className}`,
+        class: `prose prose-lg max-w-none focus:outline-hidden min-h-[200px] p-4 ${className}`,
         role: 'textbox',
         'aria-label': 'Document editor',
         'aria-multiline': 'true',
@@ -120,7 +120,7 @@ export function Editor({
   if (!editor) return null;
 
   return (
-    <div className="border rounded-lg bg-white shadow-sm">
+    <div className="border rounded-lg bg-white shadow-xs">
       {showToolbar && <Toolbar editor={editor} />}
       <EditorContent editor={editor} />
       {showWordCount && (

@@ -53,7 +53,7 @@ export function SaveStatus({ status, lastSavedAt, error, onRetry }: SaveStatusPr
             <button
               type="button"
               onClick={onRetry}
-              className="ml-2 text-sm text-blue-600 hover:text-blue-800 underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+              className="ml-2 text-sm text-blue-600 hover:text-blue-800 underline focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-sm"
               aria-label="Retry saving"
             >
               Retry

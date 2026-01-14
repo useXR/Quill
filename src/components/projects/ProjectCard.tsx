@@ -34,7 +34,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
   return (
     <Link
       href={`/projects/${project.id}`}
-      className="block bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-6"
+      className="block bg-white rounded-lg border border-gray-200 shadow-xs hover:shadow-md transition-shadow p-6"
     >
       <div className="flex items-start justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">{project.title}</h3>

@@ -20,7 +20,7 @@ export default async function NewProjectPage() {
           <p className="mt-1 text-sm text-gray-500">Start a new grant proposal</p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-6">
           <NewProjectForm />
         </div>
       </div>
