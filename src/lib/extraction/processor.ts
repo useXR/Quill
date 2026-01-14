@@ -6,6 +6,7 @@ import { extractTextContent } from '@/lib/extraction/text';
 import { chunkText } from '@/lib/extraction/chunker';
 import { getEmbeddings } from '@/lib/extraction/embeddings';
 import { vaultLogger } from '@/lib/logger';
+import { VAULT_STORAGE_BUCKET } from '@/lib/vault/constants';
 import type { ExtractionResult } from './pdf';
 import type { Chunk } from './chunker';
 
@@ -14,11 +15,6 @@ import type { Chunk } from './chunker';
  * Text shorter than this is considered 'partial' extraction.
  */
 const MIN_TEXT_LENGTH = 10;
-
-/**
- * Supabase storage bucket name for vault files.
- */
-const VAULT_STORAGE_BUCKET = 'vault';
 
 /**
  * Result of the extraction process.

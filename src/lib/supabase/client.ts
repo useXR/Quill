@@ -12,5 +12,18 @@ export function createClient() {
     );
   }
 
-  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
+  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey, {
+    isSingleton: false, // Force fresh client creation
+    auth: {
+      flowType: 'pkce',
+      detectSessionInUrl: true,
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+    cookieOptions: {
+      path: '/',
+      sameSite: 'lax',
+      secure: false, // Allow non-HTTPS for local dev
+    },
+  });
 }

@@ -1,3 +1,5 @@
+export const VAULT_STORAGE_BUCKET = 'vault-files';
+
 export const FILE_SIZE_LIMITS = {
   pdf: 100 * 1024 * 1024, // 100 MB
   docx: 50 * 1024 * 1024, // 50 MB
