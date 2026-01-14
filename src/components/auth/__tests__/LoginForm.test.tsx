@@ -134,10 +134,12 @@ describe('LoginForm', () => {
   });
 
   it('should require email to submit', async () => {
-    const { user } = render(<LoginForm />);
+    render(<LoginForm />);
 
-    const submitButton = screen.getByRole('button', { name: /send magic link/i });
-    await user.click(submitButton);
+    const form = screen.getByTestId('login-form');
+
+    // Use fireEvent.submit to bypass HTML5 validation and test our JS validation
+    fireEvent.submit(form);
 
     await waitFor(() => {
       expect(screen.getByText(/email is required/i)).toBeInTheDocument();

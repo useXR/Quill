@@ -1,20 +1,16 @@
-import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 import { VaultPageClient } from './VaultPageClient';
-import type { VaultItem } from '@/lib/vault/types';
+import { ProjectLayout } from '@/components/projects/ProjectLayout';
 
-export const dynamic = 'force-dynamic';
-
-interface VaultPageProps {
+interface Props {
   params: Promise<{ id: string }>;
 }
 
-export default async function VaultPage({ params }: VaultPageProps) {
-  const { id: projectId } = await params;
+export default async function VaultPage({ params }: Props) {
+  const { id } = await params;
 
   const supabase = await createClient();
-
-  // Check authentication
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -23,33 +19,41 @@ export default async function VaultPage({ params }: VaultPageProps) {
     redirect('/login');
   }
 
-  // Check project ownership
-  const { data: project } = await supabase
+  const { data: project, error } = await supabase
     .from('projects')
-    .select('id')
-    .eq('id', projectId)
+    .select('*')
+    .eq('id', id)
     .eq('user_id', user.id)
     .single();
 
-  if (!project) {
+  if (error || !project) {
     redirect('/projects');
   }
 
-  // Fetch initial vault items (exclude soft-deleted)
+  // Get documents for sidebar
+  const { data: documents } = await supabase
+    .from('documents')
+    .select('id, title, sort_order')
+    .eq('project_id', id)
+    .order('sort_order', { ascending: true });
+
+  // Get vault items
   const { data: items } = await supabase
     .from('vault_items')
     .select('*')
-    .eq('project_id', projectId)
+    .eq('project_id', id)
+    .eq('user_id', user.id)
     .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
-  const vaultItems: VaultItem[] = items ?? [];
-
   return (
-    <div className="min-h-screen bg-bg-primary">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
-        <VaultPageClient projectId={projectId} initialItems={vaultItems} />
-      </div>
-    </div>
+    <ProjectLayout
+      projectId={id}
+      projectTitle={project.title}
+      documents={documents || []}
+      vaultItemCount={items?.length || 0}
+    >
+      <VaultPageClient projectId={id} initialItems={items || []} />
+    </ProjectLayout>
   );
 }

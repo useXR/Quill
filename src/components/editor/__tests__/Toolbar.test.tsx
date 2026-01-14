@@ -199,20 +199,20 @@ describe('Toolbar', () => {
   });
 
   describe('Active State Highlighting', () => {
-    it('should apply active styling (bg-gray-200) when bold is active', () => {
+    it('should apply active styling (bg-[var(--color-quill-light)]) when bold is active', () => {
       mockEditor.isActive.mockImplementation((name: string) => name === 'bold');
       render(<Toolbar editor={mockEditor as unknown as import('@tiptap/react').Editor} />);
 
       const boldButton = screen.getByRole('button', { name: /bold/i });
-      expect(boldButton).toHaveClass('bg-gray-200');
+      expect(boldButton).toHaveClass('bg-[var(--color-quill-light)]');
     });
 
-    it('should apply active styling (bg-gray-200) when italic is active', () => {
+    it('should apply active styling (bg-[var(--color-quill-light)]) when italic is active', () => {
       mockEditor.isActive.mockImplementation((name: string) => name === 'italic');
       render(<Toolbar editor={mockEditor as unknown as import('@tiptap/react').Editor} />);
 
       const italicButton = screen.getByRole('button', { name: /italic/i });
-      expect(italicButton).toHaveClass('bg-gray-200');
+      expect(italicButton).toHaveClass('bg-[var(--color-quill-light)]');
     });
 
     it('should apply active styling when heading 1 is active', () => {
@@ -222,7 +222,7 @@ describe('Toolbar', () => {
       render(<Toolbar editor={mockEditor as unknown as import('@tiptap/react').Editor} />);
 
       const h1Button = screen.getByRole('button', { name: /heading 1/i });
-      expect(h1Button).toHaveClass('bg-gray-200');
+      expect(h1Button).toHaveClass('bg-[var(--color-quill-light)]');
     });
 
     it('should apply active styling when heading 2 is active', () => {
@@ -232,7 +232,7 @@ describe('Toolbar', () => {
       render(<Toolbar editor={mockEditor as unknown as import('@tiptap/react').Editor} />);
 
       const h2Button = screen.getByRole('button', { name: /heading 2/i });
-      expect(h2Button).toHaveClass('bg-gray-200');
+      expect(h2Button).toHaveClass('bg-[var(--color-quill-light)]');
     });
 
     it('should apply active styling when bullet list is active', () => {
@@ -240,7 +240,7 @@ describe('Toolbar', () => {
       render(<Toolbar editor={mockEditor as unknown as import('@tiptap/react').Editor} />);
 
       const bulletListButton = screen.getByRole('button', { name: /bullet list/i });
-      expect(bulletListButton).toHaveClass('bg-gray-200');
+      expect(bulletListButton).toHaveClass('bg-[var(--color-quill-light)]');
     });
 
     it('should apply active styling when ordered list is active', () => {
@@ -248,7 +248,7 @@ describe('Toolbar', () => {
       render(<Toolbar editor={mockEditor as unknown as import('@tiptap/react').Editor} />);
 
       const orderedListButton = screen.getByRole('button', { name: /numbered list/i });
-      expect(orderedListButton).toHaveClass('bg-gray-200');
+      expect(orderedListButton).toHaveClass('bg-[var(--color-quill-light)]');
     });
 
     it('should apply active styling when text align left is active', () => {
@@ -261,7 +261,7 @@ describe('Toolbar', () => {
       render(<Toolbar editor={mockEditor as unknown as import('@tiptap/react').Editor} />);
 
       const alignLeftButton = screen.getByRole('button', { name: /align left/i });
-      expect(alignLeftButton).toHaveClass('bg-gray-200');
+      expect(alignLeftButton).toHaveClass('bg-[var(--color-quill-light)]');
     });
 
     it('should not apply active styling to inactive buttons', () => {
@@ -269,7 +269,7 @@ describe('Toolbar', () => {
       render(<Toolbar editor={mockEditor as unknown as import('@tiptap/react').Editor} />);
 
       const boldButton = screen.getByRole('button', { name: /bold/i });
-      expect(boldButton).not.toHaveClass('bg-gray-200');
+      expect(boldButton).not.toHaveClass('bg-[var(--color-quill-light)]');
     });
   });
 

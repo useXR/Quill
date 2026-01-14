@@ -109,41 +109,41 @@ describe('WordCount', () => {
   });
 
   describe('Warning State (Near Limit)', () => {
-    it('should apply yellow color to word count when near limit', () => {
+    it('should apply warning color to word count when near limit', () => {
       render(<WordCount wordCount={90} charCount={450} percentage={90} isNearLimit />);
 
       const wordCount = screen.getByTestId('word-count');
-      expect(wordCount).toHaveClass('text-yellow-600');
+      expect(wordCount).toHaveClass('text-[var(--color-warning)]');
     });
 
-    it('should apply yellow color to progress bar when near limit', () => {
+    it('should apply warning color to progress bar when near limit', () => {
       render(<WordCount wordCount={90} charCount={450} percentage={90} isNearLimit />);
 
       const progressFill = screen.getByTestId('word-progress-fill');
-      expect(progressFill).toHaveClass('bg-yellow-500');
+      expect(progressFill).toHaveClass('bg-[var(--color-warning)]');
     });
 
-    it('should apply yellow color to char count when near char limit', () => {
+    it('should apply warning color to char count when near char limit', () => {
       render(<WordCount wordCount={10} charCount={90} charPercentage={90} isCharNearLimit />);
 
       const charCount = screen.getByTestId('char-count');
-      expect(charCount).toHaveClass('text-yellow-600');
+      expect(charCount).toHaveClass('text-[var(--color-warning)]');
     });
   });
 
   describe('Error State (Over Limit)', () => {
-    it('should apply red color to word count when over limit', () => {
+    it('should apply error color to word count when over limit', () => {
       render(<WordCount wordCount={110} charCount={550} percentage={110} isOverLimit />);
 
       const wordCount = screen.getByTestId('word-count');
-      expect(wordCount).toHaveClass('text-red-600');
+      expect(wordCount).toHaveClass('text-[var(--color-error)]');
     });
 
-    it('should apply red color to progress bar when over limit', () => {
+    it('should apply error color to progress bar when over limit', () => {
       render(<WordCount wordCount={110} charCount={550} percentage={110} isOverLimit />);
 
       const progressFill = screen.getByTestId('word-progress-fill');
-      expect(progressFill).toHaveClass('bg-red-500');
+      expect(progressFill).toHaveClass('bg-[var(--color-error)]');
     });
 
     it('should show over limit warning message', () => {
@@ -152,11 +152,11 @@ describe('WordCount', () => {
       expect(screen.getByTestId('over-limit-warning')).toHaveTextContent('You have exceeded the word limit.');
     });
 
-    it('should apply red color to char count when over char limit', () => {
+    it('should apply error color to char count when over char limit', () => {
       render(<WordCount wordCount={10} charCount={110} charPercentage={110} isCharOverLimit />);
 
       const charCount = screen.getByTestId('char-count');
-      expect(charCount).toHaveClass('text-red-600');
+      expect(charCount).toHaveClass('text-[var(--color-error)]');
     });
 
     it('should show char over limit warning when not over word limit', () => {
@@ -177,18 +177,18 @@ describe('WordCount', () => {
   });
 
   describe('Normal State', () => {
-    it('should apply gray color when under limit', () => {
+    it('should apply tertiary ink color when under limit', () => {
       render(<WordCount wordCount={50} charCount={250} percentage={50} />);
 
       const wordCount = screen.getByTestId('word-count');
-      expect(wordCount).toHaveClass('text-gray-600');
+      expect(wordCount).toHaveClass('text-[var(--color-ink-tertiary)]');
     });
 
-    it('should apply blue color to progress bar when under limit', () => {
+    it('should apply quill color to progress bar when under limit', () => {
       render(<WordCount wordCount={50} charCount={250} percentage={50} />);
 
       const progressFill = screen.getByTestId('word-progress-fill');
-      expect(progressFill).toHaveClass('bg-blue-500');
+      expect(progressFill).toHaveClass('bg-[var(--color-quill)]');
     });
   });
 

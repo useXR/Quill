@@ -1,7 +1,12 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
+import { FileText, Pencil } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
-import { getProject, ApiError } from '@/lib/api';
+import { getProject, getDocuments, ApiError } from '@/lib/api';
+import { Button } from '@/components/ui/Button';
+import { StatusBadge } from '@/components/ui/Badge';
+import { AddDocumentButton } from '@/components/projects/AddDocumentButton';
+import { ProjectLayout } from '@/components/projects/ProjectLayout';
 import type { ProjectStatus } from '@/lib/supabase/types';
 
 export const dynamic = 'force-dynamic';
@@ -9,18 +14,6 @@ export const dynamic = 'force-dynamic';
 interface ProjectPageProps {
   params: Promise<{ id: string }>;
 }
-
-const statusColors: Record<ProjectStatus, string> = {
-  draft: 'bg-gray-100 text-gray-800',
-  submitted: 'bg-blue-100 text-blue-800',
-  funded: 'bg-green-100 text-green-800',
-};
-
-const statusLabels: Record<ProjectStatus, string> = {
-  draft: 'Draft',
-  submitted: 'Submitted',
-  funded: 'Funded',
-};
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
@@ -46,8 +39,9 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   }
 
   let project;
+  let documents;
   try {
-    project = await getProject(id);
+    [project, documents] = await Promise.all([getProject(id), getDocuments(id)]);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
       notFound();
@@ -55,104 +49,109 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     throw error;
   }
 
+  // Get vault item count for sidebar (errors are non-fatal, default to 0)
+  const { count: vaultItemCount, error: vaultCountError } = await supabase
+    .from('vault_items')
+    .select('*', { count: 'exact', head: true })
+    .eq('project_id', id)
+    .eq('user_id', user.id)
+    .is('deleted_at', null);
+
+  if (vaultCountError) {
+    console.error('Failed to fetch vault item count:', vaultCountError);
+  }
+
   const status = (project.status || 'draft') as ProjectStatus;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Breadcrumb */}
-        <nav className="flex mb-4" aria-label="Breadcrumb">
-          <ol className="flex items-center space-x-2">
-            <li>
-              <Link href="/projects" className="text-sm text-gray-500 hover:text-gray-700">
-                Projects
-              </Link>
-            </li>
-            <li className="flex items-center">
-              <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span className="ml-2 text-sm text-gray-700 font-medium">{project.title}</span>
-            </li>
-          </ol>
-        </nav>
-
+    <ProjectLayout
+      projectId={id}
+      projectTitle={project.title}
+      documents={documents}
+      vaultItemCount={vaultItemCount || 0}
+    >
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-6 mb-6">
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-[var(--shadow-warm-sm)] border border-[var(--color-ink-faint)] p-6 mb-6">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-2xl font-bold text-gray-900">{project.title}</h1>
-                <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[status]}`}
+                <h1
+                  className="text-2xl font-bold text-[var(--color-ink-primary)] tracking-tight"
+                  style={{ fontFamily: 'var(--font-display)' }}
                 >
-                  {statusLabels[status]}
-                </span>
+                  {project.title}
+                </h1>
+                <StatusBadge status={status} />
               </div>
-              {project.description && <p className="text-gray-600 mt-2">{project.description}</p>}
-              <div className="mt-4 text-sm text-gray-500">
+              {project.description && (
+                <p className="text-[var(--color-ink-secondary)] mt-2" style={{ fontFamily: 'var(--font-ui)' }}>
+                  {project.description}
+                </p>
+              )}
+              <div className="mt-4 text-sm text-[var(--color-ink-tertiary)]" style={{ fontFamily: 'var(--font-ui)' }}>
                 <span>Created {formatDate(project.created_at)}</span>
-                <span className="mx-2">|</span>
+                <span className="mx-2 text-[var(--color-ink-faint)]">|</span>
                 <span>Updated {formatDate(project.updated_at)}</span>
               </div>
             </div>
             <div className="flex gap-2">
-              <Link
-                href={`/projects/${id}/edit`}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-xs text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Edit
+              <Link href={`/projects/${id}/edit`}>
+                <Button variant="secondary" size="sm" leftIcon={<Pencil className="w-4 h-4" />}>
+                  Edit
+                </Button>
               </Link>
             </div>
           </div>
         </div>
 
         {/* Documents Section */}
-        <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-6">
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-[var(--shadow-warm-sm)] border border-[var(--color-ink-faint)] p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Documents</h2>
-            <button
-              type="button"
-              className="inline-flex items-center px-3 py-2 border border-transparent rounded-md shadow-xs text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            <h2
+              className="text-lg font-semibold text-[var(--color-ink-primary)]"
+              style={{ fontFamily: 'var(--font-display)' }}
             >
-              <svg
-                className="-ml-1 mr-2 h-4 w-4"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-              </svg>
-              Add Document
-            </button>
+              Documents
+            </h2>
+            <AddDocumentButton projectId={id} />
           </div>
 
-          {/* Empty state */}
-          <div className="text-center py-12">
-            <svg
-              className="mx-auto h-12 w-12 text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
+          {documents.length === 0 ? (
+            /* Empty state */
+            <div className="text-center py-12">
+              <FileText
+                className="mx-auto h-12 w-12 text-[var(--color-ink-subtle)]"
                 strokeWidth={1.5}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                aria-hidden="true"
               />
-            </svg>
-            <p className="mt-4 text-sm text-gray-500">
-              No documents yet. Add a document to start writing your proposal.
-            </p>
-          </div>
+              <p className="mt-4 text-sm text-[var(--color-ink-tertiary)]" style={{ fontFamily: 'var(--font-ui)' }}>
+                No documents yet. Add a document to start writing your proposal.
+              </p>
+            </div>
+          ) : (
+            /* Document list */
+            <ul className="divide-y divide-[var(--color-ink-faint)]">
+              {documents.map((doc) => (
+                <li key={doc.id}>
+                  <Link
+                    href={`/projects/${id}/documents/${doc.id}`}
+                    className="flex items-center gap-3 py-3 px-2 -mx-2 rounded-[var(--radius-md)] hover:bg-[var(--color-surface-hover)] transition-colors duration-150"
+                  >
+                    <FileText className="h-5 w-5 text-[var(--color-ink-tertiary)]" strokeWidth={1.5} />
+                    <span
+                      className="text-[var(--color-ink-primary)] font-medium"
+                      style={{ fontFamily: 'var(--font-ui)' }}
+                    >
+                      {doc.title}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
-    </div>
+    </ProjectLayout>
   );
 }
