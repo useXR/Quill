@@ -61,11 +61,17 @@ test.describe('Authentication', () => {
       const loginPage = new LoginPage(page);
       await loginPage.goto();
 
-      // Submit without entering email
+      // The email input has HTML5 'required' attribute which prevents form submission
+      // Verify the input has the required attribute for browser validation
+      await expect(loginPage.emailInput).toHaveAttribute('required', '');
+
+      // Also verify that clicking submit with empty field doesn't navigate or show success
+      // (browser validation will prevent submission)
+      const currentUrl = page.url();
       await loginPage.submit();
 
-      // Should show validation error - use form-specific alert
-      await expect(loginPage.errorMessage).toContainText(/email is required/i);
+      // Should still be on login page (browser validation blocked submission)
+      await expect(page).toHaveURL(currentUrl);
     });
 
     test('should show error for invalid email format', async ({ page }) => {
@@ -239,15 +245,25 @@ test.describe('Authentication', () => {
     });
 
     test('should clear error message when user starts typing', async ({ page }) => {
+      // Mock rate limit check to allow submission
+      await page.route('**/api/auth/check-rate-limit', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ allowed: true }),
+        });
+      });
+
       const loginPage = new LoginPage(page);
       await loginPage.goto();
 
-      // Submit empty form to trigger error
+      // Submit with invalid email to trigger a validation error
+      // (passes browser validation but fails app validation)
+      await loginPage.emailInput.fill('user@domain');
       await loginPage.submit();
-      await expect(loginPage.errorMessage).toBeVisible();
+      await expect(loginPage.errorMessage).toBeVisible({ timeout: TIMEOUTS.API_CALL });
 
-      // Start typing - the error may or may not clear depending on implementation
-      // At minimum, we verify the form is still functional
+      // Start typing a valid email - error should be visible but form should be functional
       await loginPage.emailInput.fill('user@example.com');
       await expect(loginPage.emailInput).toHaveValue('user@example.com');
     });

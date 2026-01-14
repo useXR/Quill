@@ -2,16 +2,41 @@
  * Knowledge Vault Search E2E tests
  *
  * Tests for semantic search functionality within the vault.
- * Uses the Phase 0 E2E infrastructure.
+ * Uses the Phase 0 E2E infrastructure with authenticated storage state.
  */
 import { test, expect } from '../fixtures/test-fixtures';
-import { TIMEOUTS, NAVIGATION_WAIT, VISIBILITY_WAIT } from '../config/timeouts';
+import { TIMEOUTS, VISIBILITY_WAIT } from '../config/timeouts';
 import { VaultPage } from '../pages/VaultPage';
 
-// Test project ID
-const TEST_PROJECT_ID = 'test-project-id';
+// Test data stored per-worker to avoid race conditions
+const testData: { projectId?: string } = {};
+
+// Helper to create a test project via API (faster and more reliable)
+async function createTestProject(page: import('@playwright/test').Page): Promise<string> {
+  const response = await page.request.post('/api/projects', {
+    data: {
+      title: `E2E Search Test ${Date.now()}`,
+      description: 'Test project for vault search E2E tests',
+    },
+  });
+  if (!response.ok()) {
+    throw new Error(`Failed to create project: ${response.status()}`);
+  }
+  const project = await response.json();
+  return project.id;
+}
 
 test.describe('Knowledge Vault Search', () => {
+  // Create a test project for each worker
+  test.beforeAll(async ({ browser }) => {
+    const context = await browser.newContext({
+      storageState: '.playwright/.auth/user.json',
+    });
+    const page = await context.newPage();
+    testData.projectId = await createTestProject(page);
+    await context.close();
+  });
+
   test.describe('Search Functionality (Mocked)', () => {
     test.beforeEach(async ({ page }) => {
       // Mock vault items API
@@ -64,13 +89,7 @@ test.describe('Knowledge Vault Search', () => {
       });
 
       const vaultPage = new VaultPage(page);
-      await vaultPage.goto(TEST_PROJECT_ID);
-
-      // Skip if redirected to login
-      if (page.url().includes('/login')) {
-        test.skip();
-        return;
-      }
+      await vaultPage.goto(testData.projectId!);
 
       // Perform search
       await vaultPage.search('machine learning');
@@ -90,13 +109,7 @@ test.describe('Knowledge Vault Search', () => {
       });
 
       const vaultPage = new VaultPage(page);
-      await vaultPage.goto(TEST_PROJECT_ID);
-
-      // Skip if redirected to login
-      if (page.url().includes('/login')) {
-        test.skip();
-        return;
-      }
+      await vaultPage.goto(testData.projectId!);
 
       // Perform search that returns no results
       await vaultPage.search('nonexistent content xyz123');
@@ -135,13 +148,7 @@ test.describe('Knowledge Vault Search', () => {
       });
 
       const vaultPage = new VaultPage(page);
-      await vaultPage.goto(TEST_PROJECT_ID);
-
-      // Skip if redirected to login
-      if (page.url().includes('/login')) {
-        test.skip();
-        return;
-      }
+      await vaultPage.goto(testData.projectId!);
 
       await vaultPage.search('relevant content');
 
@@ -170,13 +177,7 @@ test.describe('Knowledge Vault Search', () => {
       });
 
       const vaultPage = new VaultPage(page);
-      await vaultPage.goto(TEST_PROJECT_ID);
-
-      // Skip if redirected to login
-      if (page.url().includes('/login')) {
-        test.skip();
-        return;
-      }
+      await vaultPage.goto(testData.projectId!);
 
       await vaultPage.search('research');
 
@@ -186,13 +187,7 @@ test.describe('Knowledge Vault Search', () => {
 
     test('should disable search button when input is empty', async ({ page }) => {
       const vaultPage = new VaultPage(page);
-      await vaultPage.goto(TEST_PROJECT_ID);
-
-      // Skip if redirected to login
-      if (page.url().includes('/login')) {
-        test.skip();
-        return;
-      }
+      await vaultPage.goto(testData.projectId!);
 
       // Search button should be disabled with empty input
       await expect(vaultPage.searchButton).toBeDisabled();
@@ -222,20 +217,15 @@ test.describe('Knowledge Vault Search', () => {
       });
 
       const vaultPage = new VaultPage(page);
-      await vaultPage.goto(TEST_PROJECT_ID);
-
-      // Skip if redirected to login
-      if (page.url().includes('/login')) {
-        test.skip();
-        return;
-      }
+      await vaultPage.goto(testData.projectId!);
 
       // Start search
       await vaultPage.searchInput.fill('test query');
       await vaultPage.searchButton.click();
 
       // Should show loading spinner (button contains spinner during loading)
-      await expect(page.locator('[data-testid="status-spinner"], button svg.animate-spin')).toBeVisible({
+      // The spinner uses 'motion-safe:animate-spin' class
+      await expect(page.locator('button svg.motion-safe\\:animate-spin')).toBeVisible({
         timeout: TIMEOUTS.ELEMENT_VISIBLE,
       });
     });
@@ -262,13 +252,7 @@ test.describe('Knowledge Vault Search', () => {
       });
 
       const vaultPage = new VaultPage(page);
-      await vaultPage.goto(TEST_PROJECT_ID);
-
-      // Skip if redirected to login
-      if (page.url().includes('/login')) {
-        test.skip();
-        return;
-      }
+      await vaultPage.goto(testData.projectId!);
 
       await vaultPage.search('matching content');
 
@@ -287,25 +271,19 @@ test.describe('Knowledge Vault Search', () => {
       });
 
       const vaultPage = new VaultPage(page);
-      await vaultPage.goto(TEST_PROJECT_ID);
-
-      // Skip if redirected to login
-      if (page.url().includes('/login')) {
-        test.skip();
-        return;
-      }
+      await vaultPage.goto(testData.projectId!);
 
       await vaultPage.search('test query');
 
-      // Should show error message
-      await expect(page.locator('[role="alert"]')).toBeVisible({
+      // Should show error message (with Search failed text)
+      await expect(
+        page.locator('[role="alert"]:has-text("Search failed"), [role="alert"]:has-text("error")')
+      ).toBeVisible({
         timeout: TIMEOUTS.API_CALL,
       });
     });
 
     test('should allow clicking on search results', async ({ page }) => {
-      const resultClicked = false;
-
       await page.route('**/api/vault/search', async (route) => {
         await route.fulfill({
           status: 200,
@@ -325,13 +303,7 @@ test.describe('Knowledge Vault Search', () => {
       });
 
       const vaultPage = new VaultPage(page);
-      await vaultPage.goto(TEST_PROJECT_ID);
-
-      // Skip if redirected to login
-      if (page.url().includes('/login')) {
-        test.skip();
-        return;
-      }
+      await vaultPage.goto(testData.projectId!);
 
       await vaultPage.search('click');
 
@@ -345,7 +317,7 @@ test.describe('Knowledge Vault Search', () => {
   });
 
   test.describe('Search Input Behavior', () => {
-    test('should clear search input after results', async ({ page }) => {
+    test.beforeEach(async ({ page }) => {
       await page.route('**/api/vault', async (route) => {
         if (route.request().method() === 'GET') {
           await route.fulfill({
@@ -355,7 +327,9 @@ test.describe('Knowledge Vault Search', () => {
           });
         }
       });
+    });
 
+    test('should maintain search input value after search', async ({ page }) => {
       await page.route('**/api/vault/search', async (route) => {
         await route.fulfill({
           status: 200,
@@ -365,13 +339,7 @@ test.describe('Knowledge Vault Search', () => {
       });
 
       const vaultPage = new VaultPage(page);
-      await vaultPage.goto(TEST_PROJECT_ID);
-
-      // Skip if redirected to login
-      if (page.url().includes('/login')) {
-        test.skip();
-        return;
-      }
+      await vaultPage.goto(testData.projectId!);
 
       // Fill and search
       await vaultPage.searchInput.fill('test query');
@@ -383,24 +351,8 @@ test.describe('Knowledge Vault Search', () => {
     });
 
     test('should have correct placeholder text', async ({ page }) => {
-      await page.route('**/api/vault', async (route) => {
-        if (route.request().method() === 'GET') {
-          await route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({ items: [] }),
-          });
-        }
-      });
-
       const vaultPage = new VaultPage(page);
-      await vaultPage.goto(TEST_PROJECT_ID);
-
-      // Skip if redirected to login
-      if (page.url().includes('/login')) {
-        test.skip();
-        return;
-      }
+      await vaultPage.goto(testData.projectId!);
 
       await expect(vaultPage.searchInput).toHaveAttribute('placeholder', 'Search your vault...');
     });

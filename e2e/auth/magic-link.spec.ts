@@ -21,6 +21,15 @@ import { loginWithMagicLink, generateTestEmail, expectToBeLoggedIn } from '../he
 test.describe('Magic Link Authentication Flow', () => {
   test.describe('Complete Login Flow', () => {
     test('should complete full magic link login flow', async ({ page }) => {
+      // Mock rate limit check to allow submission
+      await page.route('**/api/auth/check-rate-limit', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ allowed: true }),
+        });
+      });
+
       const testEmail = generateTestEmail('magiclink');
 
       // Clear any existing emails
@@ -59,6 +68,15 @@ test.describe('Magic Link Authentication Flow', () => {
     });
 
     test('should use loginWithMagicLink helper successfully', async ({ page }) => {
+      // Mock rate limit check to allow submission
+      await page.route('**/api/auth/check-rate-limit', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ allowed: true }),
+        });
+      });
+
       const testEmail = generateTestEmail('helper');
 
       // Use the helper function that encapsulates the full flow
@@ -88,6 +106,15 @@ test.describe('Magic Link Authentication Flow', () => {
     });
 
     test('should preserve next parameter through login flow', async ({ page }) => {
+      // Mock rate limit check to allow submission
+      await page.route('**/api/auth/check-rate-limit', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ allowed: true }),
+        });
+      });
+
       const testEmail = generateTestEmail('next');
       await clearMailbox(testEmail);
 
@@ -115,6 +142,15 @@ test.describe('Magic Link Authentication Flow', () => {
 
   test.describe('Session Persistence', () => {
     test('should maintain session after login', async ({ page }) => {
+      // Mock rate limit check to allow submission
+      await page.route('**/api/auth/check-rate-limit', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ allowed: true }),
+        });
+      });
+
       const testEmail = generateTestEmail('session');
 
       await loginWithMagicLink(page, testEmail);
@@ -127,6 +163,15 @@ test.describe('Magic Link Authentication Flow', () => {
     });
 
     test('should redirect authenticated users away from login page', async ({ page }) => {
+      // Mock rate limit check to allow submission
+      await page.route('**/api/auth/check-rate-limit', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ allowed: true }),
+        });
+      });
+
       const testEmail = generateTestEmail('redirect');
 
       await loginWithMagicLink(page, testEmail);
@@ -141,6 +186,15 @@ test.describe('Magic Link Authentication Flow', () => {
 
   test.describe('Magic Link Token Security', () => {
     test('should not allow reusing magic link', async ({ page }) => {
+      // Mock rate limit check to allow submission
+      await page.route('**/api/auth/check-rate-limit', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ allowed: true }),
+        });
+      });
+
       const testEmail = generateTestEmail('reuse');
       await clearMailbox(testEmail);
 
@@ -164,12 +218,22 @@ test.describe('Magic Link Authentication Flow', () => {
 
       // Second use - should fail
       await page.goto(magicLink);
-      await expect(page).toHaveURL(/\/login\?error=/, { timeout: TIMEOUTS.NAVIGATION });
+      // Error can be in query param or hash fragment depending on Supabase version
+      await expect(page).toHaveURL(/\/login.*[?#].*error/, { timeout: TIMEOUTS.NAVIGATION });
     });
   });
 
   test.describe('Email Delivery', () => {
     test('should deliver email to Inbucket', async ({ page }) => {
+      // Mock rate limit check to allow submission
+      await page.route('**/api/auth/check-rate-limit', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ allowed: true }),
+        });
+      });
+
       const testEmail = generateTestEmail('delivery');
       await clearMailbox(testEmail);
 
@@ -189,6 +253,15 @@ test.describe('Magic Link Authentication Flow', () => {
     });
 
     test('should clear mailbox correctly', async ({ page }) => {
+      // Mock rate limit check to allow submission
+      await page.route('**/api/auth/check-rate-limit', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ allowed: true }),
+        });
+      });
+
       const testEmail = generateTestEmail('clear');
 
       // Request a magic link first
@@ -210,27 +283,44 @@ test.describe('Magic Link Authentication Flow', () => {
 
   test.describe('Error Handling', () => {
     test('should display error for invalid email format', async ({ page }) => {
+      // Mock rate limit check to allow submission
+      await page.route('**/api/auth/check-rate-limit', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ allowed: true }),
+        });
+      });
+
       const loginPage = new LoginPage(page);
       await loginPage.goto();
 
-      // Submit with invalid email
-      await loginPage.requestMagicLink('invalid-email');
+      // The email input has type="email" which enables browser validation
+      // Browser will block submission of "invalid-email" because it lacks @ symbol
+      // We verify the input has type="email" for browser validation
+      await expect(loginPage.emailInput).toHaveAttribute('type', 'email');
 
-      // Should show validation error
-      await expect(loginPage.errorMessage).toContainText(/valid email/i, {
-        timeout: TIMEOUTS.API_CALL,
-      });
+      // Try to submit with invalid email - browser validation should prevent it
+      await loginPage.fillEmail('invalid-email');
+      const currentUrl = page.url();
+      await loginPage.submit();
+
+      // Should stay on same page (browser validation prevented submit)
+      await expect(page).toHaveURL(currentUrl);
     });
 
     test('should display error for empty email', async ({ page }) => {
       const loginPage = new LoginPage(page);
       await loginPage.goto();
 
-      // Submit without email
-      await loginPage.submit();
+      // The email input has HTML5 'required' attribute which prevents form submission
+      // Verify the input has the required attribute for browser validation
+      await expect(loginPage.emailInput).toHaveAttribute('required', '');
 
-      // Should show validation error
-      await expect(loginPage.errorMessage).toContainText(/required/i);
+      // Clicking submit with empty field should not navigate (browser validation blocks)
+      const currentUrl = page.url();
+      await loginPage.submit();
+      await expect(page).toHaveURL(currentUrl);
     });
   });
 });

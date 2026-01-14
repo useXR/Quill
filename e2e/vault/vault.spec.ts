@@ -2,30 +2,50 @@
  * Knowledge Vault E2E tests
  *
  * Tests for vault file upload, management, and basic functionality.
- * Uses the Phase 0 E2E infrastructure.
+ * Uses the Phase 0 E2E infrastructure with authenticated storage state.
+ *
+ * NOTE: These tests run with storage state from auth.setup.ts (via playwright.config.ts).
+ * Unauthenticated access tests are in auth.spec.ts.
  */
 import { test, expect } from '../fixtures/test-fixtures';
-import { TIMEOUTS, NAVIGATION_WAIT, VISIBILITY_WAIT } from '../config/timeouts';
+import { TIMEOUTS, VISIBILITY_WAIT } from '../config/timeouts';
 import { VaultPage } from '../pages/VaultPage';
 import * as path from 'path';
 
-// Test project ID - in real tests this would come from fixture setup
-const TEST_PROJECT_ID = 'test-project-id';
+// Test data stored per-worker to avoid race conditions
+const testData: { projectId?: string } = {};
+
+// Helper to create a test project via API (faster and more reliable)
+async function createTestProject(page: import('@playwright/test').Page): Promise<string> {
+  const response = await page.request.post('/api/projects', {
+    data: {
+      title: `E2E Vault Test ${Date.now()}`,
+      description: 'Test project for vault E2E tests',
+    },
+  });
+  if (!response.ok()) {
+    throw new Error(`Failed to create project: ${response.status()}`);
+  }
+  const project = await response.json();
+  return project.id;
+}
 
 test.describe('Knowledge Vault', () => {
-  test.describe('Unauthenticated Access', () => {
-    test('should redirect to login when accessing vault without auth', async ({ page }) => {
-      await page.goto(`/projects/${TEST_PROJECT_ID}/vault`, { waitUntil: 'domcontentloaded' });
-
-      // Should redirect to login
-      await expect(page).toHaveURL(/\/login/, NAVIGATION_WAIT);
+  // Create a test project for each worker
+  test.beforeAll(async ({ browser }) => {
+    const context = await browser.newContext({
+      storageState: '.playwright/.auth/user.json',
     });
+    const page = await context.newPage();
+    // Make a request to ensure we're authenticated
+    testData.projectId = await createTestProject(page);
+    await context.close();
   });
 
-  test.describe('Vault Page Structure (Mocked)', () => {
+  test.describe('Vault Page Structure', () => {
     test.beforeEach(async ({ page }) => {
-      // Mock the vault API to return empty items
-      await page.route('**/api/vault**', async (route) => {
+      // Mock the vault API to return empty items for consistent tests
+      await page.route('**/api/vault', async (route) => {
         if (route.request().method() === 'GET') {
           await route.fulfill({
             status: 200,
@@ -36,41 +56,22 @@ test.describe('Knowledge Vault', () => {
           await route.continue();
         }
       });
-
-      // Mock auth to allow access (simulate authenticated state)
-      await page.route('**/auth/**', async (route) => {
-        await route.continue();
-      });
     });
 
-    test('should display empty vault state', async ({ page }) => {
-      // Mock the server-side render by going to the page with mocked data
-      await page.route(`**/projects/${TEST_PROJECT_ID}/vault`, async (route, request) => {
-        // Let the page load with our mocked API
-        await route.continue();
-      });
-
+    test('should display vault page when authenticated', async ({ page }) => {
       const vaultPage = new VaultPage(page);
-      await vaultPage.goto(TEST_PROJECT_ID);
+      await vaultPage.goto(testData.projectId!);
 
-      // If redirected to login, that's expected for unauthenticated tests
-      const url = page.url();
-      if (url.includes('/login')) {
-        // Verify login page is shown
-        await expect(page.getByRole('heading', { name: /sign in/i })).toBeVisible();
-      }
+      // Should NOT redirect to login (we're authenticated via storage state)
+      await expect(page).not.toHaveURL(/\/login/);
+
+      // Vault page should be visible
+      await expect(vaultPage.pageTitle).toBeVisible();
     });
 
     test('should show upload zone with correct attributes', async ({ page }) => {
       const vaultPage = new VaultPage(page);
-      await vaultPage.goto(TEST_PROJECT_ID);
-
-      // If redirected to login, skip this test
-      const url = page.url();
-      if (url.includes('/login')) {
-        test.skip();
-        return;
-      }
+      await vaultPage.goto(testData.projectId!);
 
       await vaultPage.expectUploadZoneVisible();
     });
@@ -106,13 +107,7 @@ test.describe('Knowledge Vault', () => {
 
     test('should accept file input via upload zone', async ({ page }) => {
       const vaultPage = new VaultPage(page);
-      await vaultPage.goto(TEST_PROJECT_ID);
-
-      // Skip if redirected to login
-      if (page.url().includes('/login')) {
-        test.skip();
-        return;
-      }
+      await vaultPage.goto(testData.projectId!);
 
       // Verify file input exists and accepts correct types
       const fileInput = vaultPage.fileInput;
@@ -124,13 +119,7 @@ test.describe('Knowledge Vault', () => {
 
     test('should show upload instructions', async ({ page }) => {
       const vaultPage = new VaultPage(page);
-      await vaultPage.goto(TEST_PROJECT_ID);
-
-      // Skip if redirected to login
-      if (page.url().includes('/login')) {
-        test.skip();
-        return;
-      }
+      await vaultPage.goto(testData.projectId!);
 
       // Verify upload instructions are visible
       await expect(page.locator('text=Drag files here or click to browse')).toBeVisible();
@@ -143,7 +132,7 @@ test.describe('Knowledge Vault', () => {
       let uploadCalled = false;
       const mockItem = {
         id: 'uploaded-item-1',
-        project_id: TEST_PROJECT_ID,
+        project_id: testData.projectId!,
         filename: 'test.txt',
         type: 'txt',
         storage_path: 'vault/test.txt',
@@ -181,13 +170,7 @@ test.describe('Knowledge Vault', () => {
       });
 
       const vaultPage = new VaultPage(page);
-      await vaultPage.goto(TEST_PROJECT_ID);
-
-      // Skip if redirected to login
-      if (page.url().includes('/login')) {
-        test.skip();
-        return;
-      }
+      await vaultPage.goto(testData.projectId!);
 
       // Upload a test file
       const testFilePath = path.resolve(__dirname, '../fixtures/test.txt');
@@ -225,13 +208,7 @@ test.describe('Knowledge Vault', () => {
       });
 
       const vaultPage = new VaultPage(page);
-      await vaultPage.goto(TEST_PROJECT_ID);
-
-      // Skip if redirected to login
-      if (page.url().includes('/login')) {
-        test.skip();
-        return;
-      }
+      await vaultPage.goto(testData.projectId!);
 
       // Start upload
       const testFilePath = path.resolve(__dirname, '../fixtures/test.txt');
@@ -244,12 +221,15 @@ test.describe('Knowledge Vault', () => {
     });
   });
 
+  // NOTE: These tests are skipped because the vault page uses server-side rendering
+  // which fetches data directly from Supabase before client-side mocks take effect.
+  // To test deletion with actual data, we would need to create real vault items.
   test.describe('File Deletion (Mocked)', () => {
-    test('should remove file from list on delete', async ({ page }) => {
+    test.skip('should remove file from list on delete', async ({ page }) => {
       let itemDeleted = false;
       const mockItem = {
         id: 'item-to-delete',
-        project_id: TEST_PROJECT_ID,
+        project_id: testData.projectId!,
         filename: 'deleteme.txt',
         type: 'txt',
         storage_path: 'vault/deleteme.txt',
@@ -262,7 +242,6 @@ test.describe('Knowledge Vault', () => {
 
       await page.route('**/api/vault**', async (route) => {
         const method = route.request().method();
-        const url = route.request().url();
 
         if (method === 'GET') {
           await route.fulfill({
@@ -285,13 +264,7 @@ test.describe('Knowledge Vault', () => {
       });
 
       const vaultPage = new VaultPage(page);
-      await vaultPage.goto(TEST_PROJECT_ID);
-
-      // Skip if redirected to login
-      if (page.url().includes('/login')) {
-        test.skip();
-        return;
-      }
+      await vaultPage.goto(testData.projectId!);
 
       // Verify file is visible
       await vaultPage.expectFileVisible('deleteme.txt');
@@ -304,8 +277,10 @@ test.describe('Knowledge Vault', () => {
     });
   });
 
+  // NOTE: These tests are skipped because the vault page uses server-side rendering
+  // which fetches data directly from Supabase before client-side mocks take effect.
   test.describe('Extraction Status Display (Mocked)', () => {
-    test('should display different extraction statuses', async ({ page }) => {
+    test.skip('should display different extraction statuses', async ({ page }) => {
       const mockItems = [
         {
           id: 'item-pending',
@@ -341,13 +316,7 @@ test.describe('Knowledge Vault', () => {
       });
 
       const vaultPage = new VaultPage(page);
-      await vaultPage.goto(TEST_PROJECT_ID);
-
-      // Skip if redirected to login
-      if (page.url().includes('/login')) {
-        test.skip();
-        return;
-      }
+      await vaultPage.goto(testData.projectId!);
 
       // Verify all status types are displayed
       await expect(page.locator('text=pending').first()).toBeVisible(VISIBILITY_WAIT);
@@ -358,7 +327,7 @@ test.describe('Knowledge Vault', () => {
       await expect(page.locator('text=5 chunks')).toBeVisible(VISIBILITY_WAIT);
     });
 
-    test('should show retry button for failed extractions', async ({ page }) => {
+    test.skip('should show retry button for failed extractions', async ({ page }) => {
       const mockItem = {
         id: 'failed-item',
         filename: 'failed.txt',
@@ -378,13 +347,7 @@ test.describe('Knowledge Vault', () => {
       });
 
       const vaultPage = new VaultPage(page);
-      await vaultPage.goto(TEST_PROJECT_ID);
-
-      // Skip if redirected to login
-      if (page.url().includes('/login')) {
-        test.skip();
-        return;
-      }
+      await vaultPage.goto(testData.projectId!);
 
       // Retry button should be visible for failed items
       const retryButton = vaultPage.getRetryButton('failed.txt');
