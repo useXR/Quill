@@ -80,7 +80,7 @@ export class ClaudeStream {
         const sanitizedPrompt = sanitizePrompt(prompt);
         const sanitizedContext = context ? sanitizeContext(context) : undefined;
 
-        const args = ['-p', sanitizedPrompt, '--output-format', 'stream-json'];
+        const args = ['-p', sanitizedPrompt, '--output-format', 'stream-json', '--verbose'];
         if (sanitizedContext) {
           args.push('--context', sanitizedContext);
         }
