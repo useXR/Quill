@@ -22,6 +22,40 @@
 - **Task 3.5** (Claude CLI Wrapper) - uses `sanitizePrompt`, `sanitizeContext`
 - **Task 3.7** (Streaming Module) - uses `sanitizePrompt`, `sanitizeContext`
 
+### Design System: Validation Error Display
+
+When sanitization fails (e.g., prompt too long, CLI injection detected), display validation errors using the [Quill Design System](../../design-system.md):
+
+| Validation Error          | UI Pattern                                                      |
+| ------------------------- | --------------------------------------------------------------- |
+| **Empty prompt**          | Inline error below input: `text-error text-sm font-ui`          |
+| **Prompt too long**       | Character counter turns red: `text-error`, show remaining count |
+| **CLI injection blocked** | Error alert with `bg-error-light` explaining the issue          |
+
+**Input validation styling:**
+
+```tsx
+// Normal state
+<input className="
+  w-full px-3 py-2.5
+  bg-surface
+  text-ink-primary font-ui text-base
+  placeholder:text-ink-subtle
+  border border-ink-faint rounded-md
+  focus:ring-2 focus:ring-quill focus:border-quill
+" />
+
+// Error state
+<input className="
+  w-full px-3 py-2.5
+  bg-surface
+  text-ink-primary font-ui text-base
+  border-2 border-error rounded-md
+  focus:ring-2 focus:ring-error
+" />
+<p className="text-sm font-ui text-error mt-1">{error.message}</p>
+```
+
 ### Parallel Tasks
 
 This task can be done in parallel with:

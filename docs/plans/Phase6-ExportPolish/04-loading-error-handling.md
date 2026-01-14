@@ -4,6 +4,35 @@
 
 ---
 
+## Design System Context
+
+Loading states and error handling follow the **Scholarly Craft** aesthetic with calm, professional feedback that doesn't disrupt the focused writing experience.
+
+### Key Design Tokens for This Task
+
+| Element              | Design Token                   | Purpose                                      |
+| -------------------- | ------------------------------ | -------------------------------------------- |
+| Skeleton backgrounds | `bg-bg-tertiary`               | #efecea - subtle pulse animation base        |
+| Spinner color        | `text-quill`                   | #7c3aed - brand-consistent loading indicator |
+| Error background     | `bg-error-light`               | #fee2e2 - soft red for error states          |
+| Error text           | `text-error-dark`              | #7f1d1d - accessible contrast on light bg    |
+| Success background   | `bg-success-light`             | #dcfce7 - soft green for success states      |
+| Retry button         | `bg-quill hover:bg-quill-dark` | Primary action styling                       |
+
+### Typography
+
+- **Error Headings:** `font-display text-lg font-semibold text-ink-primary`
+- **Error Messages:** `font-ui text-sm text-ink-secondary`
+- **Skeleton Text:** Hidden with `aria-hidden="true"`, screen reader text via `.sr-only`
+
+### Animation Standards
+
+- **Skeleton Pulse:** `animate-pulse motion-reduce:animate-none`
+- **Spinner:** `animate-spin motion-reduce:animate-none`
+- **All animations:** Must respect `prefers-reduced-motion`
+
+---
+
 ## Context
 
 **This task implements loading states, error boundaries, and error handling infrastructure.** Users see appropriate feedback during loading and when errors occur.
@@ -124,6 +153,11 @@ export class ValidationError extends AppError {
 Create `src/components/ui/Skeleton.tsx`:
 
 ```typescript
+/**
+ * Skeleton loading components with Scholarly Craft styling.
+ * Design tokens: bg-bg-tertiary for skeleton backgrounds, border-ink-faint for borders
+ */
+
 interface SkeletonProps {
   className?: string;
 }
@@ -131,7 +165,7 @@ interface SkeletonProps {
 export function Skeleton({ className }: SkeletonProps) {
   return (
     <div
-      className={`bg-gray-200 rounded animate-pulse motion-reduce:animate-none ${className}`}
+      className={`bg-bg-tertiary rounded animate-pulse motion-reduce:animate-none ${className}`}
       aria-hidden="true"
     />
   );
@@ -141,7 +175,7 @@ export function DocumentListSkeleton() {
   return (
     <div className="space-y-4" role="status" aria-label="Loading">
       {[...Array(5)].map((_, i) => (
-        <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
+        <div key={i} className="flex items-center gap-4 p-4 bg-surface border border-ink-faint rounded-lg">
           <Skeleton className="w-10 h-10 rounded-full" />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-4 w-3/4" />
@@ -157,9 +191,9 @@ export function DocumentListSkeleton() {
 export function EditorSkeleton() {
   return (
     <div className="space-y-4" role="status" aria-label="Loading editor">
-      <div className="flex gap-2 p-2 border-b">
+      <div className="flex gap-2 p-2 bg-bg-secondary border-b border-ink-faint">
         {[...Array(6)].map((_, i) => (
-          <Skeleton key={i} className="w-8 h-8" />
+          <Skeleton key={i} className="w-8 h-8 rounded-md" />
         ))}
       </div>
       <div className="p-4 space-y-3">
@@ -179,6 +213,11 @@ export function EditorSkeleton() {
 Create `src/components/ui/Spinner.tsx`:
 
 ```typescript
+/**
+ * Loading spinner with Scholarly Craft styling.
+ * Design tokens: text-quill for brand-consistent spinner color
+ */
+
 interface SpinnerProps {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
@@ -193,7 +232,7 @@ const sizeClasses = {
 export function Spinner({ size = 'md', className = '' }: SpinnerProps) {
   return (
     <svg
-      className={`animate-spin motion-reduce:animate-none text-blue-600 ${sizeClasses[size]} ${className}`}
+      className={`animate-spin motion-reduce:animate-none text-quill ${sizeClasses[size]} ${className}`}
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
@@ -228,6 +267,11 @@ Create `src/components/ui/ErrorFallback.tsx`:
 
 import { useEffect, useRef } from 'react';
 
+/**
+ * Error fallback component with Scholarly Craft styling.
+ * Design tokens: text-ink-*, bg-quill for retry button
+ */
+
 interface ErrorFallbackProps {
   error: Error | null;
   onRetry: () => void;
@@ -246,16 +290,16 @@ export function ErrorFallback({ error, onRetry }: ErrorFallbackProps) {
       <h2
         ref={headingRef}
         tabIndex={-1}
-        className="text-lg font-semibold text-gray-900 mb-2 outline-none"
+        className="font-display text-lg font-semibold text-ink-primary mb-2 outline-none"
       >
         Something went wrong
       </h2>
-      <p className="text-gray-600 mb-4">
+      <p className="font-ui text-sm text-ink-secondary mb-6">
         {error?.message || 'An unexpected error occurred'}
       </p>
       <button
         onClick={onRetry}
-        className="px-4 py-2 min-h-[44px] bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        className="px-4 py-2.5 min-h-[44px] bg-quill hover:bg-quill-dark text-white font-ui font-semibold text-sm rounded-md shadow-sm hover:shadow-md transition-all duration-150 motion-reduce:transition-none focus:outline-none focus:ring-2 focus:ring-quill focus:ring-offset-2"
       >
         Try Again
       </button>
@@ -336,6 +380,10 @@ Create `src/app/error.tsx`:
 
 import { useEffect, useRef } from 'react';
 
+/**
+ * Global error page with Scholarly Craft styling.
+ * Design tokens: bg-bg-primary, text-ink-*, bg-quill for retry button
+ */
 export default function Error({
   error,
   reset,
@@ -351,19 +399,19 @@ export default function Error({
   }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center" role="alert">
+    <div className="min-h-screen flex items-center justify-center bg-bg-primary" role="alert">
       <div className="max-w-md text-center p-8">
         <h1
           ref={headingRef}
           tabIndex={-1}
-          className="text-xl font-semibold mb-2 outline-none"
+          className="font-display text-xl font-semibold text-ink-primary mb-2 outline-none"
         >
           Something went wrong
         </h1>
-        <p className="text-gray-600 mb-4">{error.message}</p>
+        <p className="font-ui text-sm text-ink-secondary mb-6">{error.message}</p>
         <button
           onClick={reset}
-          className="px-4 py-2 min-h-[44px] bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="px-4 py-2.5 min-h-[44px] bg-quill hover:bg-quill-dark text-white font-ui font-semibold text-sm rounded-md shadow-sm hover:shadow-md transition-all duration-150 motion-reduce:transition-none focus:outline-none focus:ring-2 focus:ring-quill focus:ring-offset-2"
         >
           Try Again
         </button>
@@ -380,9 +428,13 @@ Create `src/app/loading.tsx`:
 ```typescript
 import { Spinner } from '@/components/ui/Spinner';
 
+/**
+ * Global loading page with Scholarly Craft styling.
+ * Design tokens: bg-bg-primary for page background, text-quill for spinner
+ */
 export default function Loading() {
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center bg-bg-primary">
       <Spinner size="lg" />
     </div>
   );
@@ -516,6 +568,11 @@ describe('Skeleton', () => {
     const { container } = render(<Skeleton />);
     expect(container.firstChild).toHaveClass('motion-reduce:animate-none');
   });
+
+  it('uses design system bg-bg-tertiary token', () => {
+    const { container } = render(<Skeleton />);
+    expect(container.firstChild).toHaveClass('bg-bg-tertiary');
+  });
 });
 
 describe('DocumentListSkeleton', () => {
@@ -580,6 +637,258 @@ git commit -m "feat: add loading states and error handling
 
 ---
 
+## E2E Tests
+
+**IMPORTANT:** E2E tests must be created as part of this task, not deferred to Task 6.7. This follows the incremental testing pattern established in earlier phases.
+
+### Create `e2e/errors/error-handling.spec.ts`
+
+Create E2E tests covering error handling functionality:
+
+```typescript
+import { test, expect } from '../fixtures/test-fixtures';
+import { checkA11y } from '../helpers/axe';
+import { TIMEOUTS } from '../config/timeouts';
+
+test.describe('Error Handling', () => {
+  test.describe('Error Boundary', () => {
+    test('displays error UI when component throws', async ({ page }) => {
+      // Navigate to a page with a component that throws
+      // This requires a test route that intentionally throws
+      await page.goto('/test/error-boundary');
+
+      // Error UI should be visible
+      const errorHeading = page.getByRole('heading', { name: /something went wrong/i });
+      await expect(errorHeading).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+
+      // Retry button should be visible
+      const retryButton = page.getByRole('button', { name: /try again/i });
+      await expect(retryButton).toBeVisible();
+    });
+
+    test('error UI has correct role="alert"', async ({ page }) => {
+      await page.goto('/test/error-boundary');
+
+      const alert = page.locator('[role="alert"]');
+      await expect(alert).toBeVisible();
+    });
+
+    test('retry button has proper touch target', async ({ page }) => {
+      await page.goto('/test/error-boundary');
+
+      const retryButton = page.getByRole('button', { name: /try again/i });
+      const box = await retryButton.boundingBox();
+
+      if (box) {
+        expect(box.height).toBeGreaterThanOrEqual(44);
+        expect(box.width).toBeGreaterThanOrEqual(44);
+      }
+    });
+
+    test('ErrorBoundary recovery works after retry click', async ({ page }) => {
+      await page.goto('/test/error-boundary');
+
+      // Error UI should be visible initially
+      const errorHeading = page.getByRole('heading', { name: /something went wrong/i });
+      await expect(errorHeading).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+
+      // Click the retry button
+      const retryButton = page.getByTestId('retry-button');
+      await retryButton.click();
+
+      // Error UI should be replaced with recovered content
+      await expect(errorHeading).not.toBeVisible();
+
+      // Recovered content should be visible
+      const recoveredContent = page.getByTestId('recovered-content');
+      await expect(recoveredContent).toBeVisible();
+      await expect(recoveredContent).toContainText('Content recovered successfully');
+
+      // Throw count should have incremented
+      const throwCount = page.getByTestId('throw-count');
+      await expect(throwCount).toContainText('Throw count: 1');
+    });
+
+    test('ErrorBoundary state is properly reset after retry', async ({ page }) => {
+      await page.goto('/test/error-boundary');
+
+      // Wait for error state
+      await expect(page.getByRole('alert')).toBeVisible();
+
+      // Click retry
+      await page.getByTestId('retry-button').click();
+
+      // Verify error boundary state is cleared (no alert role visible)
+      await expect(page.getByRole('alert')).not.toBeVisible();
+
+      // Component should render normally now
+      await expect(page.getByTestId('recovered-content')).toBeVisible();
+    });
+  });
+
+  test.describe('Skeleton Components', () => {
+    test('skeleton renders during loading', async ({ page }) => {
+      // Slow down API responses to catch loading state
+      await page.route('**/api/**', async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await route.continue();
+      });
+
+      await page.goto('/projects');
+
+      // Skeleton should be visible
+      const skeleton = page.locator('[role="status"][aria-label*="Loading"]');
+      await expect(skeleton).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+    });
+
+    test('skeleton has screen reader text', async ({ page }) => {
+      await page.route('**/api/**', async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await route.continue();
+      });
+
+      await page.goto('/projects');
+
+      // Check for sr-only loading text
+      const srText = page.locator('.sr-only').filter({ hasText: /loading/i });
+      await expect(srText).toHaveCount(1);
+    });
+  });
+
+  test.describe('Error Pages', () => {
+    test('global error page is accessible', async ({ page }) => {
+      // Navigate to the error page
+      await page.goto('/test/error-page');
+
+      // Run accessibility audit
+      await checkA11y(page, { detailedReport: true });
+    });
+
+    test('error heading receives focus on mount', async ({ page }) => {
+      await page.goto('/test/error-page');
+
+      const heading = page.getByRole('heading', { name: /something went wrong/i });
+      await expect(heading).toBeFocused();
+    });
+
+    test('error page has retry functionality', async ({ page }) => {
+      await page.goto('/test/error-page');
+
+      const retryButton = page.getByRole('button', { name: /try again/i });
+      await expect(retryButton).toBeVisible();
+      await expect(retryButton).toBeEnabled();
+    });
+  });
+});
+```
+
+### Add Test Routes (for error testing)
+
+**IMPORTANT:** Test routes must be created as part of this task to enable E2E testing of error boundaries. These routes are only accessible in development/test environments.
+
+Create `src/app/test/error-boundary/page.tsx` (development only):
+
+```typescript
+'use client';
+
+import { useState } from 'react';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+
+function ThrowingComponent({ shouldThrow }: { shouldThrow: boolean }) {
+  if (shouldThrow) {
+    throw new Error('Test error for E2E');
+  }
+  return <div data-testid="recovered-content">Content recovered successfully!</div>;
+}
+
+export default function ErrorBoundaryTest() {
+  // Only available in development/test
+  if (process.env.NODE_ENV === 'production') {
+    return null;
+  }
+
+  const [throwCount, setThrowCount] = useState(0);
+  const [shouldThrow, setShouldThrow] = useState(true);
+
+  // Custom retry handler that resets the error state
+  const handleRetry = () => {
+    setThrowCount((c) => c + 1);
+    setShouldThrow(false); // Stop throwing after retry
+  };
+
+  return (
+    <div className="p-8">
+      <h1 className="text-xl font-bold mb-4">Error Boundary Test Page</h1>
+      <p className="mb-4" data-testid="throw-count">Throw count: {throwCount}</p>
+
+      <ErrorBoundary
+        key={throwCount}
+        fallback={
+          <div role="alert" className="p-8 text-center">
+            <h2 className="font-display text-lg font-semibold text-ink-primary mb-2">
+              Something went wrong
+            </h2>
+            <p className="font-ui text-sm text-ink-secondary mb-6">
+              Test error for E2E
+            </p>
+            <button
+              onClick={handleRetry}
+              className="px-4 py-2.5 min-h-[44px] bg-quill hover:bg-quill-dark text-white font-ui font-semibold text-sm rounded-md"
+              data-testid="retry-button"
+            >
+              Try Again
+            </button>
+          </div>
+        }
+      >
+        <ThrowingComponent shouldThrow={shouldThrow} />
+      </ErrorBoundary>
+    </div>
+  );
+}
+```
+
+Create `src/app/test/error-page/page.tsx` (for global error page testing):
+
+```typescript
+'use client';
+
+export default function ErrorPageTest() {
+  // Only available in development/test
+  if (process.env.NODE_ENV === 'production') {
+    return null;
+  }
+
+  // Throw an error to trigger the global error.tsx page
+  throw new Error('Test error for global error page');
+}
+```
+
+### Run E2E Tests
+
+```bash
+npm run test:e2e -- --grep "Error Handling"
+```
+
+**Expected:** All error handling E2E tests pass
+
+---
+
+## E2E Verification
+
+Before proceeding to the next task, verify:
+
+- [ ] All unit tests pass (`npm test -- src/lib/__tests__/errors.test.ts src/components/ui/__tests__/Skeleton.test.tsx`)
+- [ ] E2E tests pass (`npm run test:e2e -- --grep "Error Handling"`)
+- [ ] Error boundary displays error UI correctly
+- [ ] Skeleton components render during loading
+- [ ] Error pages are accessible (pass checkA11y)
+- [ ] Error heading receives focus on mount (accessibility)
+
+**Do not proceed to Task 6.5 until all E2E tests pass.**
+
+---
+
 ## Verification Checklist
 
 - [ ] AppError and subclasses have correct properties and names
@@ -599,6 +908,54 @@ git commit -m "feat: add loading states and error handling
 - [ ] All interactive elements meet 44x44px touch target
 - [ ] All tests pass
 - [ ] Changes committed
+
+---
+
+## Additional E2E Tests
+
+Add to `e2e/errors/error-handling.spec.ts`:
+
+```typescript
+test('retry button actually retries the operation', async ({ page }) => {
+  let attempts = 0;
+  await page.route('**/api/projects', (route) => {
+    attempts++;
+    if (attempts === 1) {
+      route.fulfill({ status: 500 });
+    } else {
+      route.fulfill({ status: 200, json: [] });
+    }
+  });
+  // Navigate to trigger error
+  await page.goto('/projects');
+  // Verify error UI
+  await expect(page.getByRole('alert')).toBeVisible();
+  // Click retry
+  await page.getByRole('button', { name: /retry/i }).click();
+  // Verify success (error gone, content shown)
+  await expect(page.getByRole('alert')).not.toBeVisible();
+});
+
+test('network error shows user-friendly message', async ({ page }) => {
+  await page.route('**/api/**', (route) => route.abort('failed'));
+  await page.goto('/projects');
+  await expect(page.getByText(/network|connection/i)).toBeVisible();
+});
+
+test('404 error shows not found page', async ({ page, loginAsWorker }) => {
+  await loginAsWorker();
+  await page.goto('/projects/non-existent-id');
+  await expect(page.getByText(/not found/i)).toBeVisible();
+});
+```
+
+### E2E Test Execution (Required Before Proceeding)
+
+```bash
+npm run test:e2e e2e/errors/
+```
+
+**Gate:** All tests must pass before proceeding to Task 6.5.
 
 ---
 

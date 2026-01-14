@@ -8,6 +8,20 @@
 
 **This task runs all unit tests and creates E2E tests for the chat and diff features.** It ensures everything works together correctly in real browser scenarios.
 
+### Design System Testing Notes
+
+E2E tests verify visual implementation of the design system from `docs/design-system.md`:
+
+| Test Area      | Design Verification                                                     |
+| -------------- | ----------------------------------------------------------------------- |
+| ChatSidebar    | Toggle button uses `bg-quill`, panel uses `bg-surface shadow-lg`        |
+| ModeIndicator  | Correct semantic colors for each mode                                   |
+| DiffPanel      | Modal overlay with `bg-overlay`, accept/reject use success/error colors |
+| Error states   | Error banner displays with `bg-error-light text-error`                  |
+| Loading states | Spinner uses `text-ink-tertiary`, cursor uses `bg-quill animate-pulse`  |
+
+Page Objects include selectors for design-system-specific classes when verifying visual states.
+
 ### Prerequisites
 
 - **Task 4.10** completed (Integration)
@@ -18,10 +32,47 @@
 - `e2e/fixtures/claude-cli-mock.ts` - SSE mock for E2E tests
 - `e2e/pages/ChatPage.ts` - Page Object for chat sidebar
 - `e2e/pages/DiffPanelPage.ts` - Page Object for diff panel
-- `e2e/chat/chat-sidebar.spec.ts` - Chat sidebar tests
-- `e2e/diff/diff-panel.spec.ts` - Diff panel tests
-- `e2e/ai-undo/ai-undo.spec.ts` - AI undo tests
-- `e2e/chat/chat-errors.spec.ts` - Error handling tests
+
+### Complete E2E Test File List
+
+**CRITICAL:** All E2E test files must be created and pass. This is the complete list:
+
+| Test File                                          | Task | Description                                                             |
+| -------------------------------------------------- | ---- | ----------------------------------------------------------------------- |
+| `e2e/fixtures/claude-cli-mock.ts`                  | 4.3  | **Moved earlier** - SSE mock for E2E tests                              |
+| `e2e/chat/chat-components.spec.ts`                 | 4.3  | ConfirmDialog backdrop/escape, keyboard navigation                      |
+| `e2e/api/chat-api.spec.ts`                         | 4.6  | 401 auth, 429 rate limiting, message creation                           |
+| `e2e/chat/chat-sidebar.spec.ts`                    | 4.8  | Sidebar toggle, visibility, state persistence                           |
+| `e2e/chat/chat-integration.spec.ts`                | 4.8  | **CRITICAL** Chat sidebar on editor page                                |
+| `e2e/diff/diff-panel.spec.ts`                      | 4.9  | Accept/reject changes, progress                                         |
+| `e2e/diff/diff-editor-integration.spec.ts`         | 4.9  | **CRITICAL** Editor content changes after accept/reject, partial accept |
+| `e2e/ai-undo/ai-undo.spec.ts`                      | 4.9  | Undo button, history panel, restore                                     |
+| `e2e/integration/editor-diff-coordination.spec.ts` | 4.10 | Editor disabled during diff review                                      |
+| `e2e/integration/chat-persistence.spec.ts`         | 4.10 | Chat history persistence after reload                                   |
+| `e2e/integration/global-edit-flow.spec.ts`         | 4.11 | **CRITICAL** Complete global edit journey test                          |
+| `e2e/a11y/chat-diff-accessibility.spec.ts`         | 4.11 | **NEW** axe accessibility tests for ChatSidebar/DiffPanel               |
+| `e2e/chat/chat-errors.spec.ts`                     | 4.11 | Error handling, cancellation, retry                                     |
+
+### Incremental E2E Test Execution
+
+To run E2E tests incrementally during development:
+
+```bash
+# Run specific test file
+npm run test:e2e e2e/chat/chat-sidebar.spec.ts
+
+# Run all chat tests
+npm run test:e2e e2e/chat/
+
+# Run all diff tests
+npm run test:e2e e2e/diff/
+
+# Run all integration tests
+npm run test:e2e e2e/integration/
+
+# Run full Phase 4 E2E suite
+npm run test:e2e e2e/chat/ e2e/diff/ e2e/ai-undo/ e2e/integration/ e2e/api/chat-api.spec.ts
+```
 
 ### Tasks That Depend on This
 
@@ -134,11 +185,13 @@ git commit -m "feat: extend test factories with chat message and diff types"
 
 ## Task 29: E2E Test Infrastructure - Claude CLI Mock
 
+> **Note:** The `ClaudeCLIMock` fixture was **moved to Task 4.3** for earlier availability. If you've completed Task 4.3, skip this section. The code is included here for reference only.
+
 > **Best Practice:** Use ReadableStream pattern for SSE mocking (from testing-best-practices.md Phase 3 section)
 
 ### Step 1: Write the mock fixture using SSE streaming pattern
 
-Create `e2e/fixtures/claude-cli-mock.ts`:
+Create `e2e/fixtures/claude-cli-mock.ts` (if not already created in Task 4.3):
 
 ```typescript
 import { Page, Route } from '@playwright/test';
@@ -902,18 +955,590 @@ git commit -m "fix: resolve E2E test issues"
 
 ## Verification Checklist
 
+### Unit Tests & Type Check
+
 - [ ] AI test factories extended with chat/diff types
 - [ ] All unit tests pass: `npm test`
 - [ ] Type check passes: `npm run typecheck`
-- [ ] Claude CLI mock fixture created (SSE streaming pattern)
-- [ ] ChatPage page object created
-- [ ] DiffPanelPage page object created
-- [ ] Chat sidebar E2E tests use worker isolation
-- [ ] Diff panel E2E tests use Page Objects
-- [ ] AI undo E2E tests pass
-- [ ] Error/cancellation E2E tests verify no error on abort
+
+### E2E Infrastructure
+
+- [ ] Claude CLI mock fixture created (`e2e/fixtures/claude-cli-mock.ts`) - SSE streaming pattern
+- [ ] ChatPage page object created (`e2e/pages/ChatPage.ts`)
+- [ ] DiffPanelPage page object created (`e2e/pages/DiffPanelPage.ts`)
+
+### E2E Test Files - Complete List
+
+**All of the following E2E test files must exist and pass:**
+
+- [ ] `e2e/fixtures/claude-cli-mock.ts` - **Moved to Task 4.3** SSE mock for E2E tests
+- [ ] `e2e/chat/chat-components.spec.ts` - ConfirmDialog backdrop/escape, keyboard navigation
+- [ ] `e2e/api/chat-api.spec.ts` - 401 auth, 429 rate limiting, message creation
+- [ ] `e2e/chat/chat-sidebar.spec.ts` - Sidebar toggle, visibility
+- [ ] `e2e/chat/chat-integration.spec.ts` - **CRITICAL** Chat sidebar on editor page
+- [ ] `e2e/diff/diff-panel.spec.ts` - Accept/reject changes
+- [ ] `e2e/diff/diff-editor-integration.spec.ts` - **CRITICAL** Editor content changes, partial accept scenario
+- [ ] `e2e/ai-undo/ai-undo.spec.ts` - Undo button, history panel
+- [ ] `e2e/integration/editor-diff-coordination.spec.ts` - Editor disabled during diff
+- [ ] `e2e/integration/chat-persistence.spec.ts` - Chat history persistence
+- [ ] `e2e/integration/global-edit-flow.spec.ts` - **CRITICAL** Complete global edit journey
+- [ ] `e2e/a11y/chat-diff-accessibility.spec.ts` - **NEW** axe accessibility tests for ChatSidebar/DiffPanel
+- [ ] `e2e/chat/chat-errors.spec.ts` - Error handling, cancellation, retry
+
+### Final Verification
+
 - [ ] All E2E tests pass: `npm run test:e2e`
+- [ ] CRITICAL tests specifically verified:
+  - [ ] `npm run test:e2e e2e/chat/chat-integration.spec.ts`
+  - [ ] `npm run test:e2e e2e/diff/diff-editor-integration.spec.ts`
+  - [ ] `npm run test:e2e e2e/integration/global-edit-flow.spec.ts`
+- [ ] Accessibility tests pass: `npm run test:e2e e2e/a11y/chat-diff-accessibility.spec.ts`
 - [ ] Changes committed (8 commits for Tasks 28-35)
+
+---
+
+## Complete Global Edit Flow Test
+
+### Required E2E Test File: `e2e/integration/global-edit-flow.spec.ts`
+
+This test covers the complete end-to-end journey: user types request -> mode detected -> AI responds -> diff panel shows -> user accepts -> document updates.
+
+```typescript
+import { test, expect } from '../fixtures/test-fixtures';
+import { ChatPage } from '../pages/ChatPage';
+import { DiffPanelPage } from '../pages/DiffPanelPage';
+import { ClaudeCLIMock } from '../fixtures/claude-cli-mock';
+
+test.describe('Complete Global Edit Flow', () => {
+  let chatPage: ChatPage;
+  let diffPage: DiffPanelPage;
+  let claudeMock: ClaudeCLIMock;
+
+  test.beforeEach(async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    chatPage = new ChatPage(page);
+    diffPage = new DiffPanelPage(page);
+    claudeMock = new ClaudeCLIMock();
+    await claudeMock.setupRoutes(page);
+    await page.goto(`/projects/${workerCtx.projectId}/documents/${workerCtx.documentId}`);
+  });
+
+  test('CRITICAL: complete global edit journey - type request, detect mode, AI responds, diff shown, accept, document updated', async ({
+    page,
+    workerCtx,
+  }) => {
+    // STEP 1: Setup initial document content
+    const editor = page.getByTestId('document-editor').locator('.ProseMirror');
+    await editor.click();
+    await editor.fill(
+      '# Introduction\n\nThis document has lowercase headings.\n\n# methodology\n\nThis section describes methods.\n\n# results\n\nHere are the findings.'
+    );
+
+    const originalContent = await editor.textContent();
+    expect(originalContent).toContain('# methodology');
+    expect(originalContent).toContain('# results');
+
+    // STEP 2: Register mock response for heading transformation
+    claudeMock.registerResponse('change all headings', {
+      content:
+        '# Introduction\n\nThis document has lowercase headings.\n\n# Methodology\n\nThis section describes methods.\n\n# Results\n\nHere are the findings.',
+    });
+
+    // STEP 3: Open chat and type global edit request
+    await chatPage.open();
+    await chatPage.input.fill('change all headings to title case');
+
+    // STEP 4: Verify mode detection shows Global Edit
+    await chatPage.expectMode('global_edit');
+    await expect(chatPage.modeIndicator).toContainText('Global Edit');
+
+    // STEP 5: Send the request
+    await chatPage.sendButton.click();
+
+    // STEP 6: Wait for AI response to complete
+    await chatPage.waitForStreamingComplete();
+
+    // STEP 7: Verify diff panel appears
+    await diffPage.waitForPanelVisible();
+    await expect(diffPage.panel).toBeVisible();
+
+    // STEP 8: Verify diff shows the expected changes
+    const changes = page.getByTestId('diff-change');
+    await expect(changes).toHaveCount.greaterThan(0);
+
+    // Verify we can see the heading changes
+    await expect(diffPage.panel).toContainText('Methodology');
+    await expect(diffPage.panel).toContainText('Results');
+
+    // STEP 9: Accept all changes
+    await diffPage.acceptAll();
+
+    // STEP 10: Verify diff panel closes
+    await diffPage.waitForPanelHidden();
+
+    // STEP 11: CRITICAL VERIFICATION - Document content is actually updated
+    const updatedContent = await editor.textContent();
+
+    // Headings should now be title case
+    expect(updatedContent).toContain('# Methodology');
+    expect(updatedContent).toContain('# Results');
+
+    // Original lowercase versions should be gone
+    expect(updatedContent).not.toContain('# methodology');
+    expect(updatedContent).not.toContain('# results');
+
+    // Other content should remain unchanged
+    expect(updatedContent).toContain('This document has lowercase headings');
+    expect(updatedContent).toContain('This section describes methods');
+  });
+
+  test('global edit flow with rejection preserves original content', async ({ page, workerCtx }) => {
+    const editor = page.getByTestId('document-editor').locator('.ProseMirror');
+    await editor.click();
+    await editor.fill('Original content that should not change.');
+
+    const originalContent = await editor.textContent();
+
+    claudeMock.registerResponse('rewrite', { content: 'Completely different content.' });
+
+    await chatPage.open();
+    await chatPage.sendMessage('Rewrite everything');
+    await chatPage.waitForStreamingComplete();
+
+    await diffPage.waitForPanelVisible();
+
+    // Reject all changes
+    await diffPage.rejectAll();
+    await diffPage.waitForPanelHidden();
+
+    // Document should be unchanged
+    const finalContent = await editor.textContent();
+    expect(finalContent).toBe(originalContent);
+  });
+
+  test('global edit flow mode detection updates in real-time', async ({ page }) => {
+    await chatPage.open();
+
+    // Start typing a discussion question
+    await chatPage.input.fill('What is');
+    await chatPage.expectMode('discussion');
+
+    // Change to global edit
+    await chatPage.input.clear();
+    await chatPage.input.fill('Change all paragraphs');
+    await chatPage.expectMode('global_edit');
+
+    // Change to research
+    await chatPage.input.clear();
+    await chatPage.input.fill('Find papers about');
+    await chatPage.expectMode('research');
+  });
+});
+```
+
+### E2E Test Execution
+
+```bash
+npm run test:e2e e2e/integration/global-edit-flow.spec.ts
+```
+
+---
+
+## Accessibility (axe) Tests for ChatSidebar and DiffPanel
+
+### Required E2E Test File: `e2e/a11y/chat-diff-accessibility.spec.ts`
+
+Add `checkA11y()` tests for ChatSidebar and DiffPanel components.
+
+```typescript
+import { test, expect } from '../fixtures/test-fixtures';
+import AxeBuilder from '@axe-core/playwright';
+import { ChatPage } from '../pages/ChatPage';
+import { DiffPanelPage } from '../pages/DiffPanelPage';
+import { ClaudeCLIMock } from '../fixtures/claude-cli-mock';
+
+test.describe('Chat & Diff Accessibility', () => {
+  let chatPage: ChatPage;
+  let diffPage: DiffPanelPage;
+  let claudeMock: ClaudeCLIMock;
+
+  test.beforeEach(async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    chatPage = new ChatPage(page);
+    diffPage = new DiffPanelPage(page);
+    claudeMock = new ClaudeCLIMock();
+    await claudeMock.setupRoutes(page);
+    await page.goto(`/projects/${workerCtx.projectId}/documents/${workerCtx.documentId}`);
+  });
+
+  test('ChatSidebar passes axe accessibility checks', async ({ page }) => {
+    // Open chat sidebar
+    await chatPage.open();
+    await expect(chatPage.sidebar).toBeVisible();
+
+    // Run axe accessibility scan on chat sidebar
+    const accessibilityScanResults = await new AxeBuilder({ page }).include('[data-testid="chat-sidebar"]').analyze();
+
+    expect(accessibilityScanResults.violations).toEqual([]);
+  });
+
+  test('ChatSidebar with messages passes axe accessibility checks', async ({ page }) => {
+    claudeMock.registerResponse('hello', { content: 'Hello! How can I help you today?' });
+
+    await chatPage.open();
+    await chatPage.sendMessage('Hello');
+    await chatPage.waitForResponse();
+
+    // Run axe scan with messages present
+    const accessibilityScanResults = await new AxeBuilder({ page }).include('[data-testid="chat-sidebar"]').analyze();
+
+    expect(accessibilityScanResults.violations).toEqual([]);
+  });
+
+  test('ChatInput passes axe accessibility checks', async ({ page }) => {
+    await chatPage.open();
+
+    // Focus on input and type something to trigger mode indicator
+    await chatPage.input.fill('Test accessibility');
+
+    const accessibilityScanResults = await new AxeBuilder({ page })
+      .include('[data-testid="chat-input"]')
+      .include('[data-testid="chat-mode-indicator"]')
+      .analyze();
+
+    expect(accessibilityScanResults.violations).toEqual([]);
+  });
+
+  test('DiffPanel passes axe accessibility checks', async ({ page }) => {
+    // Setup: Add content and trigger global edit
+    const editor = page.getByTestId('document-editor').locator('.ProseMirror');
+    await editor.click();
+    await editor.fill('Original content for diff test.');
+
+    claudeMock.registerResponse('modify', { content: 'Modified content for diff test.' });
+
+    await chatPage.open();
+    await chatPage.sendMessage('Modify this content');
+    await chatPage.waitForStreamingComplete();
+
+    // Wait for diff panel
+    await diffPage.waitForPanelVisible();
+
+    // Run axe accessibility scan on diff panel
+    const accessibilityScanResults = await new AxeBuilder({ page }).include('[data-testid="diff-panel"]').analyze();
+
+    expect(accessibilityScanResults.violations).toEqual([]);
+  });
+
+  test('DiffPanel change cards have proper ARIA labels', async ({ page }) => {
+    const editor = page.getByTestId('document-editor').locator('.ProseMirror');
+    await editor.click();
+    await editor.fill('Content to change.');
+
+    claudeMock.registerResponse('change', { content: 'Changed content.' });
+
+    await chatPage.open();
+    await chatPage.sendMessage('Change this');
+    await chatPage.waitForStreamingComplete();
+    await diffPage.waitForPanelVisible();
+
+    // Verify accept/reject buttons have aria-labels
+    const acceptButtons = page.getByTestId('accept-change');
+    const rejectButtons = page.getByTestId('reject-change');
+
+    await expect(acceptButtons.first()).toHaveAttribute('aria-label', 'Accept this change');
+    await expect(rejectButtons.first()).toHaveAttribute('aria-label', 'Reject this change');
+  });
+
+  test('ModeIndicator passes axe accessibility checks for all modes', async ({ page }) => {
+    await chatPage.open();
+
+    // Test discussion mode
+    await chatPage.input.fill('explain this');
+    let scanResults = await new AxeBuilder({ page }).include('[data-testid="chat-mode-indicator"]').analyze();
+    expect(scanResults.violations).toEqual([]);
+
+    // Test global_edit mode
+    await chatPage.input.clear();
+    await chatPage.input.fill('change all headings');
+    scanResults = await new AxeBuilder({ page }).include('[data-testid="chat-mode-indicator"]').analyze();
+    expect(scanResults.violations).toEqual([]);
+
+    // Test research mode
+    await chatPage.input.clear();
+    await chatPage.input.fill('find papers on');
+    scanResults = await new AxeBuilder({ page }).include('[data-testid="chat-mode-indicator"]').analyze();
+    expect(scanResults.violations).toEqual([]);
+  });
+
+  test('ConfirmDialog passes axe accessibility checks', async ({ page }) => {
+    await chatPage.open();
+
+    // Trigger a destructive edit to show ConfirmDialog
+    await chatPage.input.fill('delete all paragraphs');
+    await chatPage.sendButton.click();
+
+    // Wait for confirm dialog
+    await expect(page.getByTestId('confirm-dialog')).toBeVisible();
+
+    // Run axe scan on confirm dialog
+    const accessibilityScanResults = await new AxeBuilder({ page }).include('[data-testid="confirm-dialog"]').analyze();
+
+    expect(accessibilityScanResults.violations).toEqual([]);
+
+    // Verify dialog has proper ARIA attributes
+    const dialog = page.getByTestId('confirm-dialog');
+    await expect(dialog).toHaveAttribute('role', 'dialog');
+    await expect(dialog).toHaveAttribute('aria-modal', 'true');
+    await expect(dialog).toHaveAttribute('aria-labelledby', 'confirm-title');
+    await expect(dialog).toHaveAttribute('aria-describedby', 'confirm-message');
+  });
+
+  test('AIUndoButton and history panel pass axe accessibility checks', async ({ page }) => {
+    // Setup: Complete a global edit to enable undo
+    const editor = page.getByTestId('document-editor').locator('.ProseMirror');
+    await editor.click();
+    await editor.fill('Original content.');
+
+    claudeMock.registerResponse('edit', { content: 'Edited content.' });
+
+    await chatPage.open();
+    await chatPage.sendMessage('Edit this');
+    await chatPage.waitForStreamingComplete();
+    await diffPage.waitForPanelVisible();
+    await diffPage.acceptAll();
+
+    // Check undo button accessibility
+    let scanResults = await new AxeBuilder({ page })
+      .include('[data-testid="ai-undo-button"]')
+      .include('[data-testid="ai-history-toggle"]')
+      .analyze();
+    expect(scanResults.violations).toEqual([]);
+
+    // Open history panel and check its accessibility
+    await diffPage.openHistory();
+    await expect(diffPage.historyPanel).toBeVisible();
+
+    scanResults = await new AxeBuilder({ page }).include('[data-testid="ai-history-panel"]').analyze();
+    expect(scanResults.violations).toEqual([]);
+  });
+
+  test('keyboard navigation works in ChatSidebar', async ({ page }) => {
+    await chatPage.open();
+
+    // Tab should navigate through interactive elements
+    await chatPage.input.focus();
+    await expect(chatPage.input).toBeFocused();
+
+    await page.keyboard.press('Tab');
+    await expect(chatPage.sendButton).toBeFocused();
+  });
+
+  test('keyboard navigation works in DiffPanel', async ({ page }) => {
+    const editor = page.getByTestId('document-editor').locator('.ProseMirror');
+    await editor.click();
+    await editor.fill('Test content.');
+
+    claudeMock.registerResponse('test', { content: 'Modified test content.' });
+
+    await chatPage.open();
+    await chatPage.sendMessage('Test navigation');
+    await chatPage.waitForStreamingComplete();
+    await diffPage.waitForPanelVisible();
+
+    // Tab through diff panel controls
+    await page.keyboard.press('Tab');
+    await expect(diffPage.rejectAllButton).toBeFocused();
+
+    await page.keyboard.press('Tab');
+    await expect(diffPage.acceptAllButton).toBeFocused();
+
+    // Escape should close the panel
+    await page.keyboard.press('Escape');
+    await diffPage.waitForPanelHidden();
+  });
+});
+```
+
+### E2E Test Execution
+
+```bash
+npm run test:e2e e2e/a11y/chat-diff-accessibility.spec.ts
+```
+
+---
+
+## Cross-Phase Integration Tests
+
+### Required E2E Test File: `e2e/chat/chat-cross-phase-integration.spec.ts`
+
+Create cross-phase integration tests that verify Phase 4 features work correctly with earlier phases:
+
+```typescript
+import { test, expect } from '../fixtures/test-fixtures';
+import { ChatPage } from '../pages/ChatPage';
+import { TIMEOUTS } from '../config/timeouts';
+
+test.describe('Chat Cross-Phase Integration', () => {
+  let chatPage: ChatPage;
+
+  test.beforeEach(async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    chatPage = new ChatPage(page);
+    await page.goto(`/projects/${workerCtx.projectId}/documents/${workerCtx.documentId}`);
+  });
+
+  test('editor toolbar remains functional with chat sidebar open (Phase 1)', async ({ page }) => {
+    // Verify editor is loaded
+    await expect(page.getByTestId('document-editor')).toBeVisible();
+
+    // Open chat sidebar
+    await chatPage.open();
+    await expect(chatPage.sidebar).toBeVisible();
+
+    // Use editor toolbar (bold, italic, etc.)
+    const editor = page.getByTestId('document-editor').locator('.ProseMirror');
+    await editor.click();
+    await editor.type('Test text');
+    await editor.selectText();
+
+    // Click bold button
+    await page.getByTestId('toolbar-bold').click();
+
+    // Verify formatting was applied
+    await expect(editor.locator('strong')).toContainText('Test text');
+  });
+
+  test('document autosave works while chat is active (Phase 1)', async ({ page }) => {
+    // Open chat sidebar
+    await chatPage.open();
+
+    // Edit document content
+    const editor = page.getByTestId('document-editor').locator('.ProseMirror');
+    await editor.click();
+    await editor.type('Content that should autosave');
+
+    // Verify autosave indicator appears (from Phase 1)
+    await expect(page.getByTestId('save-status')).toContainText(/saved/i, { timeout: TIMEOUTS.AUTOSAVE });
+  });
+
+  test('chat redirects to login when unauthenticated (Phase 0)', async ({ page, context }) => {
+    // Clear authentication cookies
+    await context.clearCookies();
+
+    // Try to access document with chat
+    await page.goto('/projects/test-project/documents/test-doc');
+
+    // Should redirect to login
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  test('AI streaming from Phase 3 infrastructure works with chat', async ({ page, workerCtx }) => {
+    // Setup mock using Phase 3 SSE pattern
+    await page.route('**/api/ai/chat', async (route) => {
+      const encoder = new TextEncoder();
+      const chunks = [
+        'data: {"type":"content","content":"This "}\n\n',
+        'data: {"type":"content","content":"is "}\n\n',
+        'data: {"type":"content","content":"streaming."}\n\n',
+        'data: {"type":"done"}\n\n',
+      ];
+
+      const stream = new ReadableStream({
+        async start(controller) {
+          for (const chunk of chunks) {
+            await new Promise((r) => setTimeout(r, 100));
+            controller.enqueue(encoder.encode(chunk));
+          }
+          controller.close();
+        },
+      });
+
+      await route.fulfill({
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+        body: Buffer.from(await new Response(stream).arrayBuffer()),
+      });
+    });
+
+    await chatPage.open();
+    await chatPage.sendMessage('Test SSE streaming');
+
+    // Verify streaming works
+    await chatPage.waitForStreamingComplete();
+    const messages = await chatPage.getMessages();
+    await expect(messages.last()).toContainText('This is streaming.');
+  });
+
+  test('chat messages include document context when selected (Phase 1 selection)', async ({ page }) => {
+    let capturedRequest: any = null;
+
+    await page.route('**/api/ai/chat', async (route) => {
+      capturedRequest = JSON.parse(route.request().postData() || '{}');
+      await route.fulfill({
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+        body: 'data: {"type":"content","content":"Response"}\n\ndata: {"type":"done"}\n\n',
+      });
+    });
+
+    // Add content to editor
+    const editor = page.getByTestId('document-editor').locator('.ProseMirror');
+    await editor.click();
+    await editor.type('Important research finding about climate change.');
+
+    // Select some text
+    await editor.selectText();
+
+    // Open chat and ask about selection
+    await chatPage.open();
+    await chatPage.sendMessage('Explain this selection');
+
+    // Verify request included selection context
+    await expect(async () => {
+      expect(capturedRequest).not.toBeNull();
+      // The request should include document context
+      expect(capturedRequest.documentId).toBeTruthy();
+    }).toPass();
+  });
+
+  test('word count updates correctly with AI-modified content (Phase 1)', async ({ page, workerCtx }) => {
+    await page.route('**/api/ai/global-edit', async (route) => {
+      await route.fulfill({
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+        body: 'data: {"type":"done","operationId":"op-1","modifiedContent":"One two three four five six seven eight nine ten.","diff":[{"type":"add","value":"One two three four five six seven eight nine ten.","lineNumber":1}]}\n\n',
+      });
+    });
+
+    const editor = page.getByTestId('document-editor').locator('.ProseMirror');
+    await editor.click();
+    await editor.type('Short.');
+
+    // Get initial word count
+    const initialWordCount = await page.getByTestId('word-count').textContent();
+
+    // Apply AI edit
+    await chatPage.open();
+    await chatPage.sendMessage('expand this');
+    await page.getByTestId('diff-accept-all').click();
+
+    // Word count should update
+    const newWordCount = await page.getByTestId('word-count').textContent();
+    expect(newWordCount).not.toBe(initialWordCount);
+  });
+});
+```
+
+### E2E Test Execution
+
+Before marking cross-phase integration complete, run:
+
+```bash
+npm run test:e2e e2e/chat/chat-cross-phase-integration.spec.ts
+```
+
+**Expected:** All cross-phase integration tests pass.
 
 ---
 

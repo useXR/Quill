@@ -21,6 +21,56 @@
 
 - **Task 3.13** (Selection Toolbar) - may use context building
 
+### Design System: Context Display UI
+
+When displaying context information to users (e.g., showing what context will be sent to AI), use the [Quill Design System](../../design-system.md):
+
+**Context Summary Card:**
+
+```tsx
+<div className="p-4 bg-bg-secondary rounded-lg border border-ink-faint">
+  <h4 className="font-ui text-sm font-medium text-ink-primary mb-2">Context included:</h4>
+  <ul className="space-y-1">
+    <li className="flex items-center gap-2 font-ui text-sm text-ink-secondary">
+      <FileText className="w-4 h-4 text-ink-tertiary" />
+      Current document (2,450 words)
+    </li>
+    {vaultContext.length > 0 && (
+      <li className="flex items-center gap-2 font-ui text-sm text-ink-secondary">
+        <Database className="w-4 h-4 text-ink-tertiary" />
+        {vaultContext.length} reference documents
+      </li>
+    )}
+  </ul>
+</div>
+```
+
+**Truncation Warning:**
+
+```tsx
+{
+  isTruncated && (
+    <p className="mt-2 font-ui text-xs text-warning-dark flex items-center gap-1">
+      <AlertTriangle className="w-3 h-3" />
+      Document truncated to fit context limit
+    </p>
+  );
+}
+```
+
+**Token Budget Indicator (optional advanced UI):**
+
+```tsx
+<div className="flex items-center gap-2">
+  <div className="flex-1 h-1.5 bg-bg-tertiary rounded-full overflow-hidden">
+    <div className="h-full bg-quill rounded-full" style={{ width: `${(tokenCount / AI.MAX_CONTEXT_TOKENS) * 100}%` }} />
+  </div>
+  <span className="font-mono text-xs text-ink-tertiary">
+    {tokenCount}/{AI.MAX_CONTEXT_TOKENS}
+  </span>
+</div>
+```
+
 ### Parallel Tasks
 
 This task can be done in parallel with:

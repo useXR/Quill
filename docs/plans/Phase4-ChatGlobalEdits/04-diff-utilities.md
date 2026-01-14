@@ -8,6 +8,18 @@
 
 **This task creates the diff generation and application utilities.** These functions compare original and modified content, generate structured diff output, and allow selective application of changes.
 
+### Design System Integration
+
+The diff utilities produce `DiffChange` objects that are styled by the DiffPanel component using design system tokens from `docs/design-system.md`:
+
+| Change Type | Visual Styling                       | Purpose               |
+| ----------- | ------------------------------------ | --------------------- |
+| `add`       | `bg-success-light text-success-dark` | Added content (green) |
+| `remove`    | `bg-error-light text-error-dark`     | Removed content (red) |
+| `unchanged` | No styling (skipped in UI)           | Context lines         |
+
+The `getDiffStats()` function provides counts displayed with `font-ui text-sm text-ink-secondary`.
+
 ### Prerequisites
 
 - **Task 4.1** completed (ChatContext foundation)

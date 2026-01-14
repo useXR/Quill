@@ -8,9 +8,28 @@
 
 **This task creates the intent detection system for classifying user messages.** It determines whether a message is a discussion, global edit request, or research query, enabling mode-specific UI feedback and behavior.
 
+### Design System Integration
+
+Intent detection results map directly to ModeIndicator visual states from `docs/design-system.md`:
+
+| Detected Mode | UI Styling                                             | Icon          | Description                |
+| ------------- | ------------------------------------------------------ | ------------- | -------------------------- |
+| `discussion`  | `bg-info-light text-info-dark border-info/20`          | MessageCircle | General Q&A mode           |
+| `global_edit` | `bg-warning-light text-warning-dark border-warning/20` | Edit3         | Document modification mode |
+| `research`    | `bg-success-light text-success-dark border-success/20` | Search        | Citation/research mode     |
+
+The `isDestructiveEdit()` function triggers a ConfirmDialog with `variant="danger"`:
+
+- Dialog uses `bg-error-light text-error` icon styling
+- Confirm button uses `bg-error hover:bg-error-dark`
+
 ### Prerequisites
 
 - **Task 4.1** completed (ChatContext with mode types)
+
+### E2E Test Dependencies
+
+> **Note:** E2E tests in this task depend on `ClaudeCLIMock` created in **Task 4.3**. When implementing E2E tests, ensure Task 4.3 is completed first or stub the mock locally.
 
 ### What This Task Creates
 
@@ -408,6 +427,121 @@ git commit -m "feat: add destructive edit detection for warnings"
 - [ ] Destructive edit detection tests pass
 - [ ] All tests run without errors: `npm test src/lib/ai/__tests__/intent-detection.test.ts`
 - [ ] Changes committed (4 commits for Tasks 6-9)
+
+---
+
+## E2E Tests for Intent Detection
+
+### Required E2E Test File: `e2e/chat/intent-detection.spec.ts`
+
+Create E2E tests that verify visual feedback for intent detection in real browser scenarios:
+
+```typescript
+import { test, expect } from '../fixtures/test-fixtures';
+import { ChatPage } from '../pages/ChatPage';
+import { ClaudeCLIMock } from '../fixtures/claude-cli-mock';
+
+test.describe('Intent Detection Visual Feedback', () => {
+  let chatPage: ChatPage;
+
+  test.beforeEach(async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    chatPage = new ChatPage(page);
+    await chatPage.goto(workerCtx.projectId, workerCtx.documentId);
+    await chatPage.open();
+  });
+
+  test('typing "explain this" shows Discussion mode indicator', async ({ page }) => {
+    await chatPage.typeMessage('explain this paragraph');
+    await expect(chatPage.modeIndicator).toContainText('Discussion');
+    await expect(chatPage.modeIndicator).toHaveAttribute('data-mode', 'discussion');
+  });
+
+  test('typing "change all headings" shows Global Edit mode indicator', async ({ page }) => {
+    await chatPage.typeMessage('change all headings to title case');
+    await expect(chatPage.modeIndicator).toContainText('Global Edit');
+    await expect(chatPage.modeIndicator).toHaveAttribute('data-mode', 'global_edit');
+  });
+
+  test('typing "find papers" shows Research mode indicator', async ({ page }) => {
+    await chatPage.typeMessage('find papers on machine learning');
+    await expect(chatPage.modeIndicator).toContainText('Research');
+    await expect(chatPage.modeIndicator).toHaveAttribute('data-mode', 'research');
+  });
+
+  test('typing "delete all paragraphs" triggers ConfirmDialog warning', async ({ page }) => {
+    await chatPage.typeMessage('delete all empty paragraphs');
+    await chatPage.sendButton.click();
+    await expect(page.getByRole('alertdialog')).toBeVisible();
+    await expect(page.getByText('destructive')).toBeVisible();
+  });
+
+  test('ConfirmDialog Cancel button aborts destructive edit without changes', async ({ page }) => {
+    // Type destructive edit request
+    await chatPage.typeMessage('delete all paragraphs');
+    await chatPage.sendButton.click();
+
+    // Wait for ConfirmDialog
+    await expect(page.getByRole('alertdialog')).toBeVisible();
+
+    // Click Cancel
+    await page.getByTestId('confirm-cancel').click();
+
+    // Dialog should close
+    await expect(page.getByRole('alertdialog')).not.toBeVisible();
+
+    // No request should be sent (input still has value)
+    await expect(chatPage.input).toHaveValue('delete all paragraphs');
+  });
+
+  test('ConfirmDialog Confirm button proceeds with destructive edit', async ({ page }) => {
+    // Register mock for the destructive edit
+    const claudeMock = new ClaudeCLIMock();
+    await claudeMock.setupRoutes(page);
+    claudeMock.registerResponse('delete all', { content: 'Content deleted.' });
+
+    // Type destructive edit request
+    await chatPage.typeMessage('delete all paragraphs');
+    await chatPage.sendButton.click();
+
+    // Wait for ConfirmDialog
+    await expect(page.getByRole('alertdialog')).toBeVisible();
+
+    // Click Confirm
+    await page.getByTestId('confirm-confirm').click();
+
+    // Dialog should close and request should proceed
+    await expect(page.getByRole('alertdialog')).not.toBeVisible();
+
+    // Input should be cleared (message sent)
+    await expect(chatPage.input).toHaveValue('');
+
+    // Response should arrive
+    await chatPage.waitForStreamingComplete();
+    const messages = await page.getByTestId('chat-message');
+    await expect(messages.last()).toContainText('Content deleted');
+  });
+
+  test('mode indicator updates dynamically as user types', async ({ page }) => {
+    // Start with discussion text
+    await chatPage.typeMessage('what do you think');
+    await expect(chatPage.modeIndicator).toHaveAttribute('data-mode', 'discussion');
+
+    // Clear and type edit text
+    await chatPage.input.clear();
+    await chatPage.typeMessage('change all instances');
+    await expect(chatPage.modeIndicator).toHaveAttribute('data-mode', 'global_edit');
+  });
+});
+```
+
+### E2E Test Execution (Required Before Proceeding)
+
+```bash
+npm run test:e2e e2e/chat/intent-detection.spec.ts
+```
+
+**Gate:** All tests must pass before proceeding to Task 4.3.
 
 ---
 

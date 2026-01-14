@@ -38,18 +38,19 @@
 
 ## Steps
 
-### Step 1: Install Prettier, ESLint compatibility, and accessibility packages
+### Step 1: Install Prettier and ESLint compatibility packages
 
 ```bash
-pnpm add -D prettier eslint-config-prettier eslint-plugin-jsx-a11y
+pnpm add -D prettier eslint-config-prettier
 ```
 
 **Note:** Do NOT install `eslint-plugin-prettier` - it's deprecated for flat config.
 
+**Note on jsx-a11y:** With ESLint 9 and eslint-config-next 16, the `jsx-a11y` plugin is now included automatically in the Next.js ESLint configuration. You no longer need to install or configure it separately.
+
 **Packages explained:**
 
 - `eslint-config-prettier` - Disables ESLint rules that conflict with Prettier
-- `eslint-plugin-jsx-a11y` - Lints for accessibility issues in JSX (complements axe-core in E2E tests)
 
 ### Step 2: Create Prettier config
 
@@ -91,7 +92,6 @@ import { dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { FlatCompat } from '@eslint/eslintrc';
 import prettierConfig from 'eslint-config-prettier';
-import jsxA11y from 'eslint-plugin-jsx-a11y';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -101,19 +101,9 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
+  // Next.js config now includes jsx-a11y automatically in ESLint 9
   ...compat.extends('next/core-web-vitals', 'next/typescript'),
   prettierConfig,
-
-  // Accessibility rules for JSX
-  {
-    files: ['**/*.tsx', '**/*.jsx'],
-    plugins: {
-      'jsx-a11y': jsxA11y,
-    },
-    rules: {
-      ...jsxA11y.configs.recommended.rules,
-    },
-  },
 
   // Relax TypeScript rules for test files (mocks inherently produce `any`)
   {
@@ -130,6 +120,8 @@ const eslintConfig = [
 
 export default eslintConfig;
 ```
+
+**Note:** ESLint 9 uses the flat config format. The Next.js ESLint config (`eslint-config-next@16`) now automatically includes jsx-a11y for accessibility linting.
 
 **Note:** The test file relaxation is important because mocks inherently produce `any` types, and strict TypeScript rules would require excessive type casting in tests.
 
@@ -199,7 +191,7 @@ git commit -m "chore: configure ESLint, Prettier, and pre-commit hooks"
 
 - [ ] `.prettierrc` created with settings
 - [ ] `.prettierignore` created
-- [ ] `eslint.config.mjs` updated with flat config and jsx-a11y plugin
+- [ ] `eslint.config.mjs` updated with flat config (jsx-a11y included via next config)
 - [ ] `pnpm exec eslint --print-config` succeeds
 - [ ] `pnpm format` runs without errors
 - [ ] `pnpm lint` runs without errors

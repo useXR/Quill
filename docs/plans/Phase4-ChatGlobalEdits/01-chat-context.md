@@ -8,9 +8,99 @@
 
 **This task creates the ChatContext reducer for managing chat sidebar state.** It provides the foundation for all chat-related features including message management, sidebar visibility, and streaming state.
 
+### Design System Note
+
+While ChatContext is a state management layer (no UI), it provides data structures that UI components consume. The `ChatMessage` type includes fields that map to design system styling in `docs/design-system.md`:
+
+| Field                 | UI Mapping       | Design Tokens                           |
+| --------------------- | ---------------- | --------------------------------------- |
+| `mode: 'discussion'`  | ModeIndicator    | `text-info-dark`, `bg-info-light`       |
+| `mode: 'global_edit'` | ModeIndicator    | `text-warning-dark`, `bg-warning-light` |
+| `mode: 'research'`    | ModeIndicator    | `text-success-dark`, `bg-success-light` |
+| `status: 'streaming'` | Cursor animation | `bg-quill`, `animate-pulse`             |
+| `status: 'error'`     | Error styling    | `text-error`, `bg-error-light`          |
+| `role: 'user'`        | User avatar      | `bg-bg-tertiary`, `text-ink-secondary`  |
+| `role: 'assistant'`   | Claude avatar    | `bg-quill-lighter`, `text-quill`        |
+
 ### Prerequisites
 
 - Pre-flight checklist from [00-overview.md](./00-overview.md) completed
+
+### CRITICAL: E2E Test Fixture Prerequisite
+
+**Before implementing any Phase 4 features**, the E2E test fixtures must be updated to support Phase 4 testing. The `WorkerContext` interface in `/home/arobb/Dev/Quill/e2e/fixtures/test-fixtures.ts` is missing `projectId` and `documentId` fields that are required by all Phase 4 E2E tests.
+
+#### Required Update to `e2e/fixtures/test-fixtures.ts`
+
+Update the `WorkerContext` interface and worker fixture to include project and document IDs:
+
+```typescript
+// Worker context for parallel test isolation
+export interface WorkerContext {
+  workerIndex: number;
+  account: { email: string; name: string };
+  prefix: (name: string) => string;
+  projectId: string; // ADDED: Required for Phase 4 E2E tests
+  documentId: string; // ADDED: Required for Phase 4 E2E tests
+}
+```
+
+Update the worker fixture to create a test project and document during setup:
+
+```typescript
+workerCtx: [
+  async ({}, use: (ctx: WorkerContext) => Promise<void>, workerInfo: WorkerInfo) => {
+    const runId = Math.random().toString(36).substring(2, 6);
+    const account = getWorkerAccount(workerInfo.parallelIndex);
+
+    // Create test project and document for this worker
+    const projectId = await createTestProject(account.email, `Test Project W${workerInfo.parallelIndex}`);
+    const documentId = await createTestDocument(projectId, `Test Document W${workerInfo.parallelIndex}`);
+
+    const ctx: WorkerContext = {
+      workerIndex: workerInfo.parallelIndex,
+      account: { email: account.email, name: account.name },
+      prefix: (name: string) => `W${workerInfo.parallelIndex}_${runId}_${name}`,
+      projectId,
+      documentId,
+    };
+
+    await use(ctx);
+
+    // Cleanup after worker tests complete
+    await cleanupTestDocument(documentId);
+    await cleanupTestProject(projectId);
+  },
+  { scope: 'worker' },
+],
+```
+
+Also add a `loginAsWorker` fixture for authenticated test setup:
+
+```typescript
+type TestFixtures = {
+  authenticatedPage: Page;
+  loginWithFreshMagicLink: (email?: string) => Promise<void>;
+  loginAsWorker: () => Promise<void>; // ADDED: Login with worker credentials
+};
+
+// In the fixture definition:
+loginAsWorker: async ({ page, workerCtx }, use) => {
+  const login = async () => {
+    await loginWithMagicLink(page, workerCtx.account.email);
+  };
+  await use(login);
+},
+```
+
+**Why This Is Critical:**
+
+- All Phase 4 E2E tests use `workerCtx.projectId` and `workerCtx.documentId`
+- The `loginAsWorker` pattern is used in all chat and diff E2E test files
+- Without these fields, ALL Phase 4 E2E tests will fail with TypeScript errors
+
+**Verification:**
+After updating, run `npm run typecheck` to ensure the fixture types are correct.
 
 ### What This Task Creates
 
@@ -116,9 +206,9 @@ const ChatContext = createContext<{
 export function ChatProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(chatReducer, initialState);
   return (
-    <ChatContext.Provider value={{ state, dispatch }}>
+    <ChatContext value={{ state, dispatch }}>
       {children}
-    </ChatContext.Provider>
+    </ChatContext>
   );
 }
 

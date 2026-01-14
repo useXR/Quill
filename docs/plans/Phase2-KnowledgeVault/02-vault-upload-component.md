@@ -8,6 +8,8 @@
 
 **This task creates the drag-and-drop file upload component using Test-Driven Development.** It handles file selection, validation, and upload to the API.
 
+> **Design System:** This component follows the "Scholarly Craft" aesthetic. See [`docs/design-system.md`](../../design-system.md) for full specifications.
+
 ### Prerequisites
 
 - **Task 2.0** completed (constants and types available)
@@ -131,7 +133,8 @@ Add to test file:
     const dropZone = screen.getByTestId('vault-upload-zone');
 
     fireEvent.dragOver(dropZone);
-    expect(dropZone).toHaveClass('border-blue-500');
+    // Design system: drag-over uses quill accent border
+    expect(dropZone).toHaveClass('border-quill');
   });
 
   it('resets drag state on drag leave', () => {
@@ -140,7 +143,8 @@ Add to test file:
 
     fireEvent.dragOver(dropZone);
     fireEvent.dragLeave(dropZone);
-    expect(dropZone).not.toHaveClass('border-blue-500');
+    // Design system: default border is ink-faint
+    expect(dropZone).not.toHaveClass('border-quill');
   });
 ```
 
@@ -160,10 +164,13 @@ npm test src/components/vault/__tests__/VaultUpload.test.tsx
 
 Update `src/components/vault/VaultUpload.tsx`:
 
+> **Design System:** Uses Quill design tokens for the "Scholarly Craft" aesthetic. See [`docs/design-system.md`](../../design-system.md).
+
 ```typescript
 'use client';
 
 import { useState, useCallback } from 'react';
+import { Upload } from 'lucide-react';
 
 interface VaultUploadProps {
   projectId: string;
@@ -186,12 +193,21 @@ export function VaultUpload({ projectId, onUpload, disabled = false }: VaultUplo
   return (
     <div
       data-testid="vault-upload-zone"
-      className={`border-2 border-dashed rounded-lg p-8 text-center ${dragOver ? 'border-blue-500' : 'border-gray-300'}`}
+      className={`
+        border-2 border-dashed rounded-lg p-8 text-center
+        transition-all duration-150
+        ${dragOver
+          ? 'border-quill bg-quill-lighter'
+          : 'border-ink-faint bg-bg-secondary hover:border-ink-subtle hover:bg-surface-hover'
+        }
+        ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+      `}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
     >
-      <p>Drag files here</p>
-      <p>PDF, DOCX, or TXT</p>
+      <Upload className="w-8 h-8 mx-auto mb-3 text-ink-tertiary" />
+      <p className="font-ui font-medium text-ink-primary">Drag files here</p>
+      <p className="font-ui text-sm text-ink-tertiary mt-1">PDF, DOCX, or TXT</p>
     </div>
   );
 }

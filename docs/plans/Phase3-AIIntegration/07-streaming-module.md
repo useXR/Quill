@@ -22,6 +22,48 @@
 
 - **Task 3.10** (SSE API Route) - uses `ClaudeStream` class
 
+### Design System: Streaming UI Patterns
+
+When displaying streaming content in the UI, follow the [Quill Design System](../../design-system.md) "Scholarly Craft" aesthetic:
+
+**Streaming Preview Container:**
+
+```tsx
+<div
+  className="
+  p-4
+  bg-surface-muted
+  border border-ink-faint rounded-lg
+  font-prose text-base text-ink-primary
+  leading-relaxed
+  max-h-48 overflow-y-auto
+"
+>
+  {streamingContent}
+  {isStreaming && <span className="inline-block w-0.5 h-4 bg-quill animate-pulse ml-0.5" />}
+</div>
+```
+
+**Streaming Progress Indicator:**
+
+- Use `text-quill` for the animated cursor/caret
+- No flashy animations - just a subtle pulsing cursor (`animate-pulse`)
+- Content appears naturally without letter-by-letter animation (per "unhurried" motion philosophy)
+
+**Streaming Status Bar:**
+
+```tsx
+<div className="flex items-center gap-2 py-2 text-xs font-ui text-ink-tertiary">
+  <Loader2 className="w-3 h-3 text-quill animate-spin" />
+  <span>Generating response...</span>
+</div>
+```
+
+**Heartbeat Visual (connection keepalive):**
+
+- No visual indicator needed - heartbeats are internal
+- Only show loading state while actively streaming
+
 ### Parallel Tasks
 
 This task can be done in parallel with:

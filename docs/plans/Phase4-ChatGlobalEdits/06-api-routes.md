@@ -8,6 +8,19 @@
 
 **This task creates the API routes for chat, streaming, global edits, and AI operations.** These Next.js API routes handle authentication, validation, rate limiting, and SSE streaming.
 
+### Design System Note
+
+API routes produce error responses that are displayed in the UI following `docs/design-system.md`:
+
+| HTTP Status      | Frontend Component | Design Tokens                        |
+| ---------------- | ------------------ | ------------------------------------ |
+| 401 Unauthorized | Redirect to login  | N/A                                  |
+| 400 Validation   | Chat error banner  | `bg-error-light text-error font-ui`  |
+| 429 Rate limit   | Toast with retry   | `bg-warning-light text-warning-dark` |
+| 500 Server error | Chat error banner  | `bg-error-light text-error`          |
+
+SSE streaming events update the ChatMessage component with `status: 'streaming'`, which displays the animated cursor using `bg-quill animate-pulse`.
+
 ### Prerequisites
 
 - **Task 4.5** completed (API helpers)
@@ -1106,7 +1119,7 @@ import { logger } from '@/lib/logger';
 const aiLogger = (context: { userId?: string; operationId?: string }) =>
   logger.child({ domain: 'ai', operation: 'update-operation', ...context });
 
-// Next.js 15 dynamic route params pattern (Best Practice: Await params in App Router)
+// Next.js 16 dynamic route params pattern (Best Practice: Await params in App Router)
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
@@ -1160,6 +1173,210 @@ git commit -m "feat: add AI operations update route with tests"
 
 ---
 
+## E2E Tests
+
+### Required E2E Test File: `e2e/api/chat-api.spec.ts`
+
+Create E2E tests that verify API behavior with real HTTP requests:
+
+```typescript
+import { test, expect } from '../fixtures/test-fixtures';
+import { TIMEOUTS } from '../config/timeouts';
+
+test.describe('Chat API E2E Tests', () => {
+  test.describe('Authentication', () => {
+    test('should return 401 for unauthenticated requests to /api/chat/history', async ({ request }) => {
+      // Make request without authentication
+      const response = await request.get('/api/chat/history?projectId=550e8400-e29b-41d4-a716-446655440000');
+
+      expect(response.status()).toBe(401);
+      const body = await response.json();
+      expect(body.code).toBe('UNAUTHORIZED');
+    });
+
+    test('should return 401 for unauthenticated requests to /api/ai/chat', async ({ request }) => {
+      const response = await request.post('/api/ai/chat', {
+        data: {
+          content: 'Test message',
+          documentId: '550e8400-e29b-41d4-a716-446655440000',
+          projectId: '550e8400-e29b-41d4-a716-446655440001',
+        },
+      });
+
+      expect(response.status()).toBe(401);
+    });
+  });
+
+  test.describe('Rate Limiting', () => {
+    test('should return 429 with retryAfter when rate limit exceeded', async ({ page, workerCtx, loginAsWorker }) => {
+      await loginAsWorker();
+
+      // Make rapid requests to trigger rate limit
+      const requests: Promise<Response>[] = [];
+      for (let i = 0; i < 25; i++) {
+        requests.push(
+          page.request.post('/api/ai/chat', {
+            data: {
+              content: `Test message ${i}`,
+              documentId: workerCtx.documentId,
+              projectId: workerCtx.projectId,
+            },
+          })
+        );
+      }
+
+      const responses = await Promise.all(requests);
+
+      // At least one should be rate limited
+      const rateLimited = responses.filter((r) => r.status() === 429);
+      expect(rateLimited.length).toBeGreaterThan(0);
+
+      // Check retryAfter header or body field
+      const rateLimitedResponse = rateLimited[0];
+      const body = await rateLimitedResponse.json();
+      expect(body.code).toBe('RATE_LIMIT_EXCEEDED');
+      expect(body.retryAfter).toBeGreaterThan(0);
+    });
+  });
+
+  test.describe('Successful Operations', () => {
+    test('should create chat message and return SSE stream', async ({ page, workerCtx, loginAsWorker }) => {
+      await loginAsWorker();
+
+      // Navigate to set up cookies
+      await page.goto(`/projects/${workerCtx.projectId}/documents/${workerCtx.documentId}`);
+
+      // Make authenticated request
+      const response = await page.request.post('/api/ai/chat', {
+        data: {
+          content: 'Hello, this is a test message',
+          documentId: workerCtx.documentId,
+          projectId: workerCtx.projectId,
+          mode: 'discussion',
+        },
+      });
+
+      expect(response.status()).toBe(200);
+      expect(response.headers()['content-type']).toContain('text/event-stream');
+    });
+  });
+});
+```
+
+### Additional E2E Tests
+
+Add to `e2e/api/chat-api.spec.ts`:
+
+```typescript
+test.describe('Global Edit API', () => {
+  test('global-edit endpoint returns diff with changes', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    await page.goto(`/projects/${workerCtx.projectId}/documents/${workerCtx.documentId}`);
+
+    const response = await page.request.post('/api/ai/global-edit', {
+      data: {
+        instruction: 'Make this more formal',
+        currentContent: 'This is some casual text.',
+        documentId: workerCtx.documentId,
+        projectId: workerCtx.projectId,
+      },
+    });
+
+    expect(response.status()).toBe(200);
+    expect(response.headers()['content-type']).toContain('text/event-stream');
+
+    // Parse SSE response and verify diff structure
+    const body = await response.text();
+    expect(body).toContain('"type":"done"');
+    expect(body).toContain('"diff"');
+    expect(body).toContain('"operationId"');
+  });
+
+  test('global-edit endpoint validates instruction length', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    await page.goto(`/projects/${workerCtx.projectId}/documents/${workerCtx.documentId}`);
+
+    // Send instruction exceeding max length
+    const longInstruction = 'x'.repeat(50001);
+    const response = await page.request.post('/api/ai/global-edit', {
+      data: {
+        instruction: longInstruction,
+        currentContent: 'Test content',
+        documentId: workerCtx.documentId,
+        projectId: workerCtx.projectId,
+      },
+    });
+
+    expect(response.status()).toBe(400);
+    const body = await response.json();
+    expect(body.code).toBe('VALIDATION_ERROR');
+  });
+});
+
+test.describe('Authorization', () => {
+  test('user cannot access another user chat history', async ({ page, request, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+
+    // Create a chat message first
+    await page.goto(`/projects/${workerCtx.projectId}/documents/${workerCtx.documentId}`);
+
+    // Attempt to access chat history with a different user's project ID
+    // This should be blocked by RLS policies
+    const fakeProjectId = '00000000-0000-0000-0000-000000000000';
+    const response = await page.request.get(`/api/chat/history?projectId=${fakeProjectId}`);
+
+    // Should return empty array or 403 forbidden based on RLS
+    expect([200, 403]).toContain(response.status());
+    if (response.status() === 200) {
+      const body = await response.json();
+      expect(body.data).toEqual([]);
+    }
+  });
+
+  test('user cannot update another user AI operation', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    await page.goto(`/projects/${workerCtx.projectId}/documents/${workerCtx.documentId}`);
+
+    // Attempt to update a non-existent or other user's operation
+    const fakeOperationId = '00000000-0000-0000-0000-000000000000';
+    const response = await page.request.patch(`/api/ai/operations/${fakeOperationId}`, {
+      data: { status: 'accepted' },
+    });
+
+    expect([403, 404, 500]).toContain(response.status());
+  });
+});
+
+test.describe('Input Sanitization', () => {
+  test('API rejects prompt starting with CLI flags', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    await page.goto(`/projects/${workerCtx.projectId}/documents/${workerCtx.documentId}`);
+
+    const response = await page.request.post('/api/ai/chat', {
+      data: {
+        content: '--help inject attack',
+        documentId: workerCtx.documentId,
+        projectId: workerCtx.projectId,
+      },
+    });
+
+    expect(response.status()).toBe(400);
+    const body = await response.json();
+    expect(body.code).toBe('SANITIZATION_ERROR');
+  });
+});
+```
+
+### E2E Test Execution (Required Before Proceeding)
+
+```bash
+npm run test:e2e e2e/api/chat-api.spec.ts
+```
+
+**Gate:** All tests must pass before proceeding to Task 4.7.
+
+---
+
 ## Verification Checklist
 
 - [ ] Chat history route returns 401 for unauthenticated
@@ -1169,7 +1386,8 @@ git commit -m "feat: add AI operations update route with tests"
 - [ ] Operations list requires documentId
 - [ ] Operations update modifies status
 - [ ] All routes handle errors gracefully
-- [ ] All tests pass
+- [ ] All unit tests pass
+- [ ] **E2E tests pass:** `npm run test:e2e e2e/api/chat-api.spec.ts`
 - [ ] Changes committed (5 commits for Tasks 18-21b)
 
 ---

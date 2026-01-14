@@ -231,7 +231,7 @@ export function Editor({
   if (!editor) return null;
 
   return (
-    <div className="border rounded-lg bg-white shadow-sm">
+    <div className="border rounded-lg bg-white shadow-xs">
       <EditorContent editor={editor} />
     </div>
   );

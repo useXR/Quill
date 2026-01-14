@@ -21,6 +21,51 @@
 
 - **Task 3.13** (Selection Toolbar) - uses this hook for AI operations
 
+### Design System: Hook State UI Mapping
+
+Components using this hook should render states according to the [Quill Design System](../../design-system.md):
+
+| Hook State                           | UI Rendering                                                         |
+| ------------------------------------ | -------------------------------------------------------------------- |
+| `isStreaming: true`                  | Show loading spinner (`text-quill animate-spin`) + streaming preview |
+| `isStreaming: false, content: ''`    | Idle state, show action buttons                                      |
+| `isStreaming: false, content: '...'` | Show preview with Accept/Reject                                      |
+| `error !== null`                     | Show error alert (`bg-error-light text-error-dark`)                  |
+
+**Example usage with design system tokens:**
+
+```tsx
+function AIStreamingUI() {
+  const { content, isStreaming, error, startStream, cancel } = useAIStream({
+    onChunk: (chunk) => console.log('Received:', chunk),
+  });
+
+  return (
+    <div className="p-4 bg-surface rounded-lg border border-ink-faint shadow-sm">
+      {isStreaming && (
+        <div className="flex items-center gap-2 mb-3">
+          <Loader2 className="w-4 h-4 text-quill animate-spin" />
+          <span className="font-ui text-sm text-ink-tertiary">Generating...</span>
+        </div>
+      )}
+
+      {content && (
+        <div className="font-prose text-base text-ink-primary leading-relaxed">
+          {content}
+          {isStreaming && <span className="inline-block w-0.5 h-4 bg-quill animate-pulse ml-0.5" />}
+        </div>
+      )}
+
+      {error && (
+        <div role="alert" className="p-3 bg-error-light rounded-md">
+          <p className="font-ui text-sm text-error-dark">{error.message}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
 ### Parallel Tasks
 
 This task can be done in parallel with:

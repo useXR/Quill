@@ -50,7 +50,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '24'
 
 jobs:
   lint:
@@ -302,7 +302,7 @@ git commit -m "chore: add GitHub Actions CI workflow"
 
 | Setting             | Value              | Purpose                           |
 | ------------------- | ------------------ | --------------------------------- |
-| Node version        | 20                 | Match project requirements        |
+| Node version        | 24                 | Match project requirements        |
 | pnpm cache          | enabled            | Faster dependency installation    |
 | Playwright browsers | Chromium only      | Faster E2E runs in CI             |
 | E2E port            | 3088               | Isolated from other services      |

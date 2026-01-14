@@ -169,63 +169,72 @@ Warm, papery backgrounds with deep ink-inspired accents. The palette evokes qual
 | Warning states        | `--color-warning`       |
 | Error states          | `--color-error`         |
 
-### Tailwind Configuration
+### Tailwind v4 Theme Configuration
 
-```javascript
-// tailwind.config.ts
-import type { Config } from 'tailwindcss';
+Tailwind CSS v4 uses a CSS-first configuration approach with the `@theme` directive. Define custom design tokens directly in your CSS file (typically `globals.css`).
 
-const config: Config = {
-  theme: {
-    extend: {
-      colors: {
-        bg: {
-          primary: 'var(--color-bg-primary)',
-          secondary: 'var(--color-bg-secondary)',
-          tertiary: 'var(--color-bg-tertiary)',
-        },
-        surface: {
-          DEFAULT: 'var(--color-surface)',
-          muted: 'var(--color-surface-muted)',
-          hover: 'var(--color-surface-hover)',
-          active: 'var(--color-surface-active)',
-        },
-        ink: {
-          primary: 'var(--color-ink-primary)',
-          secondary: 'var(--color-ink-secondary)',
-          tertiary: 'var(--color-ink-tertiary)',
-          subtle: 'var(--color-ink-subtle)',
-          faint: 'var(--color-ink-faint)',
-        },
-        quill: {
-          DEFAULT: 'var(--color-quill)',
-          dark: 'var(--color-quill-dark)',
-          darker: 'var(--color-quill-darker)',
-          light: 'var(--color-quill-light)',
-          lighter: 'var(--color-quill-lighter)',
-        },
-        success: {
-          DEFAULT: 'var(--color-success)',
-          light: 'var(--color-success-light)',
-          dark: 'var(--color-success-dark)',
-        },
-        warning: {
-          DEFAULT: 'var(--color-warning)',
-          light: 'var(--color-warning-light)',
-          dark: 'var(--color-warning-dark)',
-        },
-        error: {
-          DEFAULT: 'var(--color-error)',
-          light: 'var(--color-error-light)',
-          dark: 'var(--color-error-dark)',
-        },
-      },
-    },
-  },
-};
+```css
+/* src/app/globals.css */
+@import 'tailwindcss';
 
-export default config;
+@theme {
+  /* Background colors */
+  --color-bg-primary: #faf8f5;
+  --color-bg-secondary: #f5f3f0;
+  --color-bg-tertiary: #efecea;
+
+  /* Surface colors */
+  --color-surface: #ffffff;
+  --color-surface-muted: #fdfcfb;
+  --color-surface-hover: #f9f8f7;
+  --color-surface-active: #f5f4f2;
+
+  /* Ink (text) colors */
+  --color-ink-primary: #1c1917;
+  --color-ink-secondary: #44403c;
+  --color-ink-tertiary: #78716c;
+  --color-ink-subtle: #a8a29e;
+  --color-ink-faint: #d6d3d1;
+
+  /* Quill (brand) colors */
+  --color-quill: #7c3aed;
+  --color-quill-dark: #6d28d9;
+  --color-quill-darker: #5b21b6;
+  --color-quill-light: #ede9fe;
+  --color-quill-lighter: #f5f3ff;
+
+  /* Semantic colors */
+  --color-success: #166534;
+  --color-success-light: #dcfce7;
+  --color-success-dark: #14532d;
+
+  --color-warning: #a16207;
+  --color-warning-light: #fef3c7;
+  --color-warning-dark: #854d0e;
+
+  --color-error: #991b1b;
+  --color-error-light: #fee2e2;
+  --color-error-dark: #7f1d1d;
+
+  --color-info: #1e40af;
+  --color-info-light: #dbeafe;
+  --color-info-dark: #1e3a8a;
+
+  /* Font families */
+  --font-display: 'Libre Baskerville', 'Georgia', 'Times New Roman', serif;
+  --font-prose: 'Libre Baskerville', 'Georgia', 'Times New Roman', serif;
+  --font-ui: 'Source Sans 3', 'Segoe UI', 'Roboto', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+}
 ```
+
+These theme variables automatically generate utility classes. For example:
+
+- `--color-quill` → `bg-quill`, `text-quill`, `border-quill`
+- `--color-ink-primary` → `bg-ink-primary`, `text-ink-primary`
+- `--font-display` → `font-display`
+
+> **Note:** Tailwind v4 no longer requires a `tailwind.config.ts` file for theme customization. All theme tokens are defined in CSS using the `@theme` directive.
 
 ---
 
@@ -1375,22 +1384,54 @@ Tailwind classes automatically adapt when using CSS custom properties.
 
 ### Step 1: Update Global Styles
 
-Replace `src/app/globals.css`:
+Replace `src/app/globals.css` with Tailwind v4's CSS-first approach:
 
 ```css
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Tailwind v4 uses @import instead of @tailwind directives */
+@import 'tailwindcss';
 
-/* Import design system tokens */
+/* Define design tokens using @theme directive */
+@theme {
+  /* Background colors */
+  --color-bg-primary: #faf8f5;
+  --color-bg-secondary: #f5f3f0;
+  --color-bg-tertiary: #efecea;
+
+  /* Surface colors */
+  --color-surface: #ffffff;
+  --color-surface-muted: #fdfcfb;
+  --color-surface-hover: #f9f8f7;
+  --color-surface-active: #f5f4f2;
+
+  /* Ink (text) colors */
+  --color-ink-primary: #1c1917;
+  --color-ink-secondary: #44403c;
+  --color-ink-tertiary: #78716c;
+  --color-ink-subtle: #a8a29e;
+  --color-ink-faint: #d6d3d1;
+
+  /* Quill (brand) colors */
+  --color-quill: #7c3aed;
+  --color-quill-dark: #6d28d9;
+  --color-quill-darker: #5b21b6;
+  --color-quill-light: #ede9fe;
+  --color-quill-lighter: #f5f3ff;
+
+  /* Semantic colors - see Color System section for full list */
+
+  /* Font families */
+  --font-display: 'Libre Baskerville', 'Georgia', 'Times New Roman', serif;
+  --font-prose: 'Libre Baskerville', 'Georgia', 'Times New Roman', serif;
+  --font-ui: 'Source Sans 3', 'Segoe UI', 'Roboto', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+}
+
+/* Base layer for global styles */
 @layer base {
-  :root {
-    /* Paste all CSS custom properties from Color System section */
-  }
-
+  /* Dark mode overrides using CSS custom properties */
   @media (prefers-color-scheme: dark) {
     :root {
-      /* Paste dark mode overrides */
+      /* Override theme colors for dark mode - see Dark Mode section */
     }
   }
 
@@ -1405,9 +1446,11 @@ Replace `src/app/globals.css`:
 }
 ```
 
-### Step 2: Update Tailwind Config
+### Step 2: Remove tailwind.config.ts (Optional)
 
-Update `tailwind.config.ts` with extended theme (see Color System section).
+Tailwind v4 no longer requires a JavaScript configuration file. All theme customization is done via the `@theme` directive in CSS. You can delete `tailwind.config.ts` if it only contains theme extensions—these are now defined in `globals.css`.
+
+> **Migration note:** If you have plugins or complex configurations in `tailwind.config.ts`, you can keep the file. Tailwind v4 still supports JavaScript config for advanced use cases like plugins.
 
 ### Step 3: Update Layout with Fonts
 
@@ -1484,5 +1527,5 @@ EFFECTS
 
 ---
 
-_Last updated: January 2025_
-_Version: 1.0_
+_Last updated: January 2026_
+_Version: 1.1 — Updated for Tailwind CSS v4_

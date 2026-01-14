@@ -8,6 +8,19 @@
 
 **This task creates helper functions for chat history, AI operations, and Claude CLI streaming.** These utilities abstract database operations and subprocess management for the API layer.
 
+### Design System Note
+
+While API helpers are backend code (no UI), their error responses map to frontend toast/error displays following `docs/design-system.md`:
+
+| Error Type       | Frontend Display   | Design Tokens                        |
+| ---------------- | ------------------ | ------------------------------------ |
+| Validation error | Inline form error  | `text-error text-sm`                 |
+| Rate limit       | Toast notification | `bg-warning-light text-warning-dark` |
+| Server error     | Toast notification | `bg-error-light text-error`          |
+| Streaming error  | Chat error banner  | `bg-error-light text-error`          |
+
+Error messages should be user-friendly strings displayed with `font-ui`.
+
 ### Prerequisites
 
 - **Task 4.2** completed (Intent detection)

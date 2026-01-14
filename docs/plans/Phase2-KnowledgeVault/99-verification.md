@@ -8,6 +8,8 @@
 
 **This checklist verifies that all Phase 2 tasks are complete and working, with all testing best practices followed.**
 
+> **Design System:** All UI components must follow the "Scholarly Craft" aesthetic documented in [`docs/design-system.md`](../../design-system.md).
+
 ---
 
 ## Automated Verification
@@ -208,6 +210,32 @@ npx supabase status
 - [ ] API routes use `handleApiError` pattern for error handling
 - [ ] No `console.log`/`console.error` in production code (use `vaultLogger`)
 - [ ] Client components show user-friendly error messages (not console.error)
+
+### Design System Compliance
+
+> See [`docs/design-system.md`](../../design-system.md) for full token reference.
+
+- [ ] All components use design system color tokens (not hardcoded colors)
+  - `bg-quill`, `text-quill` for brand accent
+  - `bg-surface`, `bg-bg-primary` for backgrounds
+  - `text-ink-primary`, `text-ink-secondary`, `text-ink-tertiary` for text
+  - `text-success`, `text-error`, `text-warning` for semantic colors
+- [ ] All components use design system typography
+  - `font-display` (Libre Baskerville) for headings
+  - `font-ui` (Source Sans 3) for UI text and labels
+  - `font-prose` for document content
+- [ ] All buttons use proper design system patterns
+  - Primary: `bg-quill hover:bg-quill-dark text-white font-ui font-semibold`
+  - Focus states: `focus:ring-2 focus:ring-quill focus:ring-offset-2`
+- [ ] All cards use proper design system patterns
+  - `bg-surface border border-ink-faint rounded-lg shadow-sm`
+  - Interactive: `hover:shadow-md hover:border-ink-subtle transition-all`
+- [ ] All inputs use proper design system patterns
+  - `bg-surface border border-ink-faint rounded-md`
+  - Focus: `focus:ring-2 focus:ring-quill focus:border-quill`
+- [ ] Empty states use `font-display` for headings, `font-ui` for body
+- [ ] Error states use `bg-error-light`, `text-error`, `border-error/20`
+- [ ] Spinners use `motion-safe:animate-spin` for accessibility
 
 ---
 

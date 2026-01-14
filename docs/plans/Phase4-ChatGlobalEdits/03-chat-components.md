@@ -8,6 +8,17 @@
 
 **This task creates the UI components for the chat interface.** These components display chat modes, individual messages, and the input field with live mode detection.
 
+### Design System Reference
+
+All components follow the **Scholarly Craft** aesthetic from `docs/design-system.md`:
+
+| Component     | Primary Tokens                                         | Typography                                   |
+| ------------- | ------------------------------------------------------ | -------------------------------------------- |
+| ModeIndicator | `bg-quill-lighter`, `text-quill`, `border-quill-light` | `font-ui`, `text-xs`, `font-medium`          |
+| ChatMessage   | `bg-surface`, `bg-bg-secondary`, `text-ink-primary`    | `font-ui`, `text-sm`                         |
+| ChatInput     | `bg-surface`, `border-ink-faint`, `focus:ring-quill`   | `font-ui`, `text-sm`                         |
+| ConfirmDialog | `bg-surface`, `shadow-xl`, `border-ink-faint`          | `font-display` for title, `font-ui` for body |
+
 ### Prerequisites
 
 - **Task 4.1** completed (ChatContext with ChatMessage type)
@@ -43,6 +54,7 @@ This task can be done in parallel with:
 - `src/components/chat/__tests__/ChatInput.test.tsx` (create)
 - `src/components/ui/ConfirmDialog.tsx` (create)
 - `src/components/ui/__tests__/ConfirmDialog.test.tsx` (create)
+- `e2e/fixtures/claude-cli-mock.ts` (create) - **Moved from Task 4.11 for earlier availability**
 
 ---
 
@@ -109,43 +121,34 @@ interface ModeIndicatorProps {
   confidence?: 'high' | 'medium' | 'low';
 }
 
-// Use semantic CSS variable classes (Best Practice: Semantic color variables)
-// These should map to CSS variables defined in your global styles
+/**
+ * Mode configuration using Quill Design System tokens (Scholarly Craft aesthetic)
+ *
+ * Design tokens reference: docs/design-system.md
+ * - Discussion: Uses info semantic colors for scholarly discussion
+ * - Global Edit: Uses warning semantic colors for edit operations (caution)
+ * - Research: Uses success semantic colors for research/discovery
+ */
 const MODE_CONFIG = {
   discussion: {
     icon: MessageCircle,
     label: 'Discussion',
-    color: 'text-[var(--color-mode-discussion)] bg-[var(--color-mode-discussion-bg)] border-[var(--color-mode-discussion-border)]',
+    // Info semantic: scholarly discussion mode
+    color: 'text-info-dark bg-info-light border-info/20',
   },
   global_edit: {
     icon: Edit3,
     label: 'Global Edit',
-    color: 'text-[var(--color-mode-edit)] bg-[var(--color-mode-edit-bg)] border-[var(--color-mode-edit-border)]',
+    // Warning semantic: edit operations require attention
+    color: 'text-warning-dark bg-warning-light border-warning/20',
   },
   research: {
     icon: Search,
     label: 'Research',
-    color: 'text-[var(--color-mode-research)] bg-[var(--color-mode-research-bg)] border-[var(--color-mode-research-border)]',
+    // Success semantic: research and discovery
+    color: 'text-success-dark bg-success-light border-success/20',
   },
 };
-
-/*
- * Add to your global CSS (e.g., globals.css):
- *
- * :root {
- *   --color-mode-discussion: #2563eb;
- *   --color-mode-discussion-bg: #eff6ff;
- *   --color-mode-discussion-border: #bfdbfe;
- *
- *   --color-mode-edit: #ea580c;
- *   --color-mode-edit-bg: #fff7ed;
- *   --color-mode-edit-border: #fed7aa;
- *
- *   --color-mode-research: #16a34a;
- *   --color-mode-research-bg: #f0fdf4;
- *   --color-mode-research-border: #bbf7d0;
- * }
- */
 
 export function ModeIndicator({ mode, confidence }: ModeIndicatorProps) {
   const config = MODE_CONFIG[mode];
@@ -153,14 +156,21 @@ export function ModeIndicator({ mode, confidence }: ModeIndicatorProps) {
 
   return (
     <div
-      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium border ${config.color}`}
+      className={`
+        inline-flex items-center gap-1.5
+        px-2.5 py-1
+        rounded-full
+        text-xs font-ui font-medium
+        border
+        ${config.color}
+      `}
       data-testid="chat-mode-indicator"
       data-mode={mode}
     >
       <Icon className="w-3.5 h-3.5" />
       <span>{config.label}</span>
       {confidence && confidence !== 'high' && (
-        <span className="opacity-60">({confidence})</span>
+        <span className="text-ink-tertiary">({confidence})</span>
       )}
     </div>
   );
@@ -264,6 +274,15 @@ interface ChatMessageProps {
   onRetry?: () => void;
 }
 
+/**
+ * ChatMessage Component - Scholarly Craft Design System
+ *
+ * Design tokens from docs/design-system.md:
+ * - User messages: bg-bg-secondary (warm cream background)
+ * - Assistant messages: bg-surface (clean white)
+ * - Typography: font-ui (Source Sans 3) for readability
+ * - Icons: Lucide icons at --icon-sm (16px)
+ */
 export function ChatMessage({
   id,
   role,
@@ -279,40 +298,76 @@ export function ChatMessage({
 
   return (
     <div
-      className={`flex gap-3 p-4 ${isUser ? 'bg-gray-50' : 'bg-white'}`}
+      className={`
+        flex gap-3 p-4
+        ${isUser ? 'bg-bg-secondary' : 'bg-surface'}
+      `}
       data-testid="chat-message"
       data-role={role}
       data-streaming={isStreaming}
     >
-      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-        isUser ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'
-      }`}>
+      {/* Avatar - uses quill brand colors for assistant, subtle for user */}
+      <div className={`
+        flex-shrink-0 w-8 h-8
+        rounded-full
+        flex items-center justify-center
+        ${isUser
+          ? 'bg-bg-tertiary text-ink-secondary'
+          : 'bg-quill-lighter text-quill'
+        }
+      `}>
         {isUser ? <User size={16} /> : <Bot size={16} />}
       </div>
 
       <div className="flex-1 min-w-0">
+        {/* Header with role, mode, and timestamp */}
         <div className="flex items-center gap-2 mb-1">
-          <span className="font-medium text-sm">{isUser ? 'You' : 'Claude'}</span>
+          <span className="font-ui font-semibold text-sm text-ink-primary">
+            {isUser ? 'You' : 'Claude'}
+          </span>
           {mode && <ModeIndicator mode={mode} />}
-          <span className="text-xs text-gray-400">{timestamp.toLocaleTimeString()}</span>
+          <span className="font-ui text-xs text-ink-tertiary">
+            {timestamp.toLocaleTimeString()}
+          </span>
         </div>
 
-        <div className={`text-sm whitespace-pre-wrap ${isError ? 'text-red-600' : 'text-gray-700'}`}>
+        {/* Message content with proper text colors */}
+        <div className={`
+          font-ui text-sm whitespace-pre-wrap
+          ${isError ? 'text-error' : 'text-ink-secondary'}
+        `}>
           {content}
-          {/* Streaming cursor with reduced motion support (Best Practice: Reduced motion) */}
+          {/* Streaming cursor - uses quill brand color, respects reduced motion */}
           {isStreaming && (
-            <span className="inline-block w-2 h-4 ml-1 bg-purple-400 animate-pulse motion-reduce:animate-none motion-reduce:opacity-70" />
+            <span className="
+              inline-block w-2 h-4 ml-1
+              bg-quill
+              animate-pulse
+              motion-reduce:animate-none motion-reduce:opacity-70
+            " />
           )}
         </div>
 
+        {/* Error state with retry - follows alert pattern from design system */}
         {isError && (
-          <div className="flex items-center gap-2 mt-2 text-red-600">
+          <div className="
+            flex items-center gap-2 mt-2
+            text-error
+          ">
             <AlertCircle size={14} />
-            <span className="text-xs">Failed to send</span>
+            <span className="font-ui text-xs">Failed to send</span>
             {onRetry && (
               <button
                 onClick={onRetry}
-                className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:underline rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 min-h-[44px] min-w-[44px]"
+                className="
+                  flex items-center gap-1
+                  px-2 py-1
+                  font-ui text-xs text-quill
+                  hover:underline
+                  rounded-md
+                  focus:outline-none focus:ring-2 focus:ring-quill focus:ring-offset-2
+                  min-h-[44px] min-w-[44px]
+                "
                 data-testid="chat-retry"
               >
                 <RefreshCw size={12} />
@@ -457,6 +512,15 @@ interface ChatInputProps {
   placeholder?: string;
 }
 
+/**
+ * ChatInput Component - Scholarly Craft Design System
+ *
+ * Design tokens from docs/design-system.md:
+ * - Input: bg-surface, border-ink-faint, focus:ring-quill
+ * - Send button: bg-quill, hover:bg-quill-dark (Primary Button pattern)
+ * - Cancel button: bg-error-light, text-error (Warning state)
+ * - Touch targets: min 44x44px for accessibility
+ */
 export function ChatInput({
   onSend,
   onCancel,
@@ -482,7 +546,8 @@ export function ChatInput({
   };
 
   return (
-    <div className="border-t p-4 bg-white">
+    <div className="border-t border-ink-faint p-4 bg-surface">
+      {/* Live mode detection indicator */}
       {message.length > 0 && (
         <div className="mb-2">
           <ModeIndicator mode={detectedMode} />
@@ -490,6 +555,7 @@ export function ChatInput({
       )}
 
       <div className="flex items-end gap-2">
+        {/* Text input following design system form input pattern */}
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
@@ -497,25 +563,58 @@ export function ChatInput({
           placeholder={placeholder}
           disabled={disabled}
           rows={1}
-          className="flex-1 resize-none border rounded-lg px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:opacity-50"
+          className="
+            flex-1 resize-none
+            px-3 py-2.5
+            bg-surface
+            font-ui text-sm text-ink-primary
+            placeholder:text-ink-subtle
+            border border-ink-faint rounded-md
+            shadow-sm
+            transition-all duration-150
+            hover:border-ink-subtle
+            focus:outline-none focus:ring-2 focus:ring-quill focus:border-quill
+            disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-bg-secondary
+          "
           data-testid="chat-input"
         />
 
         {/* Buttons with proper touch targets (Best Practice: 44x44px minimum) */}
         {isStreaming ? (
+          // Cancel button - uses error semantic colors
           <button
             onClick={onCancel}
-            className="flex-shrink-0 p-3 min-w-[44px] min-h-[44px] rounded-lg bg-red-100 text-red-600 hover:bg-red-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+            className="
+              flex-shrink-0
+              p-3 min-w-[44px] min-h-[44px]
+              rounded-md
+              bg-error-light text-error
+              hover:bg-error/20
+              transition-all duration-150
+              focus:outline-none focus:ring-2 focus:ring-error focus:ring-offset-2
+            "
             data-testid="chat-cancel-stream"
             aria-label="Cancel streaming"
           >
             <Square size={20} />
           </button>
         ) : (
+          // Send button - Primary button pattern from design system
           <button
             onClick={handleSend}
             disabled={disabled || !message.trim()}
-            className="flex-shrink-0 p-3 min-w-[44px] min-h-[44px] rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            className="
+              flex-shrink-0
+              p-3 min-w-[44px] min-h-[44px]
+              rounded-md
+              bg-quill text-white
+              shadow-sm
+              hover:bg-quill-dark hover:shadow-md
+              active:bg-quill-darker
+              transition-all duration-150
+              disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-quill
+              focus:outline-none focus:ring-2 focus:ring-quill focus:ring-offset-2
+            "
             data-testid="chat-send-button"
             aria-label="Send message"
           >
@@ -634,6 +733,16 @@ interface ConfirmDialogProps {
   variant?: 'danger' | 'warning' | 'info';
 }
 
+/**
+ * ConfirmDialog Component - Scholarly Craft Design System
+ *
+ * Design tokens from docs/design-system.md:
+ * - Modal: bg-surface, shadow-xl, rounded-lg (Elevation 3)
+ * - Backdrop: color-overlay (rgba with 50% opacity)
+ * - Title: font-display (Libre Baskerville) for scholarly emphasis
+ * - Body: font-ui (Source Sans 3) for readability
+ * - Buttons: Primary/Secondary button patterns
+ */
 export function ConfirmDialog({
   open,
   onClose,
@@ -673,15 +782,22 @@ export function ConfirmDialog({
 
   if (!open) return null;
 
+  // Variant styles using design system semantic colors
   const variantStyles = {
-    danger: 'bg-red-600 hover:bg-red-700 focus-visible:ring-red-500',
-    warning: 'bg-yellow-600 hover:bg-yellow-700 focus-visible:ring-yellow-500',
-    info: 'bg-blue-600 hover:bg-blue-700 focus-visible:ring-blue-500',
+    danger: 'bg-error hover:bg-error-dark focus:ring-error',
+    warning: 'bg-warning hover:bg-warning-dark focus:ring-warning',
+    info: 'bg-quill hover:bg-quill-dark focus:ring-quill',
+  };
+
+  const iconStyles = {
+    danger: 'bg-error-light text-error',
+    warning: 'bg-warning-light text-warning',
+    info: 'bg-quill-lighter text-quill',
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
       onClick={handleBackdropClick}
       data-testid="confirm-backdrop"
     >
@@ -692,18 +808,37 @@ export function ConfirmDialog({
         aria-labelledby="confirm-title"
         aria-describedby="confirm-message"
         tabIndex={-1}
-        className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6 focus:outline-none"
+        className="
+          bg-surface
+          rounded-lg shadow-xl
+          w-full max-w-md mx-4 p-6
+          focus:outline-none
+        "
         data-testid="confirm-dialog"
       >
         <div className="flex items-start gap-4">
-          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-            <AlertTriangle className="w-5 h-5 text-red-600" />
+          {/* Icon container with semantic color */}
+          <div className={`
+            flex-shrink-0 w-10 h-10
+            rounded-full
+            flex items-center justify-center
+            ${iconStyles[variant]}
+          `}>
+            <AlertTriangle className="w-5 h-5" />
           </div>
           <div className="flex-1">
-            <h3 id="confirm-title" className="text-lg font-semibold text-gray-900">
+            {/* Title uses display font for scholarly emphasis */}
+            <h3
+              id="confirm-title"
+              className="font-display text-lg font-bold text-ink-primary"
+            >
               {title}
             </h3>
-            <p id="confirm-message" className="mt-2 text-sm text-gray-600">
+            {/* Message uses UI font for readability */}
+            <p
+              id="confirm-message"
+              className="mt-2 font-ui text-sm text-ink-secondary"
+            >
               {message}
             </p>
           </div>
@@ -711,16 +846,35 @@ export function ConfirmDialog({
 
         {/* Buttons with proper touch targets (Best Practice: 44x44px minimum) */}
         <div className="mt-6 flex justify-end gap-3">
+          {/* Cancel button - Secondary button pattern */}
           <button
             onClick={onClose}
-            className="px-4 py-2 min-h-[44px] text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2"
+            className="
+              px-4 py-2.5 min-h-[44px]
+              font-ui text-sm font-semibold
+              text-ink-primary
+              bg-surface hover:bg-surface-hover active:bg-surface-active
+              border border-ink-faint
+              rounded-md shadow-sm
+              transition-all duration-150
+              focus:outline-none focus:ring-2 focus:ring-quill focus:ring-offset-2
+            "
             data-testid="confirm-cancel"
           >
             {cancelLabel}
           </button>
+          {/* Confirm button - Primary button with variant color */}
           <button
             onClick={onConfirm}
-            className={`px-4 py-2 min-h-[44px] text-sm font-medium text-white rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${variantStyles[variant]}`}
+            className={`
+              px-4 py-2.5 min-h-[44px]
+              font-ui text-sm font-semibold
+              text-white
+              rounded-md shadow-sm
+              transition-all duration-150
+              focus:outline-none focus:ring-2 focus:ring-offset-2
+              ${variantStyles[variant]}
+            `}
             data-testid="confirm-confirm"
           >
             {confirmLabel}
@@ -749,6 +903,333 @@ git commit -m "feat: add ConfirmDialog component for non-blocking confirmations"
 
 ---
 
+## Task 14: E2E Test Infrastructure - Claude CLI Mock (Moved from Task 4.11)
+
+> **Best Practice:** Create test infrastructure early so subsequent tasks can use it for E2E testing.
+
+### Step 1: Write the mock fixture using SSE streaming pattern
+
+Create `e2e/fixtures/claude-cli-mock.ts`:
+
+```typescript
+import { Page, Route } from '@playwright/test';
+import { TIMEOUTS } from '../config/timeouts';
+
+export interface MockClaudeResponse {
+  content: string;
+  streamChunks?: string[];
+  delayMs?: number;
+  error?: { type: 'network' | 'timeout' | 'api'; message: string };
+}
+
+export class ClaudeCLIMock {
+  private responses: Map<string, MockClaudeResponse> = new Map();
+
+  registerResponse(promptPattern: string, response: MockClaudeResponse): void {
+    this.responses.set(promptPattern, response);
+  }
+
+  async setupRoutes(page: Page): Promise<void> {
+    await page.route('**/api/ai/chat', (route) => this.handleChatRoute(route));
+    await page.route('**/api/ai/global-edit', (route) => this.handleGlobalEditRoute(route));
+  }
+
+  private async handleChatRoute(route: Route): Promise<void> {
+    const request = route.request();
+    const postData = JSON.parse(request.postData() || '{}');
+    const mockResponse = this.findMatchingResponse(postData.content || '');
+
+    if (mockResponse?.error) {
+      if (mockResponse.error.type === 'network') {
+        await route.abort('connectionfailed');
+      } else {
+        await route.fulfill({ status: 500, body: JSON.stringify({ error: mockResponse.error.message }) });
+      }
+      return;
+    }
+
+    // Use ReadableStream pattern from Phase 3 best practices
+    const content = mockResponse?.content || 'Mock response';
+    const chunks = mockResponse?.streamChunks || [content];
+    const delayMs = mockResponse?.delayMs ?? 50;
+
+    const sseChunks = chunks.map(
+      (chunk, i) => `data: {"id":"chunk-${i}","sequence":${i},"type":"content","content":"${chunk}"}\n\n`
+    );
+    sseChunks.push('data: {"type":"done"}\n\n');
+
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        for (const chunk of sseChunks) {
+          await new Promise((r) => setTimeout(r, delayMs));
+          controller.enqueue(encoder.encode(chunk));
+        }
+        controller.close();
+      },
+    });
+
+    await route.fulfill({
+      status: 200,
+      headers: { 'Content-Type': 'text/event-stream' },
+      body: Buffer.from(await new Response(stream).arrayBuffer()),
+    });
+  }
+
+  private async handleGlobalEditRoute(route: Route): Promise<void> {
+    const request = route.request();
+    const postData = JSON.parse(request.postData() || '{}');
+    const mockResponse = this.findMatchingResponse(postData.instruction || '');
+
+    if (mockResponse?.error) {
+      await route.fulfill({ status: 500, body: JSON.stringify({ error: mockResponse.error.message }) });
+      return;
+    }
+
+    const modifiedContent = mockResponse?.content || 'Modified content.';
+    const chunks = [
+      `data: {"type":"content","content":"${modifiedContent}"}\n\n`,
+      `data: {"type":"done","operationId":"test-op-id","modifiedContent":"${modifiedContent}","diff":[{"type":"remove","value":"${postData.currentContent || 'Original'}","lineNumber":1},{"type":"add","value":"${modifiedContent}","lineNumber":1}]}\n\n`,
+    ];
+
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        for (const chunk of chunks) {
+          await new Promise((r) => setTimeout(r, 50));
+          controller.enqueue(encoder.encode(chunk));
+        }
+        controller.close();
+      },
+    });
+
+    await route.fulfill({
+      status: 200,
+      headers: { 'Content-Type': 'text/event-stream' },
+      body: Buffer.from(await new Response(stream).arrayBuffer()),
+    });
+  }
+
+  private findMatchingResponse(input: string): MockClaudeResponse | undefined {
+    for (const [pattern, response] of this.responses) {
+      if (input.toLowerCase().includes(pattern.toLowerCase())) {
+        return response;
+      }
+    }
+    return undefined;
+  }
+}
+
+export const mockResponses = {
+  simpleDiscussion: { content: 'This is a helpful response about your document.' },
+  globalEdit: { content: 'The document has been updated with your requested changes.' },
+  networkError: { content: '', error: { type: 'network' as const, message: 'Connection failed' } },
+  slowResponse: { content: 'Slow response', delayMs: TIMEOUTS.API_CALL },
+};
+```
+
+### Step 2: Commit
+
+```bash
+git add e2e/fixtures/claude-cli-mock.ts
+git commit -m "feat: add Claude CLI mock fixture with SSE streaming pattern (moved earlier)"
+```
+
+---
+
+## E2E Tests
+
+### Required E2E Test File: `e2e/chat/chat-components.spec.ts`
+
+Create E2E tests that verify real browser behavior for chat components:
+
+```typescript
+import { test, expect } from '../fixtures/test-fixtures';
+
+test.describe('Chat Component E2E Tests', () => {
+  test.beforeEach(async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    await page.goto(`/projects/${workerCtx.projectId}/documents/${workerCtx.documentId}`);
+  });
+
+  test.describe('ConfirmDialog', () => {
+    test('should close when backdrop is clicked', async ({ page }) => {
+      // Open chat and trigger clear history to show confirm dialog
+      await page.getByTestId('chat-sidebar-toggle').click();
+      await page.getByTestId('chat-clear-history').click();
+
+      // Verify dialog is visible
+      await expect(page.getByTestId('confirm-dialog')).toBeVisible();
+
+      // Click backdrop (outside dialog)
+      await page.getByTestId('confirm-backdrop').click({ position: { x: 10, y: 10 } });
+
+      // Dialog should be closed
+      await expect(page.getByTestId('confirm-dialog')).not.toBeVisible();
+    });
+
+    test('should close when Escape key is pressed', async ({ page }) => {
+      // Open chat and trigger clear history to show confirm dialog
+      await page.getByTestId('chat-sidebar-toggle').click();
+      await page.getByTestId('chat-clear-history').click();
+
+      // Verify dialog is visible
+      await expect(page.getByTestId('confirm-dialog')).toBeVisible();
+
+      // Press Escape key
+      await page.keyboard.press('Escape');
+
+      // Dialog should be closed
+      await expect(page.getByTestId('confirm-dialog')).not.toBeVisible();
+    });
+  });
+
+  test.describe('ChatInput Keyboard Navigation', () => {
+    test('should send message on Enter key', async ({ page }) => {
+      await page.getByTestId('chat-sidebar-toggle').click();
+
+      const input = page.getByTestId('chat-input');
+      await input.fill('Test message via Enter');
+      await input.press('Enter');
+
+      // Message should appear in the list
+      await expect(page.getByTestId('chat-message').first()).toContainText('Test message via Enter');
+    });
+
+    test('should NOT send message on Shift+Enter (allows newlines)', async ({ page }) => {
+      await page.getByTestId('chat-sidebar-toggle').click();
+
+      const input = page.getByTestId('chat-input');
+      await input.fill('Line 1');
+      await input.press('Shift+Enter');
+      await input.type('Line 2');
+
+      // Message should NOT be sent (still in input)
+      await expect(input).toHaveValue('Line 1\nLine 2');
+    });
+
+    test('should focus input when sidebar opens', async ({ page }) => {
+      await page.getByTestId('chat-sidebar-toggle').click();
+
+      // Input should be focusable and ready for typing
+      const input = page.getByTestId('chat-input');
+      await expect(input).toBeVisible();
+      await input.focus();
+      await expect(input).toBeFocused();
+    });
+  });
+});
+```
+
+### Additional E2E Tests
+
+Add to `e2e/chat/chat-components.spec.ts`:
+
+```typescript
+test.describe('ChatMessage Streaming States', () => {
+  test('ChatMessage shows streaming cursor during AI response', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    // Mock slow streaming response
+    await page.route('**/api/ai/chat', async (route) => {
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        async start(controller) {
+          // Send chunks slowly to observe streaming state
+          for (let i = 0; i < 5; i++) {
+            await new Promise((r) => setTimeout(r, 500));
+            controller.enqueue(encoder.encode(`data: {"type":"content","content":"chunk ${i}"}\n\n`));
+          }
+          controller.enqueue(encoder.encode('data: {"type":"done"}\n\n'));
+          controller.close();
+        },
+      });
+      await route.fulfill({
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+        body: Buffer.from(await new Response(stream).arrayBuffer()),
+      });
+    });
+
+    await page.goto(`/projects/${workerCtx.projectId}/documents/${workerCtx.documentId}`);
+    await page.getByTestId('chat-sidebar-toggle').click();
+    await page.getByTestId('chat-input').fill('Test streaming');
+    await page.getByTestId('chat-send-button').click();
+
+    // Verify cursor animation visible during streaming
+    const streamingMessage = page.getByTestId('chat-message').last();
+    await expect(streamingMessage).toHaveAttribute('data-streaming', 'true');
+  });
+
+  test('ChatMessage retry button works after error', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    let callCount = 0;
+
+    await page.route('**/api/ai/chat', async (route) => {
+      callCount++;
+      if (callCount === 1) {
+        // First call fails
+        await route.fulfill({ status: 500, body: JSON.stringify({ error: 'Server error' }) });
+      } else {
+        // Retry succeeds
+        await route.fulfill({
+          status: 200,
+          headers: { 'Content-Type': 'text/event-stream' },
+          body: 'data: {"type":"content","content":"Success"}\n\ndata: {"type":"done"}\n\n',
+        });
+      }
+    });
+
+    await page.goto(`/projects/${workerCtx.projectId}/documents/${workerCtx.documentId}`);
+    await page.getByTestId('chat-sidebar-toggle').click();
+    await page.getByTestId('chat-input').fill('Test retry');
+    await page.getByTestId('chat-send-button').click();
+
+    // Verify error state and retry button
+    await expect(page.getByTestId('chat-retry')).toBeVisible();
+    await page.getByTestId('chat-retry').click();
+
+    // Verify retry succeeded
+    await expect(page.getByTestId('chat-message').last()).toContainText('Success');
+  });
+});
+
+test.describe('ModeIndicator Styling', () => {
+  test('ModeIndicator shows correct color for each mode', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    await page.goto(`/projects/${workerCtx.projectId}/documents/${workerCtx.documentId}`);
+    await page.getByTestId('chat-sidebar-toggle').click();
+
+    // Test discussion mode (info colors)
+    await page.getByTestId('chat-input').fill('explain this');
+    const indicator = page.getByTestId('chat-mode-indicator');
+    await expect(indicator).toHaveClass(/text-info-dark/);
+    await expect(indicator).toHaveClass(/bg-info-light/);
+
+    // Test global edit mode (warning colors)
+    await page.getByTestId('chat-input').clear();
+    await page.getByTestId('chat-input').fill('change all headings');
+    await expect(indicator).toHaveClass(/text-warning-dark/);
+    await expect(indicator).toHaveClass(/bg-warning-light/);
+
+    // Test research mode (success colors)
+    await page.getByTestId('chat-input').clear();
+    await page.getByTestId('chat-input').fill('find papers on');
+    await expect(indicator).toHaveClass(/text-success-dark/);
+    await expect(indicator).toHaveClass(/bg-success-light/);
+  });
+});
+```
+
+### E2E Test Execution (Required Before Proceeding)
+
+```bash
+npm run test:e2e e2e/chat/chat-components.spec.ts
+```
+
+**Gate:** All tests must pass before proceeding to Task 4.4.
+
+---
+
 ## Verification Checklist
 
 - [ ] ModeIndicator renders all three modes correctly
@@ -759,8 +1240,10 @@ git commit -m "feat: add ConfirmDialog component for non-blocking confirmations"
 - [ ] ConfirmDialog renders when open
 - [ ] ConfirmDialog calls onClose/onConfirm correctly
 - [ ] ConfirmDialog handles Escape key
-- [ ] All tests pass: `npm test src/components/chat/__tests__/ src/components/ui/__tests__/ConfirmDialog.test.tsx`
-- [ ] Changes committed (4 commits for Tasks 10-13)
+- [ ] **ClaudeCLIMock fixture created** (available for subsequent tasks)
+- [ ] All unit tests pass: `npm test src/components/chat/__tests__/ src/components/ui/__tests__/ConfirmDialog.test.tsx`
+- [ ] **E2E tests pass:** `npm run test:e2e e2e/chat/chat-components.spec.ts`
+- [ ] Changes committed (5 commits for Tasks 10-14)
 
 ---
 

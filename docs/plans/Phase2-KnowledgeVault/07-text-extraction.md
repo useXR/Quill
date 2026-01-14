@@ -8,6 +8,8 @@
 
 **This task creates extractors for PDF, DOCX, and TXT files using Test-Driven Development.** Each extractor handles errors gracefully and returns a consistent result type.
 
+> **Design System:** This task is backend processing. UI components that display extraction status follow the "Scholarly Craft" aesthetic documented in [`docs/design-system.md`](../../design-system.md).
+
 ### Prerequisites
 
 - **Task 2.0** completed (infrastructure available)

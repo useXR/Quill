@@ -24,6 +24,35 @@
 - **Task 3.13** (Selection Toolbar) - calls this endpoint
 - **Task 3.14** (E2E Tests) - mocks this endpoint
 
+### Design System: API Error Responses
+
+API error responses should provide enough context for UI components to display errors according to the [Quill Design System](../../design-system.md):
+
+| HTTP Status | Error Code         | UI Display                                                         |
+| ----------- | ------------------ | ------------------------------------------------------------------ |
+| `401`       | `AUTH_REQUIRED`    | Redirect to login or show info alert with `bg-info-light`          |
+| `400`       | `VALIDATION_ERROR` | Inline error with `text-error` styling                             |
+| `429`       | `RATE_LIMITED`     | Warning alert with `bg-warning-light`, show `retryAfter` countdown |
+| `500`       | `SERVER_ERROR`     | Error alert with `bg-error-light`, offer retry                     |
+
+**Rate limit UI pattern:**
+
+```tsx
+{
+  error.code === 'RATE_LIMITED' && (
+    <div role="alert" className="flex items-start gap-3 p-4 bg-warning-light border border-warning/20 rounded-lg">
+      <Clock className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+      <div>
+        <p className="font-ui text-sm font-medium text-warning-dark">Rate limit reached</p>
+        <p className="font-ui text-sm text-ink-secondary mt-1">
+          Please wait {Math.ceil(error.retryAfter / 1000)} seconds before trying again.
+        </p>
+      </div>
+    </div>
+  );
+}
+```
+
 ---
 
 ## Files to Create/Modify
@@ -425,6 +454,102 @@ git commit -m "feat(api): add SSE streaming endpoint with Zod validation and aud
 
 ---
 
+### E2E Tests
+
+Create `e2e/ai/ai-api.spec.ts` to verify API error responses end-to-end:
+
+```typescript
+// e2e/ai/ai-api.spec.ts
+import { test, expect } from '@playwright/test';
+import { TIMEOUTS } from '../config/timeouts';
+
+test.describe('AI API Error Responses', () => {
+  test('authenticated user can call endpoint (200)', async ({ request }) => {
+    // Uses authenticated context from auth.setup.ts
+    const response = await request.post('/api/ai/generate', {
+      data: { prompt: 'Test prompt', operationType: 'selection' },
+    });
+
+    expect(response.status()).toBe(200);
+    expect(response.headers()['content-type']).toContain('text/event-stream');
+  });
+
+  test('unauthenticated user gets 401', async ({ request }) => {
+    // Create new context without authentication
+    const response = await request.post('/api/ai/generate', {
+      data: { prompt: 'Test prompt' },
+      headers: { Cookie: '' }, // Clear auth cookies
+    });
+
+    expect(response.status()).toBe(401);
+    const body = await response.json();
+    expect(body.code).toBe('AUTH_REQUIRED');
+  });
+
+  test('rate limited user gets 429 with retryAfter header', async ({ request }) => {
+    // Trigger rate limit by making rapid requests
+    const requests = Array.from({ length: 15 }, () =>
+      request.post('/api/ai/generate', {
+        data: { prompt: 'Rate limit test' },
+      })
+    );
+
+    const responses = await Promise.all(requests);
+    const rateLimitedResponse = responses.find((r) => r.status() === 429);
+
+    expect(rateLimitedResponse).toBeDefined();
+    if (rateLimitedResponse) {
+      const body = await rateLimitedResponse.json();
+      expect(body.code).toBe('RATE_LIMITED');
+      expect(body.retryAfter).toBeGreaterThan(0);
+    }
+  });
+
+  test('invalid request gets 400 validation error', async ({ request }) => {
+    const response = await request.post('/api/ai/generate', {
+      data: {
+        /* missing required prompt */
+      },
+    });
+
+    expect(response.status()).toBe(400);
+    const body = await response.json();
+    expect(body.code).toBe('VALIDATION_ERROR');
+  });
+
+  test('prompt exceeding max length gets 400', async ({ request }) => {
+    const response = await request.post('/api/ai/generate', {
+      data: { prompt: 'x'.repeat(60000) },
+    });
+
+    expect(response.status()).toBe(400);
+    const body = await response.json();
+    expect(body.code).toBe('VALIDATION_ERROR');
+  });
+});
+```
+
+### E2E Verification
+
+Before proceeding to the next task, ensure:
+
+```bash
+# Run API E2E tests
+npx playwright test e2e/ai/ai-api.spec.ts
+
+# Expected results:
+# - All 5 tests pass
+# - 401 returned for unauthenticated requests
+# - 429 returned with retryAfter for rate-limited requests
+# - 400 returned for validation errors
+# - 200 with SSE headers for valid authenticated requests
+```
+
+- [ ] `e2e/ai/ai-api.spec.ts` exists and all tests pass
+- [ ] API returns correct error codes for each scenario
+
+---
+
 ## Verification Checklist
 
 ### Files
@@ -433,10 +558,12 @@ git commit -m "feat(api): add SSE streaming endpoint with Zod validation and aud
 - [ ] `src/lib/api/schemas/ai-generate.ts` exists with Zod schema
 - [ ] `src/app/api/ai/generate/route.ts` exists
 - [ ] `src/app/api/ai/generate/__tests__/route.test.ts` exists
+- [ ] `e2e/ai/ai-api.spec.ts` exists
 
 ### Tests
 
-- [ ] Tests pass: `npm test src/app/api/ai/generate/__tests__/route.test.ts`
+- [ ] Unit tests pass: `npm test src/app/api/ai/generate/__tests__/route.test.ts`
+- [ ] E2E tests pass: `npx playwright test e2e/ai/ai-api.spec.ts`
 
 ### API Behavior
 
@@ -456,6 +583,16 @@ git commit -m "feat(api): add SSE streaming endpoint with Zod validation and aud
 ### Complete
 
 - [ ] Changes committed
+
+---
+
+### E2E Test Execution (Required Before Proceeding)
+
+```bash
+npm run test:e2e e2e/ai/ai-api.spec.ts
+```
+
+**Gate:** All tests must pass before proceeding to Task 3.11.
 
 ---
 

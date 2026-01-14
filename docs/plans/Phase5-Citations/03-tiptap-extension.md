@@ -8,6 +8,19 @@
 
 **This task creates a TipTap mark extension for inline citations.** The extension allows citations to be inserted, rendered, and parsed within the editor.
 
+### Design System Integration
+
+Inline citations within the editor must align with the Scholarly Craft aesthetic. The citation mark renders as a `<cite>` element with design tokens:
+
+| Property    | Design Token                              | Purpose                              |
+| ----------- | ----------------------------------------- | ------------------------------------ |
+| Text color  | `text-quill`                              | Brand accent for clickable citations |
+| Hover state | `hover:underline`                         | Subtle interaction feedback          |
+| Cursor      | `cursor-pointer`                          | Indicates interactivity              |
+| Font        | Inherits `font-prose` (Libre Baskerville) | Matches editor content               |
+
+The citation should feel like a natural part of the scholarly text, using the quill brand color (`#7c3aed`) to subtly indicate it's a live reference without disrupting reading flow.
+
 ### Prerequisites
 
 - **Task 5.1** completed (Paper types defined)
@@ -217,7 +230,10 @@ export const Citation = Mark.create({
     return [
       'cite',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
-        class: 'citation-mark cursor-pointer text-blue-600 hover:underline',
+        // Design System: Use quill brand color for citations, matching Scholarly Craft aesthetic
+        // Inherits font-prose (Libre Baskerville) from editor content
+        class:
+          'citation-mark cursor-pointer text-quill hover:text-quill-dark hover:underline transition-colors duration-150',
       }),
       0,
     ];
@@ -259,6 +275,239 @@ git commit -m "feat(editor): implement Citation TipTap extension (GREEN)"
 
 ---
 
+## Editor Integration
+
+> **CRITICAL**: The Citation extension must be integrated into the main Editor component for citations to work in the editor. Without this integration, users cannot insert or view citations.
+
+### Step 1: Update Editor extensions configuration
+
+The Citation extension must be added to the TipTap extensions array in `src/components/editor/Editor.tsx`. The extension is configured via `createExtensions()` in `src/components/editor/extensions/index.ts`.
+
+**Update `src/components/editor/extensions/index.ts`** to include the Citation extension:
+
+```typescript
+// src/components/editor/extensions/index.ts
+import { Citation } from './citation';
+
+// Add Citation to the extensions array returned by createExtensions()
+export function createExtensions({ placeholder, characterLimit }: ExtensionOptions) {
+  return [
+    // ... existing extensions
+    Citation,
+    // ... other extensions
+  ];
+}
+```
+
+### Step 2: Verify Citation extension is loaded in Editor
+
+After adding the extension, verify it's available:
+
+```typescript
+// In Editor.tsx, the editor should now have citation commands:
+// editor.commands.setCitation({ citationId, displayText, doi, title })
+// editor.commands.unsetCitation()
+```
+
+### Step 3: Add unit test for integration
+
+Add test to verify Citation extension is included:
+
+```typescript
+// src/components/editor/__tests__/Editor.test.tsx
+it('should have citation extension loaded', () => {
+  // Render editor and verify citation commands exist
+  const editor = renderEditor();
+  expect(editor.commands.setCitation).toBeDefined();
+  expect(editor.commands.unsetCitation).toBeDefined();
+});
+```
+
+### Step 4: Commit
+
+```bash
+git add src/components/editor/extensions/index.ts
+git commit -m "feat(editor): integrate Citation TipTap extension"
+```
+
+---
+
+### E2E Regression Test (Required Before Proceeding)
+
+```bash
+# Verify citation extension doesn't break existing editor functionality
+npm run test:e2e e2e/editor/
+```
+
+**Gate:** All existing editor tests must pass before proceeding.
+
+### Additional Verification
+
+After Task 5.6 (API Routes) is complete, return and verify citations render correctly:
+
+```bash
+npm run test:e2e e2e/citations/citation-editor-integration.spec.ts
+```
+
+---
+
+## E2E Test: Citation Hover Tooltip
+
+> **CRITICAL**: The citation mark must display a tooltip/popover on hover showing citation details. This provides quick reference without leaving the editor context.
+
+### Test Coverage Required
+
+Create or update `e2e/citations/citation-hover-tooltip.spec.ts`:
+
+```typescript
+// e2e/citations/citation-hover-tooltip.spec.ts
+import { test, expect } from '../fixtures/test-fixtures';
+import { CitationEditorPage } from '../pages/CitationEditorPage';
+import { setupCitationMocks } from '../fixtures/citation-mocks';
+import { TIMEOUTS } from '../config/timeouts';
+
+test.describe('Citation Hover Tooltip', () => {
+  test.beforeEach(async ({ page }) => {
+    await setupCitationMocks(page);
+  });
+
+  test('hovering over citation mark shows tooltip with details', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+
+    const citationEditor = new CitationEditorPage(page);
+    await citationEditor.goto(workerCtx.projectId, workerCtx.documentId);
+
+    // Insert a citation first
+    await citationEditor.openCitationPicker();
+    await citationEditor.searchInPicker('hover tooltip test');
+    await citationEditor.selectCitationFromPicker(0);
+
+    // Wait for citation to appear in editor
+    const citation = page.locator('cite[data-citation-id]');
+    await expect(citation).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+
+    // Hover over the citation mark
+    await citation.hover();
+
+    // Tooltip should appear with citation details
+    const tooltip = page.getByRole('tooltip');
+    await expect(tooltip).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+
+    // Verify tooltip contains expected information
+    await expect(tooltip.getByText(/hover tooltip test/i)).toBeVisible(); // Title
+    await expect(tooltip.getByText(/Mock Author|Test Author/i)).toBeVisible(); // Author
+    await expect(tooltip.getByText(/10\.1000/i)).toBeVisible(); // DOI
+  });
+
+  test('tooltip disappears when mouse leaves citation', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+
+    const citationEditor = new CitationEditorPage(page);
+    await citationEditor.goto(workerCtx.projectId, workerCtx.documentId);
+
+    // Insert citation
+    await citationEditor.openCitationPicker();
+    await citationEditor.searchInPicker('disappear test');
+    await citationEditor.selectCitationFromPicker(0);
+
+    const citation = page.locator('cite[data-citation-id]');
+    await expect(citation).toBeVisible();
+
+    // Hover to show tooltip
+    await citation.hover();
+    const tooltip = page.getByRole('tooltip');
+    await expect(tooltip).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+
+    // Move mouse away from citation
+    await page.mouse.move(0, 0);
+
+    // Tooltip should disappear
+    await expect(tooltip).not.toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+  });
+
+  test('tooltip shows "No DOI" indicator for citations without DOI', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+
+    // Override mock to return paper without DOI
+    await page.route('**/api/citations/search**', async (route) => {
+      await route.fulfill({
+        json: {
+          papers: [
+            {
+              paperId: 'no-doi-paper',
+              title: 'Paper Without DOI',
+              authors: [{ name: 'No DOI Author' }],
+              year: 2024,
+              url: 'https://example.com',
+              externalIds: {}, // No DOI
+            },
+          ],
+          total: 1,
+        },
+      });
+    });
+
+    const citationEditor = new CitationEditorPage(page);
+    await citationEditor.goto(workerCtx.projectId, workerCtx.documentId);
+
+    await citationEditor.openCitationPicker();
+    await citationEditor.searchInPicker('no doi');
+    await citationEditor.selectCitationFromPicker(0);
+
+    const citation = page.locator('cite[data-citation-id]');
+    await citation.hover();
+
+    const tooltip = page.getByRole('tooltip');
+    await expect(tooltip).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+    await expect(tooltip.getByText(/no doi/i)).toBeVisible();
+  });
+
+  test('tooltip is keyboard accessible via focus', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+
+    const citationEditor = new CitationEditorPage(page);
+    await citationEditor.goto(workerCtx.projectId, workerCtx.documentId);
+
+    // Insert citation
+    await citationEditor.openCitationPicker();
+    await citationEditor.searchInPicker('keyboard test');
+    await citationEditor.selectCitationFromPicker(0);
+
+    const citation = page.locator('cite[data-citation-id]');
+    await expect(citation).toBeVisible();
+
+    // Tab to focus the citation (if focusable)
+    await page.keyboard.press('Tab');
+
+    // If citation is focusable, tooltip should appear on focus
+    // This tests screen reader accessibility
+    const tooltip = page.getByRole('tooltip');
+    // Note: Implementation may vary - some designs use hover only
+  });
+});
+```
+
+### Implementation Note
+
+The Citation extension must be updated to render a tooltip component on hover. This can be implemented using:
+
+1. **TipTap NodeView** - Custom render function that wraps citation in a tooltip component
+2. **CSS :hover with data attributes** - Pure CSS tooltip using `::after` pseudo-element
+3. **React Tooltip Library** - Integration with Radix UI Tooltip or similar
+
+Recommended approach for Scholarly Craft design system:
+
+```typescript
+// In citation.ts renderHTML or via a wrapper component
+// The tooltip should show:
+// - Paper title (font-display)
+// - Authors (font-ui, text-ink-secondary)
+// - DOI with "View Paper" link (text-quill, hover:underline)
+// - Year and journal if available (font-ui, text-ink-tertiary)
+```
+
+---
+
 ## Verification Checklist
 
 - [ ] `src/components/editor/extensions/citation.ts` exists
@@ -268,6 +517,9 @@ git commit -m "feat(editor): implement Citation TipTap extension (GREEN)"
 - [ ] `unsetCitation` command works
 - [ ] Citation parses from HTML correctly
 - [ ] Citation renders with correct attributes
+- [ ] **CRITICAL**: Citation extension added to `createExtensions()` in `extensions/index.ts`
+- [ ] **CRITICAL**: Editor integration test verifies citation commands are available
+- [ ] **E2E Regression**: All existing editor E2E tests pass (`e2e/editor/`)
 - [ ] Changes committed
 
 ---

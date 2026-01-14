@@ -87,7 +87,7 @@
 
 ## Key Dependencies
 
-- **Node.js 20+** - Required for Next.js 14+ features
+- **Node.js 24+** - Required for Next.js 16+ features
 - **pnpm 9+** - Package manager (faster, stricter than npm)
 - **Docker** - Required for Supabase local development
 
@@ -145,7 +145,7 @@ Before starting **any** task, verify prerequisites:
 # Check git is installed
 git --version
 
-# Check Node.js version (must be 20+)
+# Check Node.js version (must be 24+)
 node --version
 
 # Check pnpm is installed (must be 9+)
@@ -191,7 +191,7 @@ For parallel execution with multiple agents:
 
 | Layer           | Technology               | Purpose                          |
 | --------------- | ------------------------ | -------------------------------- |
-| Framework       | Next.js 14+ (App Router) | React framework with SSR/SSG     |
+| Framework       | Next.js 16+ (App Router) | React framework with SSR/SSG     |
 | Language        | TypeScript               | Type safety                      |
 | Styling         | Tailwind CSS             | Utility-first CSS                |
 | Database        | Supabase (PostgreSQL)    | Backend-as-a-service             |

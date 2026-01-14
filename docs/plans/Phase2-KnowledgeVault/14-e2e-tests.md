@@ -1,12 +1,14 @@
 # Task 2.13: E2E Tests
 
-> **Phase 2** | [← Vault Page Integration](./13-vault-page-integration.md) | [Next: Verification →](./99-verification.md)
+> **Phase 2** | [← Vault Page Integration](./13-vault-page-integration.md) | [Next: Project Sidebar →](./15-project-sidebar.md)
 
 ---
 
 ## Context
 
 **This task creates end-to-end tests for the Knowledge Vault using Playwright.** Tests cover the complete user flow from upload to search with proper isolation and cleanup, following the Phase 0 testing infrastructure patterns.
+
+> **Design System:** E2E tests should verify visual consistency with the "Scholarly Craft" aesthetic. See [`docs/design-system.md`](../../design-system.md) for design token references to check in accessibility tests.
 
 ### Prerequisites
 
@@ -497,4 +499,4 @@ git commit -m "test: add E2E tests for Knowledge Vault using Phase 0 infrastruct
 
 ## Next Steps
 
-After this task, proceed to **[99: Phase 2 Verification](./99-verification.md)**.
+After this task, proceed to **[Task 2.14: Project Sidebar Navigation](./15-project-sidebar.md)**.

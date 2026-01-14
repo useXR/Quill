@@ -4,13 +4,40 @@
 
 ---
 
+## Design System Context
+
+PDF exports should reflect the **Scholarly Craft** aesthetic with professional academic styling:
+
+### PDF Typography (in `pdf-styles.ts`)
+
+- **Body Font:** `'Times New Roman', serif` - Academic standard, closest to Libre Baskerville
+- **Font Size:** 12pt body text, 18pt/14pt/12pt heading hierarchy
+- **Line Height:** 1.6 (generous spacing per design system's `--leading-relaxed`)
+- **Color:** `#000` for maximum print contrast (not `--color-ink-primary` which is warm-tinted)
+
+### PDF Layout
+
+- **Max Width:** 6.5in content area (optimal reading width like `--max-w-prose`)
+- **Margins:** 1 inch (standard academic formatting)
+- **Blockquote:** Left border accent (mirrors the design system's accent card pattern)
+
+### CSS Variables Reference
+
+While PDFs use inline styles (not Tailwind), the values align with design system tokens:
+
+- Body line-height 1.6 = `--leading-relaxed`
+- Heading spacing = multiples of `--space-4` (12pt, 18pt, 24pt)
+- Blockquote border = 3pt solid `#ccc` (similar to `--color-ink-faint`)
+
+---
+
 ## Context
 
 **This task implements server-side PDF document export using Puppeteer.** Users can export their documents as professionally-styled PDF files.
 
 ### Prerequisites
 
-- Pre-flight checklist completed (Node.js 20+, existing project structure)
+- Pre-flight checklist completed (Node.js 24+, existing project structure)
 - **Task 6.1** should be completed first (creates shared types and barrel export)
 
 ### What This Task Creates
@@ -452,6 +479,127 @@ git commit -m "feat: add PDF export with Puppeteer
 
 ---
 
+## Timeout Constants
+
+**IMPORTANT:** Add export-specific timeout constants to the centralized timeouts file.
+
+### Add to `e2e/config/timeouts.ts`
+
+```typescript
+// Add to existing TIMEOUTS object
+export const TIMEOUTS = {
+  // ... existing timeouts ...
+
+  /** Timeout for export file download - PDF generation can be slow with Puppeteer */
+  EXPORT_DOWNLOAD: 30000,
+} as const;
+
+// Add pre-built wait options
+export const EXPORT_WAIT = { timeout: TIMEOUTS.EXPORT_DOWNLOAD };
+```
+
+This timeout is used in both DOCX and PDF export tests. PDF exports may take longer due to Puppeteer rendering.
+
+---
+
+## E2E Tests
+
+**IMPORTANT:** E2E tests must be created as part of this task, not deferred to Task 6.7. This follows the incremental testing pattern established in earlier phases.
+
+### Create `e2e/export/pdf-export.spec.ts`
+
+Create E2E tests covering PDF export functionality. **Note:** This task uses the `ExportPage` page object created in Task 6.1.
+
+```typescript
+import { test, expect } from '../fixtures/test-fixtures';
+import { EditorPage } from '../pages/EditorPage';
+import { ExportPage } from '../pages/ExportPage';
+import { TIMEOUTS } from '../config/timeouts';
+
+test.describe('PDF Export', () => {
+  let editorPage: EditorPage;
+  let exportPage: ExportPage;
+
+  test.beforeEach(async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    editorPage = new EditorPage(page);
+    exportPage = new ExportPage(page);
+    await editorPage.goto(workerCtx.projectId, workerCtx.documentId);
+    await editorPage.waitForEditorReady();
+  });
+
+  test('PDF export option is visible in menu', async () => {
+    await exportPage.openExportMenu();
+    await expect(exportPage.pdfOption).toBeVisible();
+  });
+
+  test('PDF download initiates correctly', async () => {
+    const download = await exportPage.exportToPdf();
+    expect(download.suggestedFilename()).toMatch(/\.pdf$/);
+  });
+
+  test('loading state displays during PDF generation', async ({ page }) => {
+    // Slow down the export API to observe loading state
+    await page.route('**/api/export/pdf*', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await route.continue();
+    });
+
+    await exportPage.openExportMenu();
+
+    // Start export without awaiting completion
+    const downloadPromise = page.waitForEvent('download', { timeout: TIMEOUTS.EXPORT_DOWNLOAD });
+    await exportPage.pdfOption.click();
+
+    // Loading state should appear (spinner or disabled button)
+    await exportPage.expectLoadingState();
+
+    // Wait for download to complete
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/\.pdf$/);
+
+    // Button should be enabled again after export
+    await exportPage.expectExportButtonEnabled();
+  });
+
+  test('PDF file downloads with correct name and extension', async () => {
+    // Type a document title
+    await editorPage.setTitle('Test PDF Document');
+    await editorPage.waitForSave();
+
+    const download = await exportPage.exportToPdf();
+
+    // Verify filename matches document title (sanitized)
+    expect(download.suggestedFilename()).toBe('Test_PDF_Document.pdf');
+  });
+});
+```
+
+### Run E2E Tests
+
+```bash
+npm run test:e2e -- --grep "PDF Export"
+```
+
+**Expected:** All PDF export E2E tests pass
+
+---
+
+## E2E Verification
+
+Before proceeding to the next task, verify:
+
+- [ ] All unit tests pass (`npm test -- src/lib/export/`)
+- [ ] E2E tests pass (`npm run test:e2e -- --grep "PDF Export"`)
+- [ ] PDF option appears in export menu
+- [ ] PDF file downloads with correct extension
+- [ ] Loading state displays during generation
+- [ ] `TIMEOUTS.EXPORT_DOWNLOAD` added to `e2e/config/timeouts.ts`
+
+**Do not proceed to Task 6.3 until all E2E tests pass.**
+
+---
+
 ## Verification Checklist
 
 - [ ] `puppeteer` and related packages installed
@@ -469,6 +617,41 @@ git commit -m "feat: add PDF export with Puppeteer
 - [ ] htmlContent sanitization documented (relies on editor output)
 - [ ] Authorization checks prevent unauthorized access
 - [ ] Changes committed
+
+---
+
+## Additional E2E Tests
+
+Add to `e2e/export/pdf-export.spec.ts`:
+
+```typescript
+test('PDF generation timeout shows appropriate message', async ({ page, workerCtx, loginAsWorker }) => {
+  await loginAsWorker();
+  // Mock slow API response (> 60s)
+  await page.route('**/api/export/pdf', async (route) => {
+    await new Promise((r) => setTimeout(r, 65000));
+    route.fulfill({ status: 504 });
+  });
+  // Attempt export
+  // Verify timeout message appears
+});
+
+test('can export same document to both DOCX and PDF', async ({ page, workerCtx, loginAsWorker }) => {
+  await loginAsWorker();
+  // Export to DOCX
+  // Verify download
+  // Export same doc to PDF
+  // Verify second download
+});
+```
+
+### E2E Test Execution (Required Before Proceeding)
+
+```bash
+npm run test:e2e e2e/export/pdf-export.spec.ts
+```
+
+**Gate:** All tests must pass before proceeding to Task 6.3.
 
 ---
 

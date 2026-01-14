@@ -8,6 +8,8 @@
 
 **This task establishes the database schema, storage bucket, and shared utilities for the Knowledge Vault.** Everything in Phase 2 depends on this infrastructure.
 
+> **Design System:** This task is backend infrastructure. UI components that consume these types follow the "Scholarly Craft" aesthetic documented in [`docs/design-system.md`](../../design-system.md).
+
 ### Prerequisites
 
 - **Phase 0 and Phase 1** completed

@@ -1,6 +1,6 @@
 # Phase 1 Verification Checklist
 
-> **Phase 1** | [← E2E Tests](./11-e2e-tests.md) | **Final Step**
+> **Phase 1** | [← Document Metadata](./12-document-metadata.md) | **Final Step**
 
 ---
 

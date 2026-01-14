@@ -137,7 +137,9 @@ npm test src/lib/ai/__tests__/types.test.ts
 
 ### Step 5: Create AI constants file
 
-Per best practices, create constants file to avoid magic values:
+Per best practices, create constants file to avoid magic values.
+
+> **Design System Note:** These constants work alongside the [Quill Design System](../../design-system.md). UI components consuming these types should use design tokens like `text-error` for error states, `text-quill` for loading spinners, and `font-ui` for status messages.
 
 ```typescript
 // src/lib/constants/ai.ts

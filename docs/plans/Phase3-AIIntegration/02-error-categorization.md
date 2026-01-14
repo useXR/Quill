@@ -22,6 +22,29 @@
 - **Task 3.5** (Claude CLI Wrapper) - uses `categorizeError`, `isRetryableError`
 - **Task 3.7** (Streaming Module) - uses `categorizeError`
 
+### Design System: Error Display Patterns
+
+When rendering errors from this module in the UI, use the [Quill Design System](../../design-system.md) semantic error tokens:
+
+| Error Type               | Display Pattern                                                                         |
+| ------------------------ | --------------------------------------------------------------------------------------- |
+| **Retryable errors**     | Warning alert: `bg-warning-light border-warning/20 text-warning-dark` with retry button |
+| **Non-retryable errors** | Error alert: `bg-error-light border-error/20 text-error-dark`                           |
+| **Suggestion text**      | `font-ui text-sm text-ink-secondary` below error message                                |
+| **Error icons**          | Lucide `AlertTriangle` (warning) or `AlertCircle` (error) with `w-5 h-5`                |
+
+Example error alert markup:
+
+```tsx
+<div role="alert" className="flex items-start gap-3 p-4 bg-error-light border border-error/20 rounded-lg">
+  <AlertCircle className="w-5 h-5 text-error flex-shrink-0 mt-0.5" />
+  <div>
+    <p className="text-sm font-ui text-error-dark">{error.message}</p>
+    {error.suggestion && <p className="text-sm font-ui text-ink-secondary mt-1">{error.suggestion}</p>}
+  </div>
+</div>
+```
+
 ### Parallel Tasks
 
 This task can be done in parallel with:

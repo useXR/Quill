@@ -24,6 +24,19 @@
 - **Task 3.8** (AI State Store) - uses AI operation factories
 - **Task 3.13** (Selection Toolbar) - uses AI operation factories
 
+### Design System Testing Notes
+
+When testing UI components that use these mocks, verify design system compliance:
+
+| Mock Scenario | Expected UI State                 | Design Tokens to Verify                                     |
+| ------------- | --------------------------------- | ----------------------------------------------------------- |
+| `'loading'`   | Spinner visible, buttons disabled | `text-quill animate-spin`, `opacity-50`                     |
+| `'streaming'` | Live preview with content         | `font-prose text-base`, live region                         |
+| `'error'`     | Error alert displayed             | `bg-error-light text-error-dark`                            |
+| `'preview'`   | Accept/Reject buttons             | `bg-quill text-white` (Accept), `bg-surface-hover` (Reject) |
+
+Test that all states render with proper [Quill Design System](../../design-system.md) tokens.
+
 ### Parallel Tasks
 
 This task can be done in parallel with:

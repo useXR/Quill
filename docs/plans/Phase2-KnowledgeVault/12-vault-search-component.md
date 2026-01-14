@@ -8,6 +8,8 @@
 
 **This task creates the search UI component with request cancellation using TDD.** It provides a search input, displays results, and handles loading/empty states.
 
+> **Design System:** This component follows the "Scholarly Craft" aesthetic with refined inputs and results cards. See [`docs/design-system.md`](../../design-system.md) for full specifications.
+
 ### Prerequisites
 
 - **Task 2.10** completed (search API available)
@@ -143,6 +145,8 @@ npm test src/components/vault/__tests__/VaultSearch.test.tsx
 
 Create `src/components/vault/VaultSearch.tsx`:
 
+> **Design System:** Uses Quill design tokens for the "Scholarly Craft" aesthetic. See [`docs/design-system.md`](../../design-system.md).
+
 ```typescript
 'use client';
 
@@ -206,19 +210,39 @@ export function VaultSearch({ projectId, onResultSelect }: VaultSearchProps) {
     <div className="space-y-4">
       <form onSubmit={handleSearch} className="flex gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-tertiary" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search your vault..."
-            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="
+              w-full pl-10 pr-4 py-2.5
+              bg-surface
+              text-ink-primary font-ui text-base
+              placeholder:text-ink-subtle
+              border border-ink-faint rounded-md
+              shadow-sm
+              transition-all duration-150
+              hover:border-ink-subtle
+              focus:outline-none focus:ring-2 focus:ring-quill focus:border-quill
+            "
           />
         </div>
         <button
           type="submit"
           disabled={searching || !query.trim()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          className="
+            inline-flex items-center justify-center
+            px-4 py-2.5
+            bg-quill hover:bg-quill-dark active:bg-quill-darker
+            text-white font-ui font-semibold text-sm
+            rounded-md
+            shadow-sm hover:shadow-md
+            transition-all duration-150
+            focus:outline-none focus:ring-2 focus:ring-quill focus:ring-offset-2
+            disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-quill
+          "
           aria-label="Search"
         >
           {searching ? <Loader2 className="w-4 h-4 motion-safe:animate-spin" /> : 'Search'}
@@ -226,11 +250,19 @@ export function VaultSearch({ projectId, onResultSelect }: VaultSearchProps) {
       </form>
 
       {searchError && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-          {searchError}
+        <div
+          role="alert"
+          className="
+            flex items-start gap-3
+            p-4
+            bg-error-light
+            border border-error/20 rounded-lg
+          "
+        >
+          <p className="text-sm font-ui text-error-dark flex-1">{searchError}</p>
           <button
             onClick={() => setSearchError(null)}
-            className="ml-2 underline hover:no-underline"
+            className="text-sm font-ui text-error underline hover:no-underline"
           >
             Dismiss
           </button>
@@ -238,30 +270,47 @@ export function VaultSearch({ projectId, onResultSelect }: VaultSearchProps) {
       )}
 
       {searched && !searchError && results.length === 0 && (
-        <p className="text-gray-500 text-center py-4">No results found.</p>
+        <p className="font-ui text-ink-tertiary text-center py-4">No results found.</p>
       )}
 
       {results.length > 0 && (
         <div className="space-y-3">
-          <h3 className="font-medium text-gray-700">
+          <h3 className="font-ui font-medium text-ink-secondary">
             {results.length} result{results.length !== 1 ? 's' : ''} found
           </h3>
           {results.map((result) => (
             <div
               key={`${result.vaultItemId}-${result.chunkIndex}`}
-              className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
+              className="
+                p-4
+                bg-surface border border-ink-faint rounded-lg
+                shadow-sm
+                cursor-pointer
+                transition-all duration-200
+                hover:shadow-md hover:border-ink-subtle
+                focus-within:ring-2 focus-within:ring-quill focus-within:ring-offset-2
+              "
               onClick={() => onResultSelect?.(result)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && onResultSelect?.(result)}
             >
               <div className="flex items-center gap-2 mb-2">
-                <FileText className="w-4 h-4 text-gray-400" />
-                <span className="text-sm font-medium text-gray-600">
+                <FileText className="w-4 h-4 text-ink-tertiary" />
+                <span className="text-sm font-ui font-medium text-ink-secondary">
                   {result.filename}
                 </span>
-                <span className="text-xs text-gray-400">
+                <span className="
+                  inline-flex items-center
+                  px-2 py-0.5
+                  text-xs font-ui font-medium
+                  bg-quill-lighter text-quill
+                  rounded-md
+                ">
                   {Math.round(result.similarity * 100)}% match
                 </span>
               </div>
-              <p className="text-gray-700 text-sm line-clamp-3">
+              <p className="font-ui text-sm text-ink-primary line-clamp-3">
                 {result.content}
               </p>
             </div>

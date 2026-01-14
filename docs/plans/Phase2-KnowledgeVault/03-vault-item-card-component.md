@@ -8,6 +8,8 @@
 
 **This task creates the card component that displays a single vault item's information and status.** It shows filename, file type icon, extraction status, and action buttons.
 
+> **Design System:** This component follows the "Scholarly Craft" aesthetic with warm paper tones and refined borders. See [`docs/design-system.md`](../../design-system.md) for full specifications.
+
 ### Prerequisites
 
 - **Task 2.0** completed (types available)
@@ -132,6 +134,8 @@ npm test src/components/vault/__tests__/VaultItemCard.test.tsx
 
 Create `src/components/vault/VaultItemCard.tsx`:
 
+> **Design System:** Uses Quill design tokens for consistent "Scholarly Craft" aesthetic. See [`docs/design-system.md`](../../design-system.md).
+
 ```typescript
 'use client';
 
@@ -155,50 +159,62 @@ const statusIcons = {
   failed: AlertCircle,
 };
 
+// Design system: semantic colors for status indicators
 const statusColors = {
-  pending: 'text-yellow-500',
-  downloading: 'text-blue-500',
-  extracting: 'text-blue-500',
-  chunking: 'text-blue-500',
-  embedding: 'text-blue-500',
-  success: 'text-green-500',
-  partial: 'text-orange-500',
-  failed: 'text-red-500',
+  pending: 'text-warning',
+  downloading: 'text-quill',
+  extracting: 'text-quill',
+  chunking: 'text-quill',
+  embedding: 'text-quill',
+  success: 'text-success',
+  partial: 'text-warning',
+  failed: 'text-error',
 };
 
 export function VaultItemCard({ item, onDelete, onRetry }: VaultItemCardProps) {
   const FileIcon = item.type === 'pdf' ? FileText : File;
   const StatusIcon = statusIcons[item.extraction_status as keyof typeof statusIcons] || Clock;
-  const statusColor = statusColors[item.extraction_status as keyof typeof statusColors] || 'text-gray-500';
+  const statusColor = statusColors[item.extraction_status as keyof typeof statusColors] || 'text-ink-tertiary';
   const isProcessing = ['downloading', 'extracting', 'chunking', 'embedding'].includes(item.extraction_status || '');
 
   return (
-    <div className="flex items-center justify-between p-4 border rounded-lg bg-white hover:bg-gray-50">
+    <div className="
+      flex items-center justify-between p-4
+      bg-surface border border-ink-faint rounded-lg
+      shadow-sm
+      transition-all duration-200
+      hover:shadow-md hover:border-ink-subtle
+    ">
       <div className="flex items-center gap-3">
         <FileIcon
           data-testid={`file-icon-${item.type}`}
-          className="w-8 h-8 text-gray-400"
+          className="w-8 h-8 text-ink-tertiary"
         />
         <div>
-          <p className="font-medium text-gray-900">{item.filename}</p>
-          <div className="flex items-center gap-2 text-sm text-gray-500">
+          <p className="font-ui font-medium text-ink-primary">{item.filename}</p>
+          <div className="flex items-center gap-2 text-sm">
             <StatusIcon
               data-testid={isProcessing ? 'status-spinner' : undefined}
               className={`w-4 h-4 ${statusColor} ${isProcessing ? 'motion-safe:animate-spin' : ''}`}
             />
-            <span className="capitalize">{item.extraction_status}</span>
+            <span className="font-ui text-ink-secondary capitalize">{item.extraction_status}</span>
             {item.chunk_count > 0 && (
-              <span className="text-gray-400">• {item.chunk_count} chunks</span>
+              <span className="font-ui text-ink-tertiary">• {item.chunk_count} chunks</span>
             )}
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
         {item.extraction_status === 'failed' && onRetry && (
           <button
             onClick={() => onRetry(item.id)}
-            className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+            className="
+              p-2 rounded-md
+              text-quill hover:bg-quill-lighter
+              transition-colors duration-150
+              focus:outline-none focus:ring-2 focus:ring-quill focus:ring-offset-2
+            "
             aria-label="Retry extraction"
           >
             <RefreshCw className="w-4 h-4" />
@@ -206,7 +222,12 @@ export function VaultItemCard({ item, onDelete, onRetry }: VaultItemCardProps) {
         )}
         <button
           onClick={() => onDelete(item.id)}
-          className="p-2 text-red-600 hover:bg-red-50 rounded"
+          className="
+            p-2 rounded-md
+            text-error hover:bg-error-light
+            transition-colors duration-150
+            focus:outline-none focus:ring-2 focus:ring-error focus:ring-offset-2
+          "
           aria-label="Delete file"
         >
           <Trash2 className="w-4 h-4" />

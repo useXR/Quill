@@ -1,6 +1,6 @@
 # Task 10: E2E Tests with Playwright
 
-> **Phase 1** | [← Word Count](./10-word-count.md) | [Next: Verification →](./99-verification.md)
+> **Phase 1** | [← Word Count](./10-word-count.md) | [Next: Document Metadata →](./12-document-metadata.md)
 
 ---
 

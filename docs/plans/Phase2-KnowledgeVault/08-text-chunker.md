@@ -8,6 +8,8 @@
 
 **This task creates a text chunker that splits documents into overlapping chunks for embedding.** It uses sentence boundaries when possible and guarantees forward progress to avoid infinite loops.
 
+> **Design System:** This task is backend processing. UI components that display chunk counts follow the "Scholarly Craft" aesthetic documented in [`docs/design-system.md`](../../design-system.md).
+
 ### Prerequisites
 
 - **Task 2.0** completed (constants available)

@@ -8,6 +8,8 @@
 
 **This task creates the extraction processor that orchestrates the full pipeline using TDD.** It downloads files, extracts text, chunks, embeds, and stores results in the database.
 
+> **Design System:** This task is backend orchestration. UI components that display processing status follow the "Scholarly Craft" aesthetic documented in [`docs/design-system.md`](../../design-system.md).
+
 ### Prerequisites
 
 - **Task 2.6** completed (text extraction available)

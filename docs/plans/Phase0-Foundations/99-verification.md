@@ -43,10 +43,10 @@ check() {
 # 1. Check Node version
 echo "1. Node.js version..."
 NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
-if [ "$NODE_VERSION" -ge 20 ]; then
+if [ "$NODE_VERSION" -ge 24 ]; then
   check "Node.js $(node -v)" "pass"
 else
-  check "Node.js 20+ required, found $(node -v)" "fail"
+  check "Node.js 24+ required, found $(node -v)" "fail"
 fi
 
 # 2. Check pnpm
@@ -304,14 +304,14 @@ head -50 src/lib/supabase/database.types.ts
 ### Task 0.1 - Next.js Init
 
 - [ ] `package.json` exists with `packageManager` field
-- [ ] `.nvmrc` contains `20`
+- [ ] `.nvmrc` contains `24`
 - [ ] `.gitattributes` exists with LF line endings for scripts
 - [ ] `tsconfig.json` exists
 - [ ] `next.config.ts` exists with `output: 'standalone'`
 
 ### Task 0.2 - ESLint/Prettier
 
-- [ ] `eslint.config.mjs` exists with test file relaxation and jsx-a11y
+- [ ] `eslint.config.mjs` exists with test file relaxation (jsx-a11y included via next config)
 - [ ] `.prettierrc` exists
 - [ ] `.prettierignore` exists
 - [ ] `.husky/pre-commit` exists with lint-staged

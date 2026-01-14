@@ -8,6 +8,8 @@
 
 **This task creates the list container component that renders multiple vault items.** It handles empty states and delegates item rendering to VaultItemCard.
 
+> **Design System:** This component follows the "Scholarly Craft" aesthetic. See [`docs/design-system.md`](../../design-system.md) for full specifications.
+
 ### Prerequisites
 
 - **Task 2.2** completed (VaultItemCard available)
@@ -102,9 +104,12 @@ npm test src/components/vault/__tests__/VaultItemList.test.tsx
 
 Create `src/components/vault/VaultItemList.tsx`:
 
+> **Design System:** Uses Quill design tokens for empty states and spacing. See [`docs/design-system.md`](../../design-system.md).
+
 ```typescript
 'use client';
 
+import { FileText } from 'lucide-react';
 import { VaultItemCard } from './VaultItemCard';
 import type { VaultItem } from '@/lib/vault/types';
 
@@ -117,9 +122,19 @@ interface VaultItemListProps {
 export function VaultItemList({ items, onDelete, onRetry }: VaultItemListProps) {
   if (items.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500">
-        <p>No files uploaded yet.</p>
-        <p className="text-sm mt-1">Upload PDFs, DOCX, or TXT files to build your knowledge vault.</p>
+      <div className="
+        flex flex-col items-center justify-center
+        py-16 px-4
+        text-center
+      ">
+        {/* Subtle document illustration */}
+        <FileText className="w-16 h-16 text-ink-subtle mb-4" />
+        <h3 className="font-display text-lg font-bold text-ink-primary mb-2">
+          No files uploaded yet
+        </h3>
+        <p className="font-ui text-sm text-ink-tertiary max-w-sm">
+          Upload PDFs, DOCX, or TXT files to build your knowledge vault.
+        </p>
       </div>
     );
   }

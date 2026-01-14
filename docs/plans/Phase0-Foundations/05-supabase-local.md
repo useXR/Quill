@@ -63,10 +63,10 @@ docker ps
 ```bash
 # Pin Supabase CLI version for consistency across team
 pnpm add @supabase/supabase-js @supabase/ssr
-pnpm add -D supabase@1.200.3
+pnpm add -D supabase@2.72.6
 ```
 
-**Note:** Pinning the Supabase CLI version prevents unexpected breaking changes.
+**Note:** Pinning the Supabase CLI version (now v2.x) prevents unexpected breaking changes. The Supabase CLI 2.x includes minor improvements but maintains compatibility with existing workflows.
 
 ### Step 3: Initialize Supabase
 

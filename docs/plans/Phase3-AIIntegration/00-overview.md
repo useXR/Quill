@@ -6,7 +6,43 @@
 
 **Architecture:** Subprocess-based Claude CLI integration with process manager, error categorization, and automatic retry. The `AIProvider` interface enables future migration to direct Anthropic API. Zustand for AI operation state; SSE for streaming.
 
-**Tech Stack:** Next.js 14+, TipTap editor, Zustand, Supabase, Vitest, Playwright, Claude Code CLI
+**Tech Stack:** Next.js 16+, TipTap editor, Zustand, Supabase, Vitest, Playwright, Claude Code CLI
+
+---
+
+## Design System Integration
+
+All UI components in this phase **MUST** follow the [Quill Design System](../../design-system.md) ("Scholarly Craft" aesthetic).
+
+### Key Design Tokens for AI Features
+
+| Element                    | Design Token                                        | Notes                                          |
+| -------------------------- | --------------------------------------------------- | ---------------------------------------------- |
+| **AI Toolbar Background**  | `bg-surface`                                        | Clean white surface with `shadow-md` elevation |
+| **Toolbar Buttons**        | `bg-transparent hover:bg-surface-hover`             | Ghost button style with `text-ink-tertiary`    |
+| **Active/Pressed Buttons** | `bg-quill-light text-quill`                         | Brand accent for active states                 |
+| **Loading Spinner**        | `text-quill`                                        | Brand color for loading indicators             |
+| **Error States**           | `bg-error-light text-error-dark`                    | Semantic error styling                         |
+| **Success States**         | `bg-success-light text-success-dark`                | For accept confirmations                       |
+| **Typography (UI)**        | `font-ui` (Source Sans 3)                           | All toolbar labels and buttons                 |
+| **Border Radius**          | `rounded-lg`                                        | Standard card radius for floating toolbars     |
+| **Focus Ring**             | `focus:ring-2 focus:ring-quill focus:ring-offset-2` | Consistent focus states                        |
+
+### Typography Guidelines
+
+- **Toolbar buttons**: `font-ui text-sm font-medium`
+- **Status messages**: `font-ui text-xs text-ink-tertiary`
+- **Preview text**: `font-prose text-base` (maintains document style)
+- **Modal headings**: `font-display text-lg font-bold text-ink-primary`
+
+### Motion & Animation
+
+Per the design system's "unhurried and purposeful" motion philosophy:
+
+- Button hover/active: `transition-all duration-150` (fast, responsive)
+- Toolbar appearance: Fade in with `duration-200` (smooth, not flashy)
+- Streaming text: No animation (text appears naturally)
+- Loading spinner: `animate-spin` with Quill brand color
 
 ---
 

@@ -10,7 +10,7 @@
 
 ### Prerequisites
 
-- Node.js 18+ installed
+- Node.js 24+ installed
 - Supabase CLI installed (`npx supabase --version`)
 - Project initialized with `npx create-next-app@latest`
 - Supabase project linked (`npx supabase link`)

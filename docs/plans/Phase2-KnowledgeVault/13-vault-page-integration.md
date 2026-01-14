@@ -8,6 +8,8 @@
 
 **This task creates the vault page that integrates all components using TDD.** It includes server-side data fetching, error boundary, and optimistic updates.
 
+> **Design System:** This page follows the "Scholarly Craft" aesthetic with proper page structure and typography hierarchy. See [`docs/design-system.md`](../../design-system.md) for full specifications.
+
 ### Prerequisites
 
 - **Task 2.1** completed (VaultUpload available)
@@ -174,7 +176,7 @@ npm test src/app/projects/[id]/vault/__tests__/VaultPageClient.test.tsx
 
 ---
 
-### Step 3: Create vault page server component (Next.js 14+ params)
+### Step 3: Create vault page server component (Next.js 16+ params)
 
 Create `src/app/projects/[id]/vault/page.tsx`:
 
@@ -226,11 +228,14 @@ export default async function VaultPage({ params }: Props) {
 
 Create `src/app/projects/[id]/vault/VaultPageClient.tsx`:
 
+> **Design System:** Uses Quill design tokens for the "Scholarly Craft" aesthetic. See [`docs/design-system.md`](../../design-system.md).
+
 ```typescript
 'use client';
 
 import { useState, useCallback } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
+import { AlertTriangle } from 'lucide-react';
 import { VaultUpload } from '@/components/vault/VaultUpload';
 import { VaultItemList } from '@/components/vault/VaultItemList';
 import { VaultSearch } from '@/components/vault/VaultSearch';
@@ -243,12 +248,32 @@ interface Props {
 
 function VaultErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
   return (
-    <div role="alert" className="p-4 bg-red-50 border border-red-200 rounded-lg">
-      <p className="text-red-800 font-medium">Something went wrong loading the vault.</p>
-      <p className="text-red-600 text-sm mt-1">{error.message}</p>
+    <div
+      role="alert"
+      className="
+        flex flex-col items-center justify-center
+        p-8
+        bg-error-light
+        border border-error/20 rounded-xl
+        text-center
+      "
+    >
+      <AlertTriangle className="w-12 h-12 text-error mb-4" />
+      <h2 className="font-display text-xl font-bold text-error-dark mb-2">
+        Something went wrong loading the vault
+      </h2>
+      <p className="font-ui text-sm text-error-dark/80 mb-6 max-w-md">{error.message}</p>
       <button
         onClick={resetErrorBoundary}
-        className="mt-3 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+        className="
+          inline-flex items-center justify-center
+          px-4 py-2.5
+          bg-error hover:bg-error-dark
+          text-white font-ui font-semibold text-sm
+          rounded-md
+          transition-all duration-150
+          focus:outline-none focus:ring-2 focus:ring-error focus:ring-offset-2
+        "
       >
         Try again
       </button>
@@ -303,37 +328,57 @@ function VaultContent({ projectId, initialItems }: Props) {
   }, [refreshItems]);
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Knowledge Vault</h1>
+    <div className="min-h-screen bg-bg-primary">
+      <div className="max-w-container mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+        {/* Page Title - uses display font for scholarly feel */}
+        <h1 className="font-display text-3xl font-bold text-ink-primary tracking-tight mb-8">
+          Knowledge Vault
+        </h1>
 
-      {deleteError && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-          {deleteError}
-          <button
-            onClick={() => setDeleteError(null)}
-            className="ml-2 underline hover:no-underline"
+        {deleteError && (
+          <div
+            role="alert"
+            className="
+              mb-6 p-4
+              flex items-start gap-3
+              bg-error-light
+              border border-error/20 rounded-lg
+            "
           >
-            Dismiss
-          </button>
-        </div>
-      )}
+            <p className="text-sm font-ui text-error-dark flex-1">{deleteError}</p>
+            <button
+              onClick={() => setDeleteError(null)}
+              className="text-sm font-ui text-error underline hover:no-underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
 
-      <div className="mb-8">
-        <VaultUpload projectId={projectId} onUpload={refreshItems} />
-      </div>
+        {/* Upload Section */}
+        <section className="mb-10">
+          <VaultUpload projectId={projectId} onUpload={refreshItems} />
+        </section>
 
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold mb-4">Search</h2>
-        <VaultSearch projectId={projectId} />
-      </div>
+        {/* Search Section */}
+        <section className="mb-10">
+          <h2 className="font-display text-xl font-bold text-ink-primary mb-4">
+            Search
+          </h2>
+          <VaultSearch projectId={projectId} />
+        </section>
 
-      <div>
-        <h2 className="text-lg font-semibold mb-4">Uploaded Files</h2>
-        <VaultItemList
-          items={items}
-          onDelete={handleDelete}
-          onRetry={handleRetry}
-        />
+        {/* Files Section */}
+        <section>
+          <h2 className="font-display text-xl font-bold text-ink-primary mb-4">
+            Uploaded Files
+          </h2>
+          <VaultItemList
+            items={items}
+            onDelete={handleDelete}
+            onRetry={handleRetry}
+          />
+        </section>
       </div>
     </div>
   );

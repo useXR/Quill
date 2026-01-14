@@ -22,6 +22,32 @@
 - **Task 3.10** (SSE API Route) - may use store for state coordination
 - **Task 3.13** (Selection Toolbar) - uses store for UI state
 
+### Design System: State-Driven Styling
+
+UI components consuming this store should map `AIOperationStatus` to [Quill Design System](../../design-system.md) tokens:
+
+| Status        | UI State                    | Design Tokens                                                                                  |
+| ------------- | --------------------------- | ---------------------------------------------------------------------------------------------- |
+| `'idle'`      | Default/ready state         | Normal button styling                                                                          |
+| `'loading'`   | Spinner + disabled controls | `text-quill animate-spin`, `opacity-50 cursor-not-allowed`                                     |
+| `'streaming'` | Live preview visible        | `font-prose`, streaming cursor with `bg-quill animate-pulse`                                   |
+| `'preview'`   | Accept/Reject buttons       | Accept: `bg-quill hover:bg-quill-dark text-white`, Reject: `bg-surface-hover text-ink-primary` |
+| `'error'`     | Error alert displayed       | `bg-error-light text-error-dark`, retry button if `retryable`                                  |
+
+**Example status-driven component:**
+
+```tsx
+const statusClasses = {
+  idle: '',
+  loading: 'opacity-50 cursor-not-allowed',
+  streaming: 'border-l-2 border-quill',
+  preview: 'ring-2 ring-quill ring-offset-2',
+  error: 'border-error bg-error-light/50',
+};
+
+<div className={`p-4 rounded-lg ${statusClasses[status]}`}>{/* Content */}</div>;
+```
+
 ### Parallel Tasks
 
 This task can be done in parallel with:

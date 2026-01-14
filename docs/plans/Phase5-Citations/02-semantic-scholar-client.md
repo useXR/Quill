@@ -38,6 +38,14 @@ This task can be done in parallel with:
 - **Domain Logger Mock** - Mock `citationLogger` following Phase 2-3 pattern (Best Practice: Phase 2)
 - **Global Fetch Mock** - Mock `fetch` at top of test file (Best Practice: Phase 0)
 
+### Design System Note
+
+While this task focuses on backend API logic, the data returned by the Semantic Scholar client directly populates UI components. The `Paper` type fields map to design tokens in `CitationCard`:
+
+- `title` renders with `font-display` (Libre Baskerville) for scholarly authority
+- `authors` renders with `font-ui` (Source Sans 3) for readability
+- Verified/unverified status uses semantic colors (`text-success`/`text-warning`)
+
 ---
 
 ## Files to Create/Modify
@@ -847,6 +855,12 @@ git commit -m "test(citations): verify Semantic Scholar client complete"
 - [ ] Rate limiting implemented
 - [ ] Coverage > 90%
 - [ ] All changes committed
+
+---
+
+## E2E Smoke Test Note
+
+> **Note**: After Task 5.21-5.23 (API Routes) is complete, the Semantic Scholar client should be verified with an E2E smoke test to ensure end-to-end functionality works correctly. See `e2e/citations/citations-api.spec.ts` for the smoke tests that exercise the search endpoint which uses this client.
 
 ---
 

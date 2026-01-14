@@ -8,6 +8,8 @@
 
 **This task creates the semantic search functionality using pgvector.** It includes a database function for efficient similarity search and an API with Zod validation.
 
+> **Design System:** This task is backend search. The VaultSearch component that consumes this API follows the "Scholarly Craft" aesthetic documented in [`docs/design-system.md`](../../design-system.md).
+
 ### Prerequisites
 
 - **Task 2.9** completed (chunks are embedded and stored)

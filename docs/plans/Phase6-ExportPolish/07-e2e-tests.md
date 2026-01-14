@@ -1,6 +1,72 @@
-# Task 6.7: E2E Tests
+# Task 6.7: E2E Tests (Integration & Audit)
 
 > **Phase 6** | [← Command Palette](./06-command-palette.md) | [Next: Verification →](./99-verification.md)
+
+---
+
+## E2E Tests and Page Objects Created in Earlier Tasks
+
+**IMPORTANT:** Following the incremental testing pattern, E2E tests AND page objects have been created in each feature task. This task focuses ONLY on integration tests and final audits. Do NOT recreate page objects here.
+
+### Page Objects Created in Tasks 6.1-6.6
+
+| Task | Page Object          | Location                          |
+| ---- | -------------------- | --------------------------------- |
+| 6.1  | `ExportPage`         | `e2e/pages/ExportPage.ts`         |
+| 6.3  | `MobileNavPage`      | `e2e/pages/MobileNavPage.ts`      |
+| 6.5  | `ToastPage`          | `e2e/pages/ToastPage.ts`          |
+| 6.6  | `CommandPalettePage` | `e2e/pages/CommandPalettePage.ts` |
+
+### E2E Test Files Created in Tasks 6.1-6.6
+
+| Task | E2E Test File                            | Purpose                                                          |
+| ---- | ---------------------------------------- | ---------------------------------------------------------------- |
+| 6.1  | `e2e/export/docx-export.spec.ts`         | DOCX export menu, download, filename, loading state              |
+| 6.2  | `e2e/export/pdf-export.spec.ts`          | PDF export, loading state, download                              |
+| 6.3  | `e2e/navigation/skip-links.spec.ts`      | Skip link visibility and function                                |
+| 6.3  | `e2e/navigation/mobile-nav.spec.ts`      | Drawer open/close, ARIA attributes                               |
+| 6.3  | `e2e/navigation/app-shell.spec.ts`       | Header, sidebar, touch targets, **logo navigation**              |
+| 6.4  | `e2e/errors/error-handling.spec.ts`      | Error boundary, skeletons, error pages, **recovery after retry** |
+| 6.5  | `e2e/notifications/toast.spec.ts`        | Toast appearance, auto-dismiss, ARIA, **stacking behavior**      |
+| 6.6  | `e2e/navigation/command-palette.spec.ts` | Keyboard shortcuts (**including Ctrl+K**), search, navigation    |
+
+### Test Routes Created in Task 6.4
+
+| Route                  | File                                   | Purpose                                    |
+| ---------------------- | -------------------------------------- | ------------------------------------------ |
+| `/test/error-boundary` | `src/app/test/error-boundary/page.tsx` | Error boundary testing with retry/recovery |
+| `/test/error-page`     | `src/app/test/error-page/page.tsx`     | Global error page testing                  |
+
+### Timeout Constants Added
+
+| Constant                      | Value   | Added In |
+| ----------------------------- | ------- | -------- |
+| `TIMEOUTS.EXPORT_DOWNLOAD`    | 30000ms | Task 6.2 |
+| `TIMEOUTS.TOAST_AUTO_DISMISS` | 7000ms  | Task 6.5 |
+
+---
+
+## Design System Context
+
+E2E tests validate that the **Scholarly Craft** design system is correctly implemented across the application. Tests should verify:
+
+### Visual Consistency Checks
+
+- **Color Tokens:** Validate that design system colors (`bg-bg-primary`, `text-ink-primary`, etc.) render correctly
+- **Typography:** Verify correct fonts load (Libre Baskerville for display, Source Sans 3 for UI)
+- **Touch Targets:** All interactive elements meet 44x44px minimum size
+- **Focus States:** Keyboard focus uses `ring-quill` (#7c3aed) consistently
+
+### Accessibility Tests Should Verify
+
+- **WCAG 2.1 AA Compliance:** All pages pass axe-core audits
+- **Color Contrast:** Design system tokens meet 4.5:1 (text) and 3:1 (UI components) minimums
+- **Reduced Motion:** Components respect `prefers-reduced-motion` preference
+- **Focus Management:** Modals trap focus, return focus on close
+
+### Visual Regression (Optional Enhancement)
+
+Consider adding Percy or Playwright visual snapshots to catch unintended design system changes.
 
 ---
 
@@ -18,25 +84,33 @@
 
 ### What This Task Creates
 
-- `e2e/pages/ExportPage.ts` - Export page object (extends existing pattern)
-- `e2e/pages/ToastPage.ts` - Toast helper page object
-- `e2e/pages/CommandPalettePage.ts` - Command palette page object
-- `e2e/pages/MobileNavPage.ts` - Mobile navigation page object
-- `e2e/export/*.spec.ts` - Export functionality tests
-- `e2e/toast/*.spec.ts` - Toast notification tests
-- `e2e/command-palette/*.spec.ts` - Command palette tests
-- `e2e/accessibility/*.spec.ts` - Accessibility tests
-- `e2e/mobile/*.spec.ts` - Mobile-specific tests
+**Note:** Page objects have been created in earlier tasks (6.1, 6.3, 6.5, 6.6). This task focuses on integration and audit tests only.
+
+- `e2e/integration/phase-integration.spec.ts` - Cross-phase integration tests
+- `e2e/accessibility/full-audit.spec.ts` - Comprehensive accessibility audit
+- `e2e/accessibility/touch-target-audit.spec.ts` - WCAG 2.5.8 touch target verification
+- `e2e/integration/full-app-integration.spec.ts` - End-to-end user journey tests
 - `src/test-utils/factories.ts` (extend) - Export-related test data factories
 
 ### What This Task Uses (DO NOT RECREATE)
 
-- `e2e/config/timeouts.ts` - Existing `TIMEOUTS` constants (Phase 0)
-- `e2e/fixtures/test-fixtures.ts` - Existing `workerCtx`, `loginAsWorker` (Phase 0)
-- `e2e/helpers/auth.ts` - Existing auth helpers (Phase 0)
-- `e2e/helpers/axe.ts` - Existing `checkA11y()` helper (Phase 0)
-- `e2e/helpers/hydration.ts` - Existing `waitForFormReady()` helper (Phase 0)
-- `e2e/pages/LoginPage.ts` - Existing page object pattern (Phase 0)
+**From Phase 0:**
+
+- `e2e/config/timeouts.ts` - Existing `TIMEOUTS` constants
+- `e2e/fixtures/test-fixtures.ts` - Existing `workerCtx`, `loginAsWorker`
+- `e2e/helpers/auth.ts` - Existing auth helpers
+- `e2e/helpers/axe.ts` - Existing `checkA11y()` helper
+- `e2e/helpers/hydration.ts` - Existing `waitForFormReady()` helper
+- `e2e/pages/LoginPage.ts` - Existing page object pattern
+
+**From Phase 6 (Tasks 6.1-6.6):**
+
+- `e2e/pages/ExportPage.ts` - Export page object (created in Task 6.1)
+- `e2e/pages/MobileNavPage.ts` - Mobile navigation page object (created in Task 6.3)
+- `e2e/pages/ToastPage.ts` - Toast helper page object (created in Task 6.5)
+- `e2e/pages/CommandPalettePage.ts` - Command palette page object (created in Task 6.6)
+- `src/app/test/error-boundary/page.tsx` - Test route for error boundary (created in Task 6.4)
+- `src/app/test/error-page/page.tsx` - Test route for global error page (created in Task 6.4)
 
 ### Tasks That Depend on This
 
@@ -46,31 +120,29 @@
 
 ## Files to Create/Modify
 
-**Create (following existing patterns):**
+**Create (integration and audit tests only):**
 
-- `e2e/pages/ExportPage.ts`
-- `e2e/pages/ToastPage.ts`
-- `e2e/pages/CommandPalettePage.ts`
-- `e2e/pages/MobileNavPage.ts`
-- `e2e/export/export-flows.spec.ts`
-- `e2e/toast/toast-flows.spec.ts`
-- `e2e/command-palette/command-palette.spec.ts`
-- `e2e/accessibility/unauthenticated.spec.ts`
-- `e2e/accessibility/authenticated.spec.ts`
-- `e2e/mobile/navigation.spec.ts`
+- `e2e/integration/phase-integration.spec.ts` - Cross-phase integration tests
+- `e2e/integration/full-app-integration.spec.ts` - End-to-end user journey tests
+- `e2e/accessibility/unauthenticated.spec.ts` - Accessibility audit for public pages
+- `e2e/accessibility/authenticated.spec.ts` - Accessibility audit for authenticated pages
+- `e2e/accessibility/touch-target-audit.spec.ts` - WCAG 2.5.8 touch target verification
+- `e2e/accessibility/full-audit.spec.ts` - Comprehensive accessibility audit
 
 **Extend (add to existing files):**
 
-- `e2e/config/timeouts.ts` - Add Phase 6 specific timeouts
+- `e2e/config/timeouts.ts` - Add Phase 6 specific timeouts (if not already added in earlier tasks)
 - `src/test-utils/factories.ts` - Add export-related factories
+
+**NOTE:** Page objects (`ExportPage`, `ToastPage`, `CommandPalettePage`, `MobileNavPage`) have already been created in Tasks 6.1, 6.3, 6.5, and 6.6 respectively. Do NOT recreate them here.
 
 ---
 
 ## Steps
 
-### Step 1: Verify Phase 0 infrastructure exists
+### Step 1: Verify Phase 0 and Phase 6 infrastructure exists
 
-Before proceeding, verify the existing infrastructure:
+Before proceeding, verify the existing infrastructure from Phase 0 and earlier Phase 6 tasks:
 
 ```bash
 # Verify Phase 0 files exist
@@ -80,9 +152,19 @@ ls -la e2e/helpers/auth.ts
 ls -la e2e/helpers/axe.ts
 ls -la e2e/helpers/hydration.ts
 ls -la e2e/pages/LoginPage.ts
+
+# Verify Phase 6 page objects exist (created in Tasks 6.1, 6.3, 6.5, 6.6)
+ls -la e2e/pages/ExportPage.ts
+ls -la e2e/pages/MobileNavPage.ts
+ls -la e2e/pages/ToastPage.ts
+ls -la e2e/pages/CommandPalettePage.ts
+
+# Verify test routes exist (created in Task 6.4)
+ls -la src/app/test/error-boundary/page.tsx
+ls -la src/app/test/error-page/page.tsx
 ```
 
-**Expected:** All files exist. If any are missing, Phase 0 must be completed first.
+**Expected:** All files exist. If any Phase 6 page objects are missing, complete the corresponding task first.
 
 ### Step 2: Install accessibility testing (if not already installed)
 
@@ -93,17 +175,17 @@ npm list @axe-core/playwright || npm install -D @axe-core/playwright
 
 **Expected:** Package available in devDependencies
 
-### Step 3: Extend existing timeout constants
+### Step 3: Verify timeout constants were added in earlier tasks
 
-Add Phase 6 specific timeouts to `e2e/config/timeouts.ts`:
+The following timeouts should already exist from earlier Phase 6 tasks:
 
 ```typescript
-// Add these to the existing TIMEOUTS object in e2e/config/timeouts.ts
+// These should already be in e2e/config/timeouts.ts from Tasks 6.1, 6.2, 6.5
 
 export const TIMEOUTS = {
   // ... existing timeouts from Phase 0 ...
 
-  // Phase 6 additions
+  // Phase 6 additions (already added)
   /** Timeout for toast auto-dismiss verification (5s default + 2s buffer) */
   TOAST_AUTO_DISMISS: 7000,
   /** Timeout for export file download */
@@ -112,10 +194,12 @@ export const TIMEOUTS = {
   COMMAND_PALETTE: 500,
 } as const;
 
-// Add pre-built wait options if not present
+// Pre-built wait options
 export const TOAST_WAIT = { timeout: TIMEOUTS.TOAST };
 export const EXPORT_WAIT = { timeout: TIMEOUTS.EXPORT_DOWNLOAD };
 ```
+
+If any are missing, add them now.
 
 ### Step 4: Extend test data factories
 
@@ -165,447 +249,136 @@ export const mockExportDocuments = {
 };
 ```
 
-### Step 5: Create ExportPage page object
+### Step 5: Create integration tests using existing page objects
 
-Create `e2e/pages/ExportPage.ts` following the existing pattern:
+**NOTE:** Page objects were created in Tasks 6.1, 6.3, 6.5, and 6.6. Import and use them from `e2e/pages/`.
 
-```typescript
-import { Page, Locator, expect } from '@playwright/test';
-import { TIMEOUTS, EXPORT_WAIT } from '../config/timeouts';
-
-/**
- * Page object for document export functionality.
- * Follows Phase 0 page object pattern from LoginPage.ts.
- */
-export class ExportPage {
-  readonly page: Page;
-  readonly exportButton: Locator;
-  readonly exportMenu: Locator;
-  readonly docxOption: Locator;
-  readonly pdfOption: Locator;
-
-  constructor(page: Page) {
-    this.page = page;
-    this.exportButton = page.getByRole('button', { name: /export/i });
-    this.exportMenu = page.getByRole('menu');
-    this.docxOption = page.getByRole('menuitem', { name: /docx/i });
-    this.pdfOption = page.getByRole('menuitem', { name: /pdf/i });
-  }
-
-  async openExportMenu() {
-    await this.exportButton.click();
-    await expect(this.exportMenu).toBeVisible({ timeout: TIMEOUTS.DIALOG });
-  }
-
-  async exportToDocx() {
-    await this.openExportMenu();
-    const downloadPromise = this.page.waitForEvent('download', EXPORT_WAIT);
-    await this.docxOption.click();
-    return downloadPromise;
-  }
-
-  async exportToPdf() {
-    await this.openExportMenu();
-    const downloadPromise = this.page.waitForEvent('download', EXPORT_WAIT);
-    await this.pdfOption.click();
-    return downloadPromise;
-  }
-
-  async expectExportButtonVisible() {
-    await expect(this.exportButton).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
-  }
-}
-```
-
-### Step 6: Create ToastPage page object
-
-Create `e2e/pages/ToastPage.ts`:
-
-```typescript
-import { Page, Locator, expect } from '@playwright/test';
-import { TIMEOUTS, TOAST_WAIT } from '../config/timeouts';
-
-/**
- * Page object for toast notification interactions.
- */
-export class ToastPage {
-  readonly page: Page;
-  readonly toastContainer: Locator;
-  readonly toast: Locator;
-  readonly dismissButton: Locator;
-
-  constructor(page: Page) {
-    this.page = page;
-    this.toastContainer = page.locator('[role="status"][aria-live="polite"]');
-    this.toast = page.getByRole('alert');
-    this.dismissButton = this.toast.getByRole('button', { name: /dismiss/i });
-  }
-
-  async expectToastVisible(textPattern?: string | RegExp) {
-    await expect(this.toast).toBeVisible(TOAST_WAIT);
-    if (textPattern) {
-      await expect(this.toast).toContainText(textPattern);
-    }
-  }
-
-  async expectToastNotVisible() {
-    await expect(this.toast).not.toBeVisible();
-  }
-
-  async dismiss() {
-    await this.dismissButton.click();
-    await this.expectToastNotVisible();
-  }
-
-  async waitForAutoDismiss() {
-    await expect(this.toast).toBeVisible(TOAST_WAIT);
-    await expect(this.toast).not.toBeVisible({ timeout: TIMEOUTS.TOAST_AUTO_DISMISS });
-  }
-
-  async getToastCount(): Promise<number> {
-    return await this.toast.count();
-  }
-}
-```
-
-### Step 7: Create CommandPalettePage page object
-
-Create `e2e/pages/CommandPalettePage.ts`:
-
-```typescript
-import { Page, Locator, expect } from '@playwright/test';
-import { TIMEOUTS } from '../config/timeouts';
-
-/**
- * Page object for command palette interactions.
- */
-export class CommandPalettePage {
-  readonly page: Page;
-  readonly dialog: Locator;
-  readonly searchInput: Locator;
-  readonly emptyState: Locator;
-
-  constructor(page: Page) {
-    this.page = page;
-    this.dialog = page.getByRole('dialog', { name: /command palette/i });
-    this.searchInput = page.getByPlaceholder(/search or type/i);
-    this.emptyState = page.getByText(/no results found/i);
-  }
-
-  async open() {
-    // Use Meta+k for Mac, also works with Ctrl+k on other platforms
-    await this.page.keyboard.press('Meta+k');
-    await expect(this.dialog).toBeVisible({ timeout: TIMEOUTS.DIALOG });
-  }
-
-  async close() {
-    await this.page.keyboard.press('Escape');
-    await expect(this.dialog).not.toBeVisible();
-  }
-
-  async search(query: string) {
-    await expect(this.searchInput).toBeVisible();
-    await this.searchInput.fill(query);
-    await this.page.waitForTimeout(TIMEOUTS.DEBOUNCE_SEARCH);
-  }
-
-  async selectOption(name: string | RegExp) {
-    const option = this.page.getByRole('option', { name });
-    await option.click();
-  }
-
-  async navigateWithKeyboard(direction: 'up' | 'down', count = 1) {
-    for (let i = 0; i < count; i++) {
-      await this.page.keyboard.press(direction === 'down' ? 'ArrowDown' : 'ArrowUp');
-    }
-  }
-
-  async selectWithEnter() {
-    await this.page.keyboard.press('Enter');
-  }
-
-  async expectOptionVisible(name: string | RegExp) {
-    await expect(this.page.getByRole('option', { name })).toBeVisible();
-  }
-
-  async expectEmptyState() {
-    await expect(this.emptyState).toBeVisible();
-  }
-
-  async expectClosed() {
-    await expect(this.dialog).not.toBeVisible();
-  }
-}
-```
-
-### Step 8: Create MobileNavPage page object
-
-Create `e2e/pages/MobileNavPage.ts`:
-
-```typescript
-import { Page, Locator, expect } from '@playwright/test';
-import { TIMEOUTS } from '../config/timeouts';
-
-/**
- * Page object for mobile navigation interactions.
- */
-export class MobileNavPage {
-  readonly page: Page;
-  readonly hamburgerButton: Locator;
-  readonly closeButton: Locator;
-  readonly drawer: Locator;
-  readonly backdrop: Locator;
-
-  constructor(page: Page) {
-    this.page = page;
-    this.hamburgerButton = page.getByRole('button', { name: /open menu/i });
-    this.closeButton = page.getByRole('button', { name: /close menu/i });
-    this.drawer = page.getByRole('dialog', { name: /navigation/i });
-    this.backdrop = page.locator('.bg-black\\/50');
-  }
-
-  async openDrawer() {
-    await this.hamburgerButton.click();
-    await expect(this.drawer).toBeVisible({ timeout: TIMEOUTS.DIALOG });
-  }
-
-  async closeDrawer() {
-    await this.closeButton.click();
-    await expect(this.drawer).not.toBeVisible();
-  }
-
-  async closeViaBackdrop() {
-    await this.backdrop.click();
-    await expect(this.drawer).not.toBeVisible();
-  }
-
-  async navigateTo(linkName: string | RegExp) {
-    const link = this.drawer.getByRole('link', { name: linkName });
-    await link.click();
-  }
-
-  async expectHamburgerVisible() {
-    await expect(this.hamburgerButton).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
-  }
-
-  async expectHamburgerNotVisible() {
-    await expect(this.hamburgerButton).not.toBeVisible();
-  }
-
-  async expectDrawerClosed() {
-    await expect(this.drawer).not.toBeVisible();
-  }
-}
-```
-
-### Step 9: Create export flow tests
-
-Create `e2e/export/export-flows.spec.ts`:
+Create `e2e/integration/export-integration.spec.ts` using the existing `ExportPage`:
 
 ```typescript
 import { test, expect } from '../fixtures/test-fixtures';
 import { ExportPage } from '../pages/ExportPage';
+import { ToastPage } from '../pages/ToastPage';
 import { EditorPage } from '../pages/EditorPage';
 import { TIMEOUTS } from '../config/timeouts';
 
-test.describe('Document Export', () => {
+test.describe('Export Integration', () => {
   let exportPage: ExportPage;
+  let toastPage: ToastPage;
   let editorPage: EditorPage;
 
   test.beforeEach(async ({ page, workerCtx, loginAsWorker }) => {
     await loginAsWorker();
-
     exportPage = new ExportPage(page);
+    toastPage = new ToastPage(page);
     editorPage = new EditorPage(page);
-
-    // Navigate to a test document using worker context
     await editorPage.goto(workerCtx.projectId, workerCtx.documentId);
     await editorPage.waitForEditorReady();
   });
 
-  test('exports document to DOCX', async () => {
-    const download = await exportPage.exportToDocx();
-
-    expect(download.suggestedFilename()).toMatch(/\.docx$/);
-
-    // Verify file was downloaded
-    const path = await download.path();
-    expect(path).toBeTruthy();
+  test('export shows success toast after completion', async () => {
+    await exportPage.exportToDocx();
+    await toastPage.expectToastVisible(/export|success/i);
   });
 
-  test('exports document to PDF', async () => {
-    const download = await exportPage.exportToPdf();
+  test('export error shows error toast', async ({ page }) => {
+    // Mock export failure
+    await page.route('**/api/export/*', (route) =>
+      route.fulfill({ status: 500, body: JSON.stringify({ error: 'Export failed' }) })
+    );
 
-    expect(download.suggestedFilename()).toMatch(/\.pdf$/);
-
-    // Verify file was downloaded
-    const path = await download.path();
-    expect(path).toBeTruthy();
-  });
-
-  test('export button is visible in editor', async () => {
-    await exportPage.expectExportButtonVisible();
-  });
-
-  test('export menu shows format options', async () => {
     await exportPage.openExportMenu();
+    await exportPage.docxOption.click();
 
-    await expect(exportPage.docxOption).toBeVisible();
-    await expect(exportPage.pdfOption).toBeVisible();
+    await toastPage.expectToastVisible(/error|failed/i);
   });
 });
 ```
 
-### Step 10: Create toast notification tests
+### Step 6: Create cross-phase integration tests
 
-Create `e2e/toast/toast-flows.spec.ts`:
+**NOTE:** Feature-specific E2E tests have been created in Tasks 6.1-6.6. This step focuses on cross-phase integration tests that verify Phase 6 components work correctly with components from earlier phases.
+
+Create `e2e/integration/phase-integration.spec.ts`:
 
 ```typescript
 import { test, expect } from '../fixtures/test-fixtures';
+import { ExportPage } from '../pages/ExportPage';
 import { ToastPage } from '../pages/ToastPage';
-import { ProjectsPage } from '../pages/ProjectsPage';
-import { TIMEOUTS } from '../config/timeouts';
-
-test.describe('Toast Notifications', () => {
-  let toastPage: ToastPage;
-  let projectsPage: ProjectsPage;
-
-  test.beforeEach(async ({ page, workerCtx, loginAsWorker }) => {
-    await loginAsWorker();
-
-    toastPage = new ToastPage(page);
-    projectsPage = new ProjectsPage(page);
-
-    await projectsPage.goto();
-  });
-
-  test('shows success toast on project creation', async () => {
-    const projectName = `Toast Test ${Date.now()}`;
-
-    await projectsPage.createProject(projectName);
-
-    await toastPage.expectToastVisible(/created|success/i);
-  });
-
-  test('toast can be dismissed manually', async () => {
-    const projectName = `Dismiss Test ${Date.now()}`;
-
-    await projectsPage.createProject(projectName);
-    await toastPage.expectToastVisible();
-
-    await toastPage.dismiss();
-
-    await toastPage.expectToastNotVisible();
-  });
-
-  test('toast auto-dismisses after timeout', async () => {
-    const projectName = `Auto Dismiss ${Date.now()}`;
-
-    await projectsPage.createProject(projectName);
-
-    await toastPage.waitForAutoDismiss();
-  });
-
-  test('toast container has correct ARIA attributes', async ({ page }) => {
-    const projectName = `ARIA Test ${Date.now()}`;
-
-    await projectsPage.createProject(projectName);
-    await toastPage.expectToastVisible();
-
-    // Verify accessibility attributes
-    await expect(toastPage.toastContainer).toHaveAttribute('aria-live', 'polite');
-    await expect(toastPage.toast).toHaveAttribute('role', 'alert');
-  });
-});
-```
-
-### Step 11: Create command palette tests
-
-Create `e2e/command-palette/command-palette.spec.ts`:
-
-```typescript
-import { test, expect } from '../fixtures/test-fixtures';
 import { CommandPalettePage } from '../pages/CommandPalettePage';
+import { EditorPage } from '../pages/EditorPage';
+import { checkA11y } from '../helpers/axe';
 import { TIMEOUTS } from '../config/timeouts';
 
-test.describe('Command Palette', () => {
-  let commandPalette: CommandPalettePage;
-
+test.describe('Phase 6 Integration with Earlier Phases', () => {
   test.beforeEach(async ({ page, loginAsWorker }) => {
     await loginAsWorker();
-
-    commandPalette = new CommandPalettePage(page);
-    await page.goto('/projects');
-    await page.waitForLoadState('domcontentloaded');
   });
 
-  test('opens with Cmd+K keyboard shortcut', async () => {
-    await commandPalette.open();
+  test.describe('Phase 0-1: Core Editor in New Shell', () => {
+    test('editor loads correctly in new app shell', async ({ page, workerCtx }) => {
+      await page.goto(`/projects/${workerCtx.projectId}/${workerCtx.documentId}`);
 
-    await expect(commandPalette.dialog).toBeVisible();
-    await expect(commandPalette.searchInput).toBeFocused();
+      const editor = page.locator('[data-testid="editor"]');
+      await expect(editor).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+
+      const toolbar = page.locator('[data-testid="toolbar"]');
+      await expect(toolbar).toBeVisible();
+    });
+
+    test('autosave works in new shell', async ({ page, workerCtx }) => {
+      await page.goto(`/projects/${workerCtx.projectId}/${workerCtx.documentId}`);
+
+      const editor = page.locator('[data-testid="editor"]');
+      await editor.click();
+      await page.keyboard.type('Integration test content');
+
+      const saveStatus = page.locator('[data-testid="save-status"]');
+      await expect(saveStatus).toContainText(/saved/i, { timeout: TIMEOUTS.AUTOSAVE });
+    });
   });
 
-  test('closes with Escape key', async () => {
-    await commandPalette.open();
-    await commandPalette.close();
-
-    await commandPalette.expectClosed();
+  test.describe('Phase 2: Vault in New Shell', () => {
+    test('vault page loads correctly in new shell', async ({ page }) => {
+      await page.goto('/vault');
+      await expect(page.getByRole('heading', { name: /vault/i })).toBeVisible();
+    });
   });
 
-  test('toggles closed on second Cmd+K press', async ({ page }) => {
-    await commandPalette.open();
-    await page.keyboard.press('Meta+k');
-
-    await commandPalette.expectClosed();
+  test.describe('Phase 5: Citations in New Shell', () => {
+    test('citations page loads in new shell', async ({ page }) => {
+      await page.goto('/citations');
+      await expect(page.getByRole('heading', { name: /citations/i })).toBeVisible();
+    });
   });
 
-  test('filters commands as user types', async () => {
-    await commandPalette.open();
-    await commandPalette.search('vault');
+  test.describe('Cross-Feature Integration', () => {
+    test('command palette can navigate to vault', async ({ page }) => {
+      const commandPalette = new CommandPalettePage(page);
 
-    await commandPalette.expectOptionVisible(/vault/i);
-  });
+      await page.goto('/projects');
+      await commandPalette.open();
+      await commandPalette.selectOption(/vault/i);
 
-  test('shows empty state when no matches', async () => {
-    await commandPalette.open();
-    await commandPalette.search('nonexistent command xyz');
+      await expect(page).toHaveURL(/\/vault/);
+    });
 
-    await commandPalette.expectEmptyState();
-  });
+    test('export triggers toast notification', async ({ page, workerCtx }) => {
+      const exportPage = new ExportPage(page);
+      const toastPage = new ToastPage(page);
+      const editorPage = new EditorPage(page);
 
-  test('navigates with arrow keys and Enter', async ({ page }) => {
-    await commandPalette.open();
+      await editorPage.goto(workerCtx.projectId, workerCtx.documentId);
+      await editorPage.waitForEditorReady();
 
-    await commandPalette.navigateWithKeyboard('down');
-    await commandPalette.selectWithEnter();
-
-    await commandPalette.expectClosed();
-  });
-
-  test('executes navigation command on click', async ({ page }) => {
-    await commandPalette.open();
-    await commandPalette.selectOption(/vault/i);
-
-    await expect(page).toHaveURL(/\/vault/);
-    await commandPalette.expectClosed();
-  });
-
-  test('has accessible dialog label', async () => {
-    await commandPalette.open();
-
-    await expect(commandPalette.dialog).toHaveAttribute('aria-label', /command palette/i);
-  });
-
-  test('search input has accessible label', async () => {
-    await commandPalette.open();
-
-    await expect(commandPalette.searchInput).toHaveAttribute('aria-label', /search commands/i);
+      await exportPage.exportToDocx();
+      await toastPage.expectToastVisible();
+    });
   });
 });
 ```
 
-### Step 12: Create accessibility tests for unauthenticated pages
+### Step 7: Create accessibility tests for unauthenticated pages
 
 Create `e2e/accessibility/unauthenticated.spec.ts`:
 
@@ -670,7 +443,7 @@ test.describe('Accessibility - Unauthenticated Pages', () => {
 });
 ```
 
-### Step 13: Create accessibility tests for authenticated pages
+### Step 8: Create accessibility tests for authenticated pages
 
 Create `e2e/accessibility/authenticated.spec.ts`:
 
@@ -757,7 +530,7 @@ test.describe('Accessibility - Authenticated Pages', () => {
 });
 ```
 
-### Step 14: Create mobile navigation tests
+### Step 9: Create mobile navigation tests (integration focus)
 
 Create `e2e/mobile/navigation.spec.ts`:
 
@@ -832,7 +605,7 @@ test.describe('Mobile Navigation', () => {
 });
 ```
 
-### Step 15: Update package.json scripts (if needed)
+### Step 10: Update package.json scripts (if needed)
 
 Verify the following scripts exist in `package.json`:
 
@@ -849,7 +622,7 @@ Verify the following scripts exist in `package.json`:
 
 **Note:** These scripts should already exist from Phase 0. Only add if missing.
 
-### Step 16: Run E2E tests
+### Step 11: Run E2E tests
 
 ```bash
 # Run all E2E tests
@@ -861,29 +634,288 @@ npm run test:e2e -- --grep "Export|Toast|Command Palette|Mobile|Accessibility"
 
 **Expected:** All tests pass
 
-### Step 17: Commit
+### Step 12: Commit
 
 ```bash
-git add e2e/pages/ e2e/export/ e2e/toast/ e2e/command-palette/ e2e/accessibility/ e2e/mobile/ e2e/config/timeouts.ts src/test-utils/factories.ts
-git commit -m "test: add Phase 6 E2E tests using existing infrastructure
+git add e2e/integration/ e2e/accessibility/ e2e/mobile/ src/test-utils/factories.ts
+git commit -m "test: add Phase 6 integration and accessibility E2E tests
 
-- Add ExportPage, ToastPage, CommandPalettePage, MobileNavPage page objects
-- Add export flow tests for DOCX and PDF downloads
-- Add toast notification tests with auto-dismiss verification
-- Add command palette keyboard and navigation tests
-- Add accessibility tests using existing checkA11y helper
-- Add mobile navigation tests with drawer interactions
-- Extend TIMEOUTS with Phase 6 specific values
+- Add cross-phase integration tests for Phase 0-5 compatibility
+- Add accessibility audit tests using existing checkA11y helper
+- Add touch target audit tests for WCAG 2.5.8 compliance
+- Add mobile navigation integration tests
 - Extend factories with export-related test data
 
-Uses existing Phase 0 infrastructure:
-- e2e/fixtures/test-fixtures.ts (workerCtx, loginAsWorker)
-- e2e/helpers/axe.ts (checkA11y)
-- e2e/helpers/hydration.ts (waitForFormReady)
-- e2e/config/timeouts.ts (TIMEOUTS)"
+Uses existing infrastructure:
+- Page objects created in Tasks 6.1, 6.3, 6.5, 6.6
+- Test routes created in Task 6.4
+- Phase 0 infrastructure (fixtures, helpers, timeouts)"
 ```
 
 **Expected:** Commit created successfully
+
+---
+
+## Integration Tests with Phase 0-5 Components
+
+**IMPORTANT:** Verify that Phase 6 features (new shell, export, toasts) don't break existing functionality from earlier phases.
+
+### Create `e2e/integration/phase-integration.spec.ts`
+
+```typescript
+import { test, expect } from '../fixtures/test-fixtures';
+import { checkA11y } from '../helpers/axe';
+import { TIMEOUTS } from '../config/timeouts';
+
+test.describe('Phase Integration Tests', () => {
+  test.beforeEach(async ({ page, loginAsWorker }) => {
+    await loginAsWorker();
+  });
+
+  test.describe('Phase 0-1: Core Editor in New Shell', () => {
+    test('editor loads correctly in new app shell', async ({ page, workerCtx }) => {
+      await page.goto(`/projects/${workerCtx.projectId}/${workerCtx.documentId}`);
+
+      // Editor should be visible
+      const editor = page.locator('[data-testid="editor"]');
+      await expect(editor).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+
+      // Toolbar should be visible
+      const toolbar = page.locator('[data-testid="toolbar"]');
+      await expect(toolbar).toBeVisible();
+    });
+
+    test('autosave works in new shell', async ({ page, workerCtx }) => {
+      await page.goto(`/projects/${workerCtx.projectId}/${workerCtx.documentId}`);
+
+      // Type in editor
+      const editor = page.locator('[data-testid="editor"]');
+      await editor.click();
+      await page.keyboard.type('Integration test content');
+
+      // Save status should show saved
+      const saveStatus = page.locator('[data-testid="save-status"]');
+      await expect(saveStatus).toContainText(/saved/i, { timeout: TIMEOUTS.AUTOSAVE });
+    });
+  });
+
+  test.describe('Phase 2: Vault in New Shell', () => {
+    test('vault page loads correctly in new shell', async ({ page }) => {
+      await page.goto('/vault');
+
+      // Vault UI should be visible
+      await expect(page.getByRole('heading', { name: /vault/i })).toBeVisible();
+    });
+
+    test('vault search works in new shell', async ({ page }) => {
+      await page.goto('/vault');
+
+      const searchInput = page.getByPlaceholder(/search/i);
+      await searchInput.fill('test query');
+
+      // Should not error
+      await expect(page.locator('[role="alert"]')).not.toBeVisible();
+    });
+  });
+
+  test.describe('Phase 3-4: AI Features in New Shell', () => {
+    test('AI toolbar loads when text selected', async ({ page, workerCtx }) => {
+      await page.goto(`/projects/${workerCtx.projectId}/${workerCtx.documentId}`);
+
+      // Select text in editor
+      const editor = page.locator('[data-testid="editor"]');
+      await editor.click();
+      await page.keyboard.press('Control+a');
+
+      // AI toolbar should appear (if text is present)
+      // Note: This depends on document having content
+    });
+  });
+
+  test.describe('Phase 5: Citations in New Shell', () => {
+    test('citations page loads in new shell', async ({ page }) => {
+      await page.goto('/citations');
+
+      // Citations UI should be visible
+      await expect(page.getByRole('heading', { name: /citations/i })).toBeVisible();
+    });
+  });
+});
+```
+
+---
+
+## Touch Target Audit
+
+**IMPORTANT:** Run comprehensive touch target audit across all interactive elements.
+
+### Create `e2e/accessibility/touch-target-audit.spec.ts`
+
+```typescript
+import { test, expect } from '../fixtures/test-fixtures';
+import { TIMEOUTS } from '../config/timeouts';
+
+test.describe('Touch Target Audit (WCAG 2.5.8)', () => {
+  const PAGES_TO_AUDIT = [
+    { name: 'projects', path: '/projects' },
+    { name: 'vault', path: '/vault' },
+    { name: 'citations', path: '/citations' },
+  ];
+
+  test.beforeEach(async ({ loginAsWorker }) => {
+    await loginAsWorker();
+  });
+
+  for (const { name, path } of PAGES_TO_AUDIT) {
+    test(`${name} page - all buttons meet 44px minimum`, async ({ page }) => {
+      await page.goto(path);
+      await page.waitForLoadState('domcontentloaded');
+
+      const buttons = page.locator('button:visible');
+      const count = await buttons.count();
+
+      const violations: string[] = [];
+
+      for (let i = 0; i < count; i++) {
+        const button = buttons.nth(i);
+        const box = await button.boundingBox();
+        const label = (await button.getAttribute('aria-label')) || (await button.textContent()) || `Button ${i}`;
+
+        if (box) {
+          if (box.height < 44) {
+            violations.push(`"${label}" height: ${box.height}px (min 44px)`);
+          }
+          if (box.width < 44) {
+            violations.push(`"${label}" width: ${box.width}px (min 44px)`);
+          }
+        }
+      }
+
+      expect(violations, `Touch target violations on ${name}:\n${violations.join('\n')}`).toHaveLength(0);
+    });
+
+    test(`${name} page - all links meet 44px minimum`, async ({ page }) => {
+      await page.goto(path);
+      await page.waitForLoadState('domcontentloaded');
+
+      // Only check navigation/action links, not inline text links
+      const navLinks = page.locator('nav a:visible, [role="menuitem"]:visible');
+      const count = await navLinks.count();
+
+      const violations: string[] = [];
+
+      for (let i = 0; i < count; i++) {
+        const link = navLinks.nth(i);
+        const box = await link.boundingBox();
+        const label = (await link.textContent()) || `Link ${i}`;
+
+        if (box && box.height < 44) {
+          violations.push(`"${label.trim()}" height: ${box.height}px (min 44px)`);
+        }
+      }
+
+      expect(violations, `Touch target violations on ${name}:\n${violations.join('\n')}`).toHaveLength(0);
+    });
+  }
+});
+```
+
+---
+
+## Full Accessibility Audit
+
+**IMPORTANT:** Run comprehensive accessibility audit using `checkA11y()`.
+
+### Create `e2e/accessibility/full-audit.spec.ts`
+
+```typescript
+import { test, expect } from '../fixtures/test-fixtures';
+import { checkA11y } from '../helpers/axe';
+import { TIMEOUTS } from '../config/timeouts';
+
+test.describe('Full Accessibility Audit', () => {
+  const AUTHENTICATED_PAGES = [
+    { name: 'projects', path: '/projects' },
+    { name: 'vault', path: '/vault' },
+    { name: 'citations', path: '/citations' },
+    { name: 'new project', path: '/projects/new' },
+  ];
+
+  test.describe('Unauthenticated Pages', () => {
+    test('login page passes axe audit', async ({ page }) => {
+      await page.goto('/login');
+      await page.waitForLoadState('domcontentloaded');
+
+      await checkA11y(page, {
+        detailedReport: true,
+        skipFailures: false,
+      });
+    });
+  });
+
+  test.describe('Authenticated Pages', () => {
+    test.beforeEach(async ({ loginAsWorker }) => {
+      await loginAsWorker();
+    });
+
+    for (const { name, path } of AUTHENTICATED_PAGES) {
+      test(`${name} page passes axe audit`, async ({ page }) => {
+        await page.goto(path);
+        await page.waitForLoadState('domcontentloaded');
+
+        await checkA11y(page, {
+          detailedReport: true,
+          skipFailures: false,
+        });
+      });
+    }
+  });
+
+  test.describe('Interactive Components', () => {
+    test.beforeEach(async ({ loginAsWorker }) => {
+      await loginAsWorker();
+    });
+
+    test('command palette passes axe audit when open', async ({ page }) => {
+      await page.goto('/projects');
+      await page.keyboard.press('Meta+k');
+
+      await page.waitForSelector('[role="dialog"]');
+
+      await checkA11y(page, {
+        detailedReport: true,
+        skipFailures: false,
+      });
+    });
+
+    test('mobile nav drawer passes axe audit when open', async ({ page }) => {
+      // Set mobile viewport
+      await page.setViewportSize({ width: 375, height: 667 });
+      await page.goto('/projects');
+
+      await page.getByRole('button', { name: /open menu/i }).click();
+      await page.waitForSelector('[role="dialog"]');
+
+      await checkA11y(page, {
+        detailedReport: true,
+        skipFailures: false,
+      });
+    });
+
+    test('export menu passes axe audit when open', async ({ page, workerCtx }) => {
+      await page.goto(`/projects/${workerCtx.projectId}/${workerCtx.documentId}`);
+
+      await page.getByRole('button', { name: /export/i }).click();
+      await page.waitForSelector('[role="menu"]');
+
+      await checkA11y(page, {
+        detailedReport: true,
+        skipFailures: false,
+      });
+    });
+  });
+});
+```
 
 ---
 
@@ -895,32 +927,75 @@ Uses existing Phase 0 infrastructure:
 - [ ] Uses existing `test-fixtures.ts` with `workerCtx` and `loginAsWorker`
 - [ ] Uses existing `checkA11y()` from `e2e/helpers/axe.ts`
 - [ ] Uses existing `waitForFormReady()` from `e2e/helpers/hydration.ts`
-- [ ] Page objects placed in `e2e/pages/` directory (not `e2e/page-objects/`)
 
-### New Page Objects
+### Page Objects (Verified from Tasks 6.1, 6.3, 6.5, 6.6)
 
-- [ ] `ExportPage.ts` extends existing pattern
-- [ ] `ToastPage.ts` created with ARIA assertions
-- [ ] `CommandPalettePage.ts` created with keyboard helpers
-- [ ] `MobileNavPage.ts` created with drawer helpers
+**NOTE:** Do NOT create these in Task 6.7 - verify they exist from earlier tasks.
 
-### Test Coverage
+- [ ] `ExportPage.ts` exists (created in Task 6.1)
+- [ ] `MobileNavPage.ts` exists (created in Task 6.3)
+- [ ] `ToastPage.ts` exists (created in Task 6.5)
+- [ ] `CommandPalettePage.ts` exists (created in Task 6.6)
 
-- [ ] Export tests verify DOCX and PDF downloads
-- [ ] Toast tests verify appearance, dismissal, and auto-dismiss
-- [ ] Command palette tests verify keyboard shortcuts and navigation
-- [ ] Accessibility tests use `checkA11y()` helper
-- [ ] Mobile tests verify responsive navigation
+### Test Routes (Verified from Task 6.4)
+
+- [ ] `src/app/test/error-boundary/page.tsx` exists (with recovery support)
+- [ ] `src/app/test/error-page/page.tsx` exists
+
+### Integration Test Coverage (Created in This Task)
+
+- [ ] Cross-phase integration tests verify Phase 0-5 compatibility
+- [ ] Accessibility audit tests use `checkA11y()` helper
+- [ ] Touch target audit tests verify WCAG 2.5.8 compliance
+- [ ] Full app integration tests cover user journeys
 
 ### Extensions
 
-- [ ] `TIMEOUTS` extended with `TOAST_AUTO_DISMISS`, `EXPORT_DOWNLOAD`
+- [ ] `TIMEOUTS` has `TOAST_AUTO_DISMISS`, `EXPORT_DOWNLOAD` (added in earlier tasks)
 - [ ] `factories.ts` extended with export-related factories
 
 ### Tests Pass
 
 - [ ] All E2E tests pass
 - [ ] Changes committed
+
+---
+
+## Cross-Phase Integration Tests
+
+Create `e2e/integration/full-app-integration.spec.ts`:
+
+```typescript
+import { test, expect } from '../fixtures/test-fixtures';
+
+test.describe('Full Application Integration', () => {
+  test('complete user journey: login -> project -> document -> AI -> export', async ({ page, loginAsWorker }) => {
+    await loginAsWorker();
+    // Create project
+    // Create document
+    // Add content
+    // Use AI to refine (Phase 3)
+    // Add citation (Phase 5)
+    // Export to PDF (Phase 6)
+    // Sign out
+    // Verify redirect to login
+  });
+
+  test('error boundary catches Phase 3 AI errors', async ({ page, loginAsWorker }) => {
+    await loginAsWorker();
+    // Mock AI endpoint to throw
+    // Trigger AI action
+    // Verify error boundary shows, retry works
+  });
+
+  test('Phase 5 citations appear in Phase 6 exports', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    // Navigate to document with citations
+    // Export to DOCX
+    // Verify citation data in response
+  });
+});
+```
 
 ---
 

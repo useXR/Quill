@@ -8,6 +8,8 @@
 
 **This task creates server-side helper functions for vault CRUD operations.** It includes secure filename sanitization, soft delete with restore capability, and audit logging.
 
+> **Design System:** This task is backend logic. UI components that display these operations follow the "Scholarly Craft" aesthetic documented in [`docs/design-system.md`](../../design-system.md).
+
 ### Prerequisites
 
 - **Task 2.0** completed (types and database tables available)

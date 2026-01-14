@@ -6,6 +6,40 @@
 
 ---
 
+## Design System Integration
+
+This phase implements UI components following the **Scholarly Craft** aesthetic documented in `docs/design-system.md`. All chat and diff components use the Quill design tokens.
+
+### Key Design Tokens Used
+
+| Component Type      | Design Tokens                                                              |
+| ------------------- | -------------------------------------------------------------------------- |
+| **Chat Sidebar**    | `bg-surface`, `border-ink-faint`, `shadow-lg`, `font-ui`                   |
+| **Chat Messages**   | `text-ink-primary`, `text-ink-secondary`, `bg-bg-secondary`, `font-ui`     |
+| **Mode Indicators** | `bg-quill-lighter`, `text-quill`, `border-quill-light`, `rounded-full`     |
+| **Diff Panel**      | `bg-surface`, `shadow-xl`, `rounded-xl`, `border-ink-faint`                |
+| **Buttons**         | `bg-quill`, `hover:bg-quill-dark`, `text-white`, `rounded-md`, `shadow-sm` |
+| **Input Fields**    | `bg-surface`, `border-ink-faint`, `focus:ring-quill`, `font-ui`            |
+| **Error States**    | `bg-error-light`, `text-error-dark`, `border-error`                        |
+| **Success States**  | `bg-success-light`, `text-success-dark`, `border-success`                  |
+
+### Typography Requirements
+
+- **UI Elements:** `font-ui` (Source Sans 3) for all interactive elements
+- **Message Content:** `font-ui` for chat messages, `text-base` size
+- **Labels & Captions:** `font-ui`, `text-sm`, `text-ink-secondary`
+- **Headings:** `font-display` (Libre Baskerville) for panel titles
+
+### Motion Guidelines
+
+All animations follow the "unhurried and purposeful" philosophy:
+
+- Button hover/active: `duration-150`, `ease-default`
+- Panel open/close: `duration-200`, fade transitions
+- Streaming cursor: `animate-pulse` with `motion-reduce:animate-none`
+
+---
+
 ## Phase 4 Task Map
 
 ```
@@ -91,7 +125,7 @@
 
 ## Key Dependencies
 
-- **React 18** - For hooks and context
+- **React 19** - For hooks and context
 - **TipTap Editor** - Document editing integration
 - **Claude CLI** - For AI streaming responses
 - **diff library** - For generating content diffs
@@ -117,7 +151,7 @@ This phase follows all development best practices:
 | **Security**          | Rate limiting on all AI endpoints, Zod validation, CLI input sanitization                      |
 | **Logging**           | Structured logging with pino, domain child loggers (ai, chat), audit logging for AI operations |
 | **Code Organization** | Barrel exports for `@/lib/api` and `@/lib/ai`, standardized error response helpers             |
-| **TypeScript**        | Typed database queries, discriminated unions for actions, Next.js 15 async params              |
+| **TypeScript**        | Typed database queries, discriminated unions for actions, Next.js 16 async params              |
 | **React**             | useCallback memoization, cleanup on unmount, focus-visible states, non-blocking ConfirmDialog  |
 | **Database**          | Composite indexes, retention policies, cleanup functions                                       |
 | **Accessibility**     | 44x44px touch targets, reduced motion support, focus states, keyboard navigation               |
@@ -153,7 +187,7 @@ This phase follows all testing best practices from `testing-best-practices.md`:
 Before starting **any** task, verify prerequisites:
 
 ```bash
-node --version        # Must be 20+
+node --version        # Must be 24+
 npm --version
 npm test -- --version # Vitest available
 npx playwright --version  # Playwright available
@@ -190,7 +224,7 @@ For parallel execution with multiple agents:
 
 ## Architecture Overview
 
-**Tech Stack:** Next.js 14, React 18, TipTap editor, Supabase (auth/DB), Claude CLI (streaming), Zod (validation), diff library, Playwright (E2E)
+**Tech Stack:** Next.js 16, React 19, TipTap editor, Supabase (auth/DB), Claude CLI (streaming), Zod (validation), diff library, Playwright (E2E)
 
 ### State Management
 
@@ -203,12 +237,12 @@ For parallel execution with multiple agents:
 - Zod validation on all endpoints
 - Supabase for persistence
 
-### Components
+### Components (Scholarly Craft Design)
 
-- **ChatSidebar** - Slide-out chat interface
-- **DiffPanel** - Modal for reviewing changes
-- **AIUndoButton** - Undo AI operations with history
-- **ConfirmDialog** - Non-blocking confirmation dialog (Best Practice: avoid `window.confirm()`)
+- **ChatSidebar** - Slide-out chat interface (`bg-surface`, `shadow-lg`, `border-l border-ink-faint`)
+- **DiffPanel** - Modal for reviewing changes (`bg-surface`, `shadow-xl`, `rounded-xl`)
+- **AIUndoButton** - Undo AI operations with history (`bg-surface`, `border-ink-faint`, `hover:bg-surface-hover`)
+- **ConfirmDialog** - Non-blocking confirmation dialog (`bg-surface`, `shadow-xl`, `rounded-lg`)
 
 ---
 

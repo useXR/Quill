@@ -6,7 +6,7 @@
 
 **Architecture:** Next.js App Router with server components for data fetching, client components for interactive UI. Supabase handles auth and Postgres storage with RLS policies. TipTap provides rich text editing with grant-specific extensions.
 
-**Tech Stack:** Next.js 14+, TipTap, Supabase (auth + Postgres + RLS), Zod validation, Vitest + React Testing Library, Playwright E2E
+**Tech Stack:** Next.js 16+, TipTap, Supabase (auth + Postgres + RLS), Zod validation, Vitest + React Testing Library, Playwright E2E
 
 ---
 
@@ -69,8 +69,14 @@
 │                        │                                                │
 │                        ▼                                                │
 │             ┌──────────────────────┐                                    │
-│             │ Task 10: E2E Tests   │  (Final validation)                │
+│             │ Task 10: E2E Tests   │                                    │
 │             │ with Playwright      │                                    │
+│             └──────────┬───────────┘                                    │
+│                        │                                                │
+│                        ▼                                                │
+│             ┌──────────────────────┐                                    │
+│             │ Task 11: Document    │  (Final feature)                   │
+│             │ Metadata Editing     │                                    │
 │             └──────────────────────┘                                    │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -93,7 +99,9 @@
 | [09-autosave-hook.md](./09-autosave-hook.md)                   | 8     | Autosave with debounce and retry              | Tasks 3, 7           |
 | [10-word-count.md](./10-word-count.md)                         | 9     | Word/character count with limits              | Task 8               |
 | [11-e2e-tests.md](./11-e2e-tests.md)                           | 10    | Playwright E2E tests                          | All previous         |
-| [99-verification.md](./99-verification.md)                     | Final | Phase completion checklist                    | Task 10              |
+| [12-document-metadata.md](./12-document-metadata.md)           | 11    | Inline document title editing                 | Tasks 7, 8, 10       |
+| [13-edit-project-page.md](./13-edit-project-page.md)           | 12    | Edit project page with status updates         | Task 6, 10           |
+| [99-verification.md](./99-verification.md)                     | Final | Phase completion checklist                    | Task 12              |
 
 ---
 
@@ -128,7 +136,7 @@ Tasks 0-1 establish foundational infrastructure used throughout Phase 1:
 Before starting Phase 1, verify:
 
 ```bash
-# Node.js 18+
+# Node.js 24+
 node --version
 
 # Supabase CLI
@@ -172,7 +180,8 @@ npx supabase status
 9. Task 8: Autosave Hook
 10. Task 9: Word/Character Count
 11. Task 10: E2E Tests
-12. Verification
+12. Task 11: Document Metadata Editing
+13. Verification
 
 ### Parallel Execution (Two Developers)
 

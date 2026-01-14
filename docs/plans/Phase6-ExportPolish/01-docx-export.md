@@ -4,13 +4,26 @@
 
 ---
 
+## Design System Context
+
+This task creates server-side export functionality. While the export logic itself is backend-only, the DOCX styles should reflect the **Scholarly Craft** aesthetic:
+
+- **Body Font:** Times New Roman (closest to Libre Baskerville in Word)
+- **Heading Font:** Arial (clean sans-serif for UI-facing headings)
+- **Line Height:** 1.6 (generous spacing for readability)
+- **Page Margins:** 1 inch (standard academic formatting)
+
+The export UI integration (buttons, menus) will be styled in Task 6.3 using design system tokens.
+
+---
+
 ## Context
 
 **This task implements server-side DOCX document export with HTML-to-DOCX conversion.** Users can export their documents as Word files with formatting preserved.
 
 ### Prerequisites
 
-- Pre-flight checklist completed (Node.js 20+, existing project structure)
+- Pre-flight checklist completed (Node.js 24+, existing project structure)
 
 ### What This Task Creates
 
@@ -632,6 +645,183 @@ git commit -m "feat: add DOCX export with HTML parsing
 
 ---
 
+## E2E Page Object
+
+**IMPORTANT:** Page objects must be created in the same task as the feature they test, not deferred to Task 6.7. This ensures consistent test patterns and reduces integration issues.
+
+### Create `e2e/pages/ExportPage.ts`
+
+Create the ExportPage page object following the existing pattern from Phase 0:
+
+```typescript
+import { Page, Locator, expect } from '@playwright/test';
+import { TIMEOUTS, EXPORT_WAIT } from '../config/timeouts';
+
+/**
+ * Page object for document export functionality.
+ * Follows Phase 0 page object pattern from LoginPage.ts.
+ */
+export class ExportPage {
+  readonly page: Page;
+  readonly exportButton: Locator;
+  readonly exportMenu: Locator;
+  readonly docxOption: Locator;
+  readonly pdfOption: Locator;
+  readonly loadingIndicator: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.exportButton = page.getByRole('button', { name: /export/i });
+    this.exportMenu = page.getByRole('menu');
+    this.docxOption = page.getByRole('menuitem', { name: /docx/i });
+    this.pdfOption = page.getByRole('menuitem', { name: /pdf/i });
+    this.loadingIndicator = page.locator('[role="status"], [aria-busy="true"]');
+  }
+
+  async openExportMenu() {
+    await this.exportButton.click();
+    await expect(this.exportMenu).toBeVisible({ timeout: TIMEOUTS.DIALOG });
+  }
+
+  async exportToDocx() {
+    await this.openExportMenu();
+    const downloadPromise = this.page.waitForEvent('download', EXPORT_WAIT);
+    await this.docxOption.click();
+    return downloadPromise;
+  }
+
+  async exportToPdf() {
+    await this.openExportMenu();
+    const downloadPromise = this.page.waitForEvent('download', EXPORT_WAIT);
+    await this.pdfOption.click();
+    return downloadPromise;
+  }
+
+  async expectExportButtonVisible() {
+    await expect(this.exportButton).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+  }
+
+  async expectExportButtonDisabled() {
+    await expect(this.exportButton).toBeDisabled();
+  }
+
+  async expectExportButtonEnabled() {
+    await expect(this.exportButton).toBeEnabled();
+  }
+
+  async expectLoadingState() {
+    // Export button should be disabled during export
+    await expect(this.exportButton).toBeDisabled();
+    // Or loading indicator visible
+    await expect(this.loadingIndicator).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+  }
+}
+```
+
+---
+
+## E2E Tests
+
+**IMPORTANT:** E2E tests must be created as part of this task, not deferred to Task 6.7. This follows the incremental testing pattern established in earlier phases.
+
+### Create `e2e/export/docx-export.spec.ts`
+
+Create E2E tests covering DOCX export functionality:
+
+```typescript
+import { test, expect } from '../fixtures/test-fixtures';
+import { EditorPage } from '../pages/EditorPage';
+import { ExportPage } from '../pages/ExportPage';
+import { TIMEOUTS } from '../config/timeouts';
+
+test.describe('DOCX Export', () => {
+  let editorPage: EditorPage;
+  let exportPage: ExportPage;
+
+  test.beforeEach(async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    editorPage = new EditorPage(page);
+    exportPage = new ExportPage(page);
+    await editorPage.goto(workerCtx.projectId, workerCtx.documentId);
+    await editorPage.waitForEditorReady();
+  });
+
+  test('export menu is visible on document page', async () => {
+    await exportPage.expectExportButtonVisible();
+  });
+
+  test('DOCX download initiates correctly', async ({ page }) => {
+    await exportPage.openExportMenu();
+    await expect(exportPage.docxOption).toBeVisible();
+
+    const downloadPromise = page.waitForEvent('download', { timeout: TIMEOUTS.EXPORT_DOWNLOAD });
+    await exportPage.docxOption.click();
+    const download = await downloadPromise;
+
+    expect(download.suggestedFilename()).toMatch(/\.docx$/);
+  });
+
+  test('file downloads with correct name and extension', async ({ page }) => {
+    // Type a document title
+    await editorPage.setTitle('Test Export Document');
+    await editorPage.waitForSave();
+
+    const download = await exportPage.exportToDocx();
+
+    // Verify filename matches document title
+    expect(download.suggestedFilename()).toBe('Test_Export_Document.docx');
+  });
+
+  test('export button shows loading/disabled state during export', async ({ page }) => {
+    // Slow down the export API to observe loading state
+    await page.route('**/api/export/docx*', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await route.continue();
+    });
+
+    await exportPage.openExportMenu();
+
+    // Start export without awaiting completion
+    const downloadPromise = page.waitForEvent('download', { timeout: TIMEOUTS.EXPORT_DOWNLOAD });
+    await exportPage.docxOption.click();
+
+    // Export button should be disabled during export
+    await exportPage.expectLoadingState();
+
+    // Wait for download to complete
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/\.docx$/);
+
+    // Button should be enabled again after export
+    await exportPage.expectExportButtonEnabled();
+  });
+});
+```
+
+### Run E2E Tests
+
+```bash
+npm run test:e2e -- --grep "DOCX Export"
+```
+
+**Expected:** All DOCX export E2E tests pass
+
+---
+
+## E2E Verification
+
+Before proceeding to the next task, verify:
+
+- [ ] All unit tests pass (`npm test -- src/lib/export/`)
+- [ ] E2E tests pass (`npm run test:e2e -- --grep "DOCX Export"`)
+- [ ] Export menu appears on document page
+- [ ] DOCX file downloads with correct extension
+- [ ] Filename is sanitized (special characters replaced)
+
+**Do not proceed to Task 6.2 until all E2E tests pass.**
+
+---
+
 ## Verification Checklist
 
 - [ ] `docx` and `node-html-parser` packages installed
@@ -649,6 +839,46 @@ git commit -m "feat: add DOCX export with HTML parsing
 - [ ] Filename sanitization documented (XSS prevention)
 - [ ] Authorization checks prevent unauthorized access
 - [ ] Changes committed
+
+---
+
+## Additional E2E Tests
+
+Add to `e2e/export/docx-export.spec.ts`:
+
+```typescript
+test('unauthenticated export request redirects to login', async ({ page, workerCtx }) => {
+  // Clear auth cookies
+  await page.context().clearCookies();
+  await page.goto(`/projects/${workerCtx.projectId}/documents/${workerCtx.documentId}`);
+  // Should redirect to login
+  await expect(page).toHaveURL(/\/login/);
+});
+
+test('export failure shows error toast', async ({ page, workerCtx, loginAsWorker }) => {
+  await loginAsWorker();
+  // Mock API to return 500
+  await page.route('**/api/export/docx', (route) => route.fulfill({ status: 500 }));
+  // Attempt export
+  // Verify error toast appears
+  await expect(page.getByRole('status')).toContainText(/error|failed/i);
+});
+
+test('export with citations includes citations (Phase 5 integration)', async ({ page, workerCtx, loginAsWorker }) => {
+  await loginAsWorker();
+  // Navigate to document with citations
+  // Export to DOCX
+  // Verify download includes citation data (check filename or mock response)
+});
+```
+
+### E2E Test Execution (Required Before Proceeding)
+
+```bash
+npm run test:e2e e2e/export/docx-export.spec.ts
+```
+
+**Gate:** All tests must pass before proceeding to Task 6.2.
 
 ---
 

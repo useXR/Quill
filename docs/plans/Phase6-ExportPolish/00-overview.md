@@ -6,6 +6,37 @@
 
 ---
 
+## Design System Reference
+
+This phase implements UI components following the **Scholarly Craft** aesthetic defined in `docs/design-system.md`. Key design tokens used throughout:
+
+### Typography (Tailwind v4 `@theme` tokens)
+
+- **Display/Headings:** `font-display` (Libre Baskerville)
+- **UI Elements:** `font-ui` (Source Sans 3)
+- **Prose Content:** `font-prose` (Libre Baskerville)
+- **Monospace:** `font-mono` (JetBrains Mono)
+
+### Color Palette
+
+- **Backgrounds:** `bg-bg-primary` (#faf8f5 warm cream), `bg-bg-secondary`, `bg-surface`
+- **Text:** `text-ink-primary`, `text-ink-secondary`, `text-ink-tertiary`
+- **Brand Accent:** `bg-quill` (#7c3aed), `hover:bg-quill-dark`, `text-quill`
+- **Semantic:** `text-success`, `text-error`, `text-warning`, `bg-success-light`, `bg-error-light`
+
+### Interactive Elements
+
+- **Buttons:** `rounded-md`, `shadow-sm`, `hover:shadow-md`, `focus:ring-2 focus:ring-quill`
+- **Cards:** `bg-surface`, `border border-ink-faint`, `rounded-lg`, `shadow-sm`
+- **Touch Targets:** Minimum 44x44px (`min-h-[44px] min-w-[44px]`)
+
+### Motion
+
+- **Transitions:** `transition-all duration-150` for interactive elements
+- **Reduced Motion:** Always include `motion-reduce:transition-none`
+
+---
+
 ## Phase 6 Task Map
 
 ```
@@ -83,7 +114,7 @@ Before starting **any** task, verify prerequisites:
 
 ```bash
 # Verify Node.js and npm
-node --version        # Must be 20+
+node --version        # Must be 24+
 npm --version
 
 # Verify existing project structure
@@ -148,9 +179,18 @@ npm test -- --run     # Should pass existing tests
 
 ## Tech Stack
 
-- Next.js 14
+- Next.js 16
 - TypeScript
 - docx, puppeteer, cmdk
 - Zustand
 - Playwright, @axe-core/playwright
-- Tailwind CSS
+- Tailwind CSS v4 (CSS-first configuration with `@theme` directive)
+
+## UI Standards
+
+All components in this phase adhere to:
+
+1. **Scholarly Craft Aesthetic** - Warm cream backgrounds, serif typography for academic gravitas, clean sans-serif for UI elements
+2. **WCAG 2.1 AA Accessibility** - Focus rings (`focus:ring-2 focus:ring-quill focus:ring-offset-2`), 44px touch targets, reduced motion support
+3. **Design Token Consistency** - Use only tokens from `docs/design-system.md` (no arbitrary colors like `bg-blue-600`)
+4. **Tailwind v4 Syntax** - Tokens defined via `@theme` in CSS, generating utilities like `bg-quill`, `text-ink-primary`, `font-display`

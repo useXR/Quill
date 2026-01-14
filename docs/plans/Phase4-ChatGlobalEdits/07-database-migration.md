@@ -8,6 +8,14 @@
 
 **This task creates database indexes for efficient chat and AI operations queries.** These indexes optimize pagination, lookup by document, and filtering by status.
 
+### Design System Note
+
+This is a backend-only task with no UI components. However, the data structures support design system features:
+
+- **Chat history** enables the ChatSidebar message list with proper timestamps
+- **AI operations** support the AIUndoButton history panel with operation summaries
+- **Status indexes** enable efficient filtering for accepted/rejected visual states
+
 ### Prerequisites
 
 - **Task 4.6** completed (API routes that will use these indexes)

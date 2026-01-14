@@ -25,6 +25,27 @@
 - **Task 3.6** (CLI Validation) - extends this module
 - **Task 3.7** (Streaming Module) - uses similar patterns
 
+### Design System: CLI Status Display
+
+When displaying CLI status in the UI, use the [Quill Design System](../../design-system.md) semantic colors:
+
+| CLI Status        | UI Display Pattern                                                      |
+| ----------------- | ----------------------------------------------------------------------- |
+| `'ready'`         | Success badge: `bg-success-light text-success-dark` with check icon     |
+| `'not_installed'` | Error alert: `bg-error-light text-error-dark` with install instructions |
+| `'outdated'`      | Warning badge: `bg-warning-light text-warning-dark` with update prompt  |
+| `'auth_required'` | Info alert: `bg-info-light text-info-dark` with login instructions      |
+| `'error'`         | Error alert with retry button styled as secondary button                |
+
+**Status badge example:**
+
+```tsx
+<span className="inline-flex items-center px-2.5 py-1 text-xs font-ui font-medium rounded-md bg-success-light text-success-dark">
+  <CheckCircle className="w-3 h-3 mr-1" />
+  CLI Ready
+</span>
+```
+
 ---
 
 ## Files to Create/Modify

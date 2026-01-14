@@ -363,7 +363,7 @@ export function Editor({
   if (!editor) return null;
 
   return (
-    <div className="border rounded-lg bg-white shadow-sm">
+    <div className="border rounded-lg bg-white shadow-xs">
       {showToolbar && <Toolbar editor={editor} />}
       <EditorContent editor={editor} />
     </div>

@@ -8,6 +8,20 @@
 
 **This task defines the core TypeScript types for citations and papers.** These types form the foundation for the entire citation system.
 
+### Design System Context
+
+These types directly influence UI rendering in citation components:
+
+| Field             | UI Display      | Design Token                                     |
+| ----------------- | --------------- | ------------------------------------------------ |
+| `title`           | Card heading    | `font-display text-lg text-ink-primary`          |
+| `authors`         | Metadata line   | `font-ui text-sm text-ink-secondary`             |
+| `year`, `journal` | Inline metadata | `font-ui text-xs text-ink-tertiary`              |
+| `externalIds.DOI` | Verified badge  | `bg-success-light text-success rounded-md`       |
+| `citationCount`   | Badge           | `bg-bg-secondary text-ink-secondary rounded-md`  |
+| `isOpenAccess`    | Badge           | `bg-info-light text-info rounded-md`             |
+| `abstract`        | Truncated text  | `font-ui text-xs text-ink-tertiary line-clamp-2` |
+
 ### Prerequisites
 
 - **Phase 0-4** completed (auth, editor, vault, AI integration, chat)

@@ -6,6 +6,47 @@
 
 ---
 
+## Design System Reference
+
+> **IMPORTANT:** All UI components in this phase MUST follow the Quill Design System documented in [`docs/design-system.md`](../../design-system.md).
+
+### Aesthetic Direction: Scholarly Craft
+
+The Knowledge Vault interface embodies the "Scholarly Craft" aesthetic - a refined editorial design that evokes academic gravitas while maintaining modern usability. Components should feel like they belong in a premium academic writing application.
+
+### Key Design Tokens for Phase 2
+
+| Element         | Token                              | Purpose                           |
+| --------------- | ---------------------------------- | --------------------------------- |
+| Page background | `bg-bg-primary`                    | Warm cream (#faf8f5)              |
+| Card surfaces   | `bg-surface`                       | Clean white for elevated elements |
+| Primary text    | `text-ink-primary`                 | Warm near-black (#1c1917)         |
+| Secondary text  | `text-ink-secondary`               | Muted text (#44403c)              |
+| Tertiary text   | `text-ink-tertiary`                | Helper/caption text (#78716c)     |
+| Borders         | `border-ink-faint`                 | Subtle borders (#d6d3d1)          |
+| Brand accent    | `bg-quill`, `text-quill`           | Deep violet (#7c3aed)             |
+| Success states  | `text-success`, `bg-success-light` | Green semantic color              |
+| Error states    | `text-error`, `bg-error-light`     | Red semantic color                |
+| Warning states  | `text-warning`, `bg-warning-light` | Amber semantic color              |
+
+### Typography
+
+- **Page headings:** `font-display` (Libre Baskerville) with `text-ink-primary`
+- **UI labels/buttons:** `font-ui` (Source Sans 3) with `font-semibold`
+- **Body text:** `font-ui` for UI, `font-prose` (Libre Baskerville) for document content
+- **Captions:** `font-ui text-xs text-ink-tertiary`
+
+### Component Patterns
+
+- **Cards:** `bg-surface border border-ink-faint rounded-lg shadow-sm`
+- **Interactive cards:** Add `hover:shadow-md hover:border-ink-subtle transition-all duration-200`
+- **Primary buttons:** `bg-quill hover:bg-quill-dark text-white font-ui font-semibold rounded-md`
+- **Ghost buttons:** `bg-transparent hover:bg-surface-hover text-ink-secondary font-ui`
+- **Inputs:** `bg-surface border border-ink-faint rounded-md focus:ring-2 focus:ring-quill`
+- **Focus states:** Always include `focus:ring-2 focus:ring-quill focus:ring-offset-2`
+
+---
+
 ## Architecture
 
 ```
@@ -105,6 +146,12 @@
 │                                  ▼                                             │
 │                        ┌──────────────────┐                                    │
 │                        │ 2.13 E2E Tests   │                                    │
+│                        └─────────┬────────┘                                    │
+│                                  │                                             │
+│                                  ▼                                             │
+│                        ┌──────────────────┐                                    │
+│                        │ 2.14 Project     │                                    │
+│                        │    Sidebar       │                                    │
 │                        └──────────────────┘                                    │
 │                                                                                │
 └────────────────────────────────────────────────────────────────────────────────┘
@@ -130,13 +177,14 @@
 | [12-vault-search-component.md](./12-vault-search-component.md)       | 2.11 | Search UI component (TDD)                         | 2.10                         |
 | [13-vault-page-integration.md](./13-vault-page-integration.md)       | 2.12 | Vault page with all components                    | 2.1, 2.3, 2.11               |
 | [14-e2e-tests.md](./14-e2e-tests.md)                                 | 2.13 | End-to-end Playwright tests                       | 2.12                         |
+| [15-project-sidebar.md](./15-project-sidebar.md)                     | 2.14 | Project sidebar navigation for vault access (TDD) | 2.12, 2.13                   |
 | [99-verification.md](./99-verification.md)                           | -    | Phase completion verification                     | All tasks                    |
 
 ---
 
 ## Key Dependencies
 
-- **Next.js 14+** - App router with async params
+- **Next.js 16+** - App router with async params
 - **Supabase** - Storage (files) + pgvector (embeddings) + RLS (security)
 - **OpenAI API** - text-embedding-3-small model for embeddings
 - **pdf-parse** - PDF text extraction
@@ -196,7 +244,7 @@ For parallel execution with multiple agents:
 
 | Component    | Technology                                      |
 | ------------ | ----------------------------------------------- |
-| Framework    | Next.js 14+ (App Router)                        |
+| Framework    | Next.js 16+ (App Router)                        |
 | Database     | Supabase (PostgreSQL + pgvector)                |
 | Storage      | Supabase Storage                                |
 | Embeddings   | OpenAI text-embedding-3-small (1536 dimensions) |

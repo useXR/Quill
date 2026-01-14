@@ -6,7 +6,89 @@
 
 ## Purpose
 
-**This checklist verifies that all Phase 6 tasks are complete and working.**
+**This checklist verifies that all Phase 6 tasks are complete and working, including design system compliance.**
+
+---
+
+## E2E Test Files That Must Pass
+
+**CRITICAL:** All of the following E2E test files must pass before Phase 6 is considered complete.
+
+### Export Tests (Tasks 6.1-6.2)
+
+| File                             | Test Coverage                                              |
+| -------------------------------- | ---------------------------------------------------------- |
+| `e2e/export/docx-export.spec.ts` | DOCX export menu visibility, download initiation, filename |
+| `e2e/export/pdf-export.spec.ts`  | PDF export menu, download initiation, loading state        |
+
+### Navigation Tests (Task 6.3)
+
+| File                                | Test Coverage                                        |
+| ----------------------------------- | ---------------------------------------------------- |
+| `e2e/navigation/skip-links.spec.ts` | Skip link visibility, focus, main content navigation |
+| `e2e/navigation/mobile-nav.spec.ts` | Drawer open/close, backdrop click, ARIA attributes   |
+| `e2e/navigation/app-shell.spec.ts`  | Header, sidebar, collapse, touch targets             |
+
+### Error Handling Tests (Task 6.4)
+
+| File                                | Test Coverage                                          |
+| ----------------------------------- | ------------------------------------------------------ |
+| `e2e/errors/error-handling.spec.ts` | Error boundary UI, skeletons, error page accessibility |
+
+### Toast Tests (Task 6.5)
+
+| File                              | Test Coverage                                        |
+| --------------------------------- | ---------------------------------------------------- |
+| `e2e/notifications/toast.spec.ts` | Toast appearance, auto-dismiss, manual dismiss, ARIA |
+
+### Command Palette Tests (Task 6.6)
+
+| File                                     | Test Coverage                                                   |
+| ---------------------------------------- | --------------------------------------------------------------- |
+| `e2e/navigation/command-palette.spec.ts` | Keyboard shortcuts, search, navigation, keyboard-only operation |
+
+### Integration & Audit Tests (Task 6.7)
+
+| File                                           | Test Coverage                                          |
+| ---------------------------------------------- | ------------------------------------------------------ |
+| `e2e/integration/phase-integration.spec.ts`    | Phase 0-5 features work in new shell                   |
+| `e2e/accessibility/touch-target-audit.spec.ts` | 44px touch target verification across all pages        |
+| `e2e/accessibility/full-audit.spec.ts`         | axe-core audit on all pages and interactive components |
+
+### Run All Phase 6 E2E Tests
+
+```bash
+# Run all Phase 6 E2E tests
+npm run test:e2e -- e2e/export e2e/navigation e2e/errors e2e/notifications e2e/integration e2e/accessibility
+
+# Or by grep pattern
+npm run test:e2e -- --grep "DOCX Export|PDF Export|Skip Links|Mobile Navigation|App Shell|Error Handling|Toast|Command Palette|Phase Integration|Touch Target|Accessibility Audit"
+```
+
+**Expected:** ALL tests must pass (0 failures)
+
+---
+
+## Design System Verification
+
+Before verifying functionality, confirm all UI components implement the **Scholarly Craft** design system from `docs/design-system.md`:
+
+### Visual Verification Checklist
+
+- [ ] **Background:** Pages use `bg-bg-primary` (#faf8f5 warm cream), not white
+- [ ] **Typography:** Headings use `font-display` (Libre Baskerville), UI uses `font-ui` (Source Sans 3)
+- [ ] **Colors:** Brand accent is `bg-quill` (#7c3aed), not blue
+- [ ] **Buttons:** Use `bg-quill hover:bg-quill-dark`, `rounded-md`, `shadow-sm`
+- [ ] **Focus Rings:** All interactive elements show `ring-quill` on focus
+- [ ] **Borders:** Use `border-ink-faint` (#d6d3d1), not gray
+- [ ] **Toasts:** Use semantic colors (`bg-success-light`, `bg-error-light`, etc.)
+
+### Accessibility Verification
+
+- [ ] All buttons meet 44x44px touch target (`min-h-[44px] min-w-[44px]`)
+- [ ] Focus rings visible on keyboard navigation
+- [ ] Reduced motion: Animations disabled with `prefers-reduced-motion`
+- [ ] Color contrast: All text meets WCAG AA (4.5:1 for text, 3:1 for UI)
 
 ---
 
@@ -174,23 +256,47 @@ npm run test:e2e -- --grep "accessibility"
 - [ ] `src/components/ui/CommandPalette.tsx` exists
 - [ ] `src/components/ui/__tests__/CommandPalette.test.tsx` exists
 
-### Task 6.7 - E2E Tests
+### Task 6.1-6.6 - Incremental E2E Tests
 
-- [ ] `e2e/auth.setup.ts` exists
-- [ ] `e2e/fixtures/auth.ts` exists
-- [ ] `e2e/page-objects/BasePage.ts` exists
-- [ ] `e2e/page-objects/EditorPage.ts` exists
-- [ ] `e2e/page-objects/ProjectsPage.ts` exists
-- [ ] `e2e/auth-flows.spec.ts` exists
-- [ ] `e2e/export-flows.spec.ts` exists
-- [ ] `e2e/toast-flows.spec.ts` exists
-- [ ] `e2e/command-palette.spec.ts` exists
-- [ ] `e2e/accessibility.spec.ts` exists
-- [ ] `e2e/accessibility-authenticated.spec.ts` exists
-- [ ] `e2e/mobile-navigation.spec.ts` exists
-- [ ] `e2e/seed-test-data.ts` exists
-- [ ] `playwright.config.ts` updated
-- [ ] `.gitignore` updated
+**Export Tests:**
+
+- [ ] `e2e/export/docx-export.spec.ts` exists and passes
+- [ ] `e2e/export/pdf-export.spec.ts` exists and passes
+
+**Navigation Tests:**
+
+- [ ] `e2e/navigation/skip-links.spec.ts` exists and passes
+- [ ] `e2e/navigation/mobile-nav.spec.ts` exists and passes
+- [ ] `e2e/navigation/app-shell.spec.ts` exists and passes
+- [ ] `e2e/navigation/command-palette.spec.ts` exists and passes
+
+**Error & Notification Tests:**
+
+- [ ] `e2e/errors/error-handling.spec.ts` exists and passes
+- [ ] `e2e/notifications/toast.spec.ts` exists and passes
+
+### Task 6.7 - Integration & Audit Tests
+
+**Integration Tests:**
+
+- [ ] `e2e/integration/phase-integration.spec.ts` exists and passes
+
+**Accessibility Audits:**
+
+- [ ] `e2e/accessibility/touch-target-audit.spec.ts` exists and passes
+- [ ] `e2e/accessibility/full-audit.spec.ts` exists and passes
+
+**Page Objects Created:**
+
+- [ ] `e2e/pages/ExportPage.ts` exists
+- [ ] `e2e/pages/ToastPage.ts` exists
+- [ ] `e2e/pages/CommandPalettePage.ts` exists
+- [ ] `e2e/pages/MobileNavPage.ts` exists
+
+**Timeout Constants Added to `e2e/config/timeouts.ts`:**
+
+- [ ] `TIMEOUTS.EXPORT_DOWNLOAD` (30000ms) added
+- [ ] `TIMEOUTS.TOAST_AUTO_DISMISS` (7000ms) added
 
 ---
 
@@ -214,12 +320,42 @@ npm run test:e2e -- --grep "accessibility"
 
 The MVP is now feature-complete with:
 
-- Document export (DOCX/PDF)
-- Responsive app shell with navigation
-- Loading states and error handling
-- Toast notifications
-- Command palette
-- Comprehensive E2E test suite
-- WCAG-compliant accessibility
+- Document export (DOCX/PDF) with professional academic styling
+- Responsive app shell implementing **Scholarly Craft** design system
+- Loading states and error handling with brand-consistent UI
+- Toast notifications with semantic color tokens
+- Command palette with design system integration
+- Comprehensive E2E test suite including accessibility validation
+- WCAG 2.1 AA accessibility compliance throughout
+
+### Design System Implementation Summary
+
+All UI components now use tokens from `docs/design-system.md`:
+
+| Token Category | Example Tokens Used                                       |
+| -------------- | --------------------------------------------------------- |
+| Typography     | `font-display`, `font-ui`, `font-prose`                   |
+| Colors         | `bg-bg-primary`, `text-ink-primary`, `bg-quill`           |
+| Semantic       | `bg-success-light`, `text-error-dark`, `bg-warning-light` |
+| Interactive    | `hover:bg-surface-hover`, `focus:ring-quill`              |
+| Spacing        | `min-h-[44px]` touch targets, `rounded-md` borders        |
+
+---
+
+## Full E2E Regression Suite
+
+Before marking Phase 6 complete, run the FULL E2E suite covering ALL phases:
+
+```bash
+npm run test:e2e
+```
+
+**Requirements:**
+
+- All Phase 0-6 E2E tests must pass
+- Zero test failures allowed
+- Test report must be reviewed for flaky tests
+
+---
 
 **Next steps:** Deploy to production or proceed to post-MVP enhancements.

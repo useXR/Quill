@@ -4,6 +4,45 @@
 
 ---
 
+## Design System Context
+
+The app shell is the primary implementation of the **Scholarly Craft** aesthetic. All components must use design tokens from `docs/design-system.md`.
+
+### Key Design Tokens for This Task
+
+| Element            | Design Token                | Value                |
+| ------------------ | --------------------------- | -------------------- |
+| Page background    | `bg-bg-primary`             | #faf8f5 (warm cream) |
+| Sidebar background | `bg-bg-secondary`           | #f5f3f0              |
+| Header background  | `bg-surface`                | #ffffff              |
+| Primary text       | `text-ink-primary`          | #1c1917              |
+| Secondary text     | `text-ink-secondary`        | #44403c              |
+| Muted text         | `text-ink-tertiary`         | #78716c              |
+| Borders            | `border-ink-faint`          | #d6d3d1              |
+| Active nav item    | `bg-quill-light text-quill` | #ede9fe / #7c3aed    |
+| Hover states       | `hover:bg-surface-hover`    | #f9f8f7              |
+
+### Typography
+
+- **Logo/Brand:** `font-display text-xl font-semibold text-ink-primary`
+- **Nav Labels:** `font-ui text-sm font-medium`
+- **Menu Items:** `font-ui text-base`
+
+### Interactive Element Standards
+
+- **Touch Targets:** All buttons use `min-h-[44px] min-w-[44px]` (WCAG 2.5.8)
+- **Focus Rings:** `focus:outline-none focus:ring-2 focus:ring-quill focus:ring-offset-2`
+- **Transitions:** `transition-all duration-150 motion-reduce:transition-none`
+- **Border Radius:** `rounded-md` for buttons, `rounded-lg` for cards/panels
+
+### Shadow System
+
+- **Headers:** `shadow-sm` (subtle elevation)
+- **Dropdowns:** `shadow-lg` (floating elements)
+- **Mobile Drawer:** `shadow-lg` (modal-level elevation)
+
+---
+
 ## Context
 
 **This task implements the responsive app shell with sidebar navigation, mobile drawer, and accessibility features.** The app shell wraps all authenticated pages and provides consistent navigation.
@@ -64,11 +103,12 @@ Create `src/styles/accessibility.css`:
 /**
  * Accessibility Styles
  * Following WCAG 2.1 AA guidelines
+ * Uses design system tokens from docs/design-system.md
  */
 
-/* Focus visible styles - clear keyboard focus indicators */
+/* Focus visible styles - clear keyboard focus indicators using Quill brand color */
 .focus-ring:focus-visible {
-  outline: 2px solid var(--color-accent, #3b82f6);
+  outline: 2px solid var(--color-quill, #7c3aed);
   outline-offset: 2px;
 }
 
@@ -77,7 +117,7 @@ button:focus-visible,
 a:focus-visible,
 [role='button']:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid var(--color-accent, #3b82f6);
+  outline: 2px solid var(--color-quill, #7c3aed);
   outline-offset: 2px;
 }
 
@@ -183,12 +223,16 @@ export function useMediaQuery(query: string): boolean {
 Create `src/components/layout/SkipLinks.tsx`:
 
 ```typescript
+/**
+ * Skip links for keyboard navigation accessibility.
+ * Uses design system tokens: bg-quill for brand-consistent styling.
+ */
 export function SkipLinks() {
   return (
     <div className="sr-only focus-within:not-sr-only">
       <a
         href="#main-content"
-        className="absolute top-4 left-4 z-50 bg-blue-600 text-white px-4 py-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600"
+        className="absolute top-4 left-4 z-50 bg-quill text-white px-4 py-2.5 rounded-md font-ui font-semibold text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-quill"
       >
         Skip to main content
       </a>
@@ -207,6 +251,10 @@ Create `src/components/layout/UserMenu.tsx`:
 import { useState, useEffect, useRef } from 'react';
 import { User, LogOut, Settings } from 'lucide-react';
 
+/**
+ * User menu dropdown with Scholarly Craft styling.
+ * Design tokens: bg-surface, text-ink-*, hover:bg-surface-hover, shadow-lg
+ */
 export function UserMenu() {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -249,7 +297,7 @@ export function UserMenu() {
       <button
         ref={buttonRef}
         onClick={() => setOpen(!open)}
-        className="min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors"
+        className="min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-surface-hover rounded-full transition-colors motion-reduce:transition-none text-ink-secondary hover:text-ink-primary"
         aria-label="User menu"
         aria-expanded={open}
         aria-haspopup="true"
@@ -259,12 +307,12 @@ export function UserMenu() {
 
       {open && (
         <div
-          className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg py-1"
+          className="absolute right-0 mt-2 w-48 bg-surface border border-ink-faint rounded-lg shadow-lg py-1"
           role="menu"
         >
           <a
             href="/settings"
-            className="flex items-center gap-2 px-4 py-3 min-h-[44px] hover:bg-gray-100 text-gray-900"
+            className="flex items-center gap-2 px-4 py-3 min-h-[44px] hover:bg-surface-hover text-ink-primary font-ui text-sm"
             role="menuitem"
           >
             <Settings className="w-4 h-4" />
@@ -272,7 +320,7 @@ export function UserMenu() {
           </a>
           <button
             onClick={handleSignOut}
-            className="flex items-center gap-2 px-4 py-3 min-h-[44px] hover:bg-gray-100 w-full text-left text-red-600"
+            className="flex items-center gap-2 px-4 py-3 min-h-[44px] hover:bg-surface-hover w-full text-left text-error font-ui text-sm"
             role="menuitem"
           >
             <LogOut className="w-4 h-4" />
@@ -301,15 +349,19 @@ interface HeaderProps {
   showMenuButton: boolean;
 }
 
+/**
+ * App header with Scholarly Craft styling.
+ * Design tokens: bg-surface, border-ink-faint, font-display, shadow-sm
+ */
 export function Header({ onMenuClick, showMenuButton }: HeaderProps) {
   return (
-    <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b z-40">
+    <header className="fixed top-0 left-0 right-0 h-16 bg-surface border-b border-ink-faint shadow-sm z-40">
       <div className="flex items-center justify-between h-full px-4">
         <div className="flex items-center gap-4">
           {showMenuButton && (
             <button
               onClick={onMenuClick}
-              className="min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-gray-100 rounded-lg transition-colors"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-surface-hover rounded-md transition-colors motion-reduce:transition-none text-ink-secondary hover:text-ink-primary"
               aria-label="Open menu"
             >
               <Menu className="w-5 h-5" />
@@ -317,7 +369,7 @@ export function Header({ onMenuClick, showMenuButton }: HeaderProps) {
           )}
           <Link
             href="/projects"
-            className="text-xl font-semibold text-gray-900 hover:text-gray-700"
+            className="font-display text-xl font-semibold text-ink-primary hover:text-quill transition-colors motion-reduce:transition-none"
           >
             Quill
           </Link>
@@ -357,12 +409,16 @@ const navItems = [
   { href: '/citations', icon: BookOpen, label: 'Citations' },
 ];
 
+/**
+ * Sidebar navigation with Scholarly Craft styling.
+ * Design tokens: bg-bg-secondary, border-ink-faint, bg-quill-light/text-quill for active state
+ */
 export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
 
   return (
     <aside
-      className={`fixed top-16 left-0 bottom-0 bg-gray-50 border-r transition-all duration-200 motion-reduce:transition-none ${
+      className={`fixed top-16 left-0 bottom-0 bg-bg-secondary border-r border-ink-faint transition-all duration-200 motion-reduce:transition-none ${
         collapsed ? 'w-16' : 'w-64'
       }`}
       role="navigation"
@@ -375,10 +431,10 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-3 px-3 py-3 min-h-[44px] rounded-lg mb-1 transition-colors motion-reduce:transition-none ${
+              className={`flex items-center gap-3 px-3 py-3 min-h-[44px] rounded-lg mb-1 font-ui text-sm transition-colors motion-reduce:transition-none ${
                 isActive
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-quill-light text-quill font-medium'
+                  : 'text-ink-secondary hover:bg-surface-hover hover:text-ink-primary'
               }`}
               title={collapsed ? label : undefined}
               aria-current={isActive ? 'page' : undefined}
@@ -392,7 +448,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
 
       <button
         onClick={onToggleCollapse}
-        className="absolute bottom-4 right-2 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-gray-200 rounded-lg transition-colors motion-reduce:transition-none"
+        className="absolute bottom-4 right-2 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-surface-hover text-ink-tertiary hover:text-ink-primary rounded-lg transition-colors motion-reduce:transition-none"
         aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
         {collapsed ? (
@@ -429,6 +485,10 @@ const navItems = [
   { href: '/citations', icon: BookOpen, label: 'Citations' },
 ];
 
+/**
+ * Mobile navigation drawer with Scholarly Craft styling.
+ * Design tokens: bg-surface, border-ink-faint, font-display, shadow-lg, overlay
+ */
 export function MobileNav({ open, onClose }: MobileNavProps) {
   const pathname = usePathname();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -457,26 +517,26 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop - uses design system overlay color */}
       <div
-        className="fixed inset-0 bg-black/50 z-40 motion-reduce:transition-none"
+        className="fixed inset-0 bg-overlay z-40 motion-reduce:transition-none"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Drawer */}
       <aside
-        className="fixed top-0 left-0 bottom-0 w-64 bg-white z-50 shadow-lg"
+        className="fixed top-0 left-0 bottom-0 w-64 bg-surface z-50 shadow-lg"
         role="dialog"
         aria-modal="true"
         aria-label="Navigation menu"
       >
-        <div className="flex items-center justify-between p-4 border-b">
-          <span className="text-xl font-semibold">Quill</span>
+        <div className="flex items-center justify-between p-4 border-b border-ink-faint">
+          <span className="font-display text-xl font-semibold text-ink-primary">Quill</span>
           <button
             ref={closeButtonRef}
             onClick={onClose}
-            className="min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-gray-100 rounded-lg transition-colors motion-reduce:transition-none"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-surface-hover text-ink-tertiary hover:text-ink-primary rounded-lg transition-colors motion-reduce:transition-none"
             aria-label="Close menu"
           >
             <X className="w-5 h-5" aria-hidden="true" />
@@ -491,10 +551,10 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
                 key={href}
                 href={href}
                 onClick={onClose}
-                className={`flex items-center gap-3 px-3 py-3 min-h-[44px] rounded-lg mb-1 transition-colors motion-reduce:transition-none ${
+                className={`flex items-center gap-3 px-3 py-3 min-h-[44px] rounded-lg mb-1 font-ui text-sm transition-colors motion-reduce:transition-none ${
                   isActive
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    ? 'bg-quill-light text-quill font-medium'
+                    : 'text-ink-secondary hover:bg-surface-hover hover:text-ink-primary'
                 }`}
                 aria-current={isActive ? 'page' : undefined}
               >
@@ -529,6 +589,10 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
+/**
+ * Main application shell with Scholarly Craft styling.
+ * Design tokens: bg-bg-primary (warm cream page background)
+ */
 export function AppShell({ children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -547,7 +611,7 @@ export function AppShell({ children }: AppShellProps) {
   }, [isTablet]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-bg-primary">
       <SkipLinks />
       <Header
         onMenuClick={() => setSidebarOpen(true)}
@@ -570,7 +634,7 @@ export function AppShell({ children }: AppShellProps) {
           !isMobile && (sidebarCollapsed ? 'pl-16' : 'pl-64')
         }`}
       >
-        <div className="container mx-auto px-4 py-6 max-w-5xl">{children}</div>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 max-w-5xl">{children}</div>
       </main>
     </div>
   );
@@ -801,6 +865,398 @@ git commit -m "feat: add app shell with responsive navigation
 
 ---
 
+## E2E Page Object
+
+**IMPORTANT:** Page objects must be created in the same task as the feature they test, not deferred to Task 6.7. This ensures consistent test patterns and reduces integration issues.
+
+### Create `e2e/pages/MobileNavPage.ts`
+
+Create the MobileNavPage page object following the existing pattern from Phase 0:
+
+```typescript
+import { Page, Locator, expect } from '@playwright/test';
+import { TIMEOUTS } from '../config/timeouts';
+
+/**
+ * Page object for mobile navigation interactions.
+ * Follows Phase 0 page object pattern from LoginPage.ts.
+ */
+export class MobileNavPage {
+  readonly page: Page;
+  readonly hamburgerButton: Locator;
+  readonly closeButton: Locator;
+  readonly drawer: Locator;
+  readonly backdrop: Locator;
+  readonly quillLogo: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.hamburgerButton = page.getByRole('button', { name: /open menu/i });
+    this.closeButton = page.getByRole('button', { name: /close menu/i });
+    this.drawer = page.getByRole('dialog', { name: /navigation/i });
+    // Uses design system overlay token (bg-overlay) which renders as rgba scrim
+    this.backdrop = page.locator('.bg-overlay');
+    this.quillLogo = page.getByRole('link', { name: /quill/i });
+  }
+
+  async openDrawer() {
+    await this.hamburgerButton.click();
+    await expect(this.drawer).toBeVisible({ timeout: TIMEOUTS.DIALOG });
+  }
+
+  async closeDrawer() {
+    await this.closeButton.click();
+    await expect(this.drawer).not.toBeVisible();
+  }
+
+  async closeViaBackdrop() {
+    await this.backdrop.click();
+    await expect(this.drawer).not.toBeVisible();
+  }
+
+  async navigateTo(linkName: string | RegExp) {
+    const link = this.drawer.getByRole('link', { name: linkName });
+    await link.click();
+  }
+
+  async clickLogo() {
+    await this.quillLogo.click();
+  }
+
+  async expectHamburgerVisible() {
+    await expect(this.hamburgerButton).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+  }
+
+  async expectHamburgerNotVisible() {
+    await expect(this.hamburgerButton).not.toBeVisible();
+  }
+
+  async expectDrawerClosed() {
+    await expect(this.drawer).not.toBeVisible();
+  }
+}
+```
+
+---
+
+## E2E Tests
+
+**IMPORTANT:** E2E tests must be created as part of this task, not deferred to Task 6.7. This follows the incremental testing pattern established in earlier phases.
+
+### Create `e2e/navigation/skip-links.spec.ts`
+
+Test skip link visibility and functionality:
+
+```typescript
+import { test, expect } from '../fixtures/test-fixtures';
+import { TIMEOUTS } from '../config/timeouts';
+
+test.describe('Skip Links', () => {
+  test.beforeEach(async ({ page, loginAsWorker }) => {
+    await loginAsWorker();
+    await page.goto('/projects');
+    await page.waitForLoadState('domcontentloaded');
+  });
+
+  test('skip link is visually hidden by default', async ({ page }) => {
+    const skipLink = page.getByRole('link', { name: /skip to main/i });
+    // Skip link should exist but not be visible until focused
+    await expect(skipLink).toHaveCount(1);
+    const box = await skipLink.boundingBox();
+    // When sr-only, bounding box will be very small or null
+    expect(box === null || box.width <= 1 || box.height <= 1).toBe(true);
+  });
+
+  test('skip link becomes visible on focus', async ({ page }) => {
+    // Tab to the skip link
+    await page.keyboard.press('Tab');
+    const skipLink = page.getByRole('link', { name: /skip to main/i });
+    await expect(skipLink).toBeFocused();
+    await expect(skipLink).toBeVisible();
+  });
+
+  test('skip link navigates to main content', async ({ page }) => {
+    // Tab to skip link and activate it
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Enter');
+
+    // Main content should receive focus
+    const mainContent = page.locator('#main-content');
+    await expect(mainContent).toBeFocused();
+  });
+});
+```
+
+### Create `e2e/navigation/mobile-nav.spec.ts`
+
+Test mobile drawer functionality:
+
+```typescript
+import { test, expect, devices } from '@playwright/test';
+import { TIMEOUTS } from '../config/timeouts';
+
+test.describe('Mobile Navigation', () => {
+  test.use({ ...devices['iPhone 12'] });
+
+  test.beforeEach(async ({ page }) => {
+    // Login and navigate (mobile viewport)
+    await page.goto('/projects');
+  });
+
+  test('hamburger menu opens drawer', async ({ page }) => {
+    const hamburger = page.getByRole('button', { name: /open menu/i });
+    await expect(hamburger).toBeVisible();
+
+    await hamburger.click();
+
+    const drawer = page.getByRole('dialog', { name: /navigation/i });
+    await expect(drawer).toBeVisible({ timeout: TIMEOUTS.DIALOG });
+  });
+
+  test('drawer closes on close button click', async ({ page }) => {
+    const hamburger = page.getByRole('button', { name: /open menu/i });
+    await hamburger.click();
+
+    const closeButton = page.getByRole('button', { name: /close menu/i });
+    await closeButton.click();
+
+    const drawer = page.getByRole('dialog', { name: /navigation/i });
+    await expect(drawer).not.toBeVisible();
+  });
+
+  test('drawer closes on backdrop click', async ({ page }) => {
+    const hamburger = page.getByRole('button', { name: /open menu/i });
+    await hamburger.click();
+
+    // Click backdrop (bg-overlay class)
+    const backdrop = page.locator('.bg-overlay');
+    await backdrop.click();
+
+    const drawer = page.getByRole('dialog', { name: /navigation/i });
+    await expect(drawer).not.toBeVisible();
+  });
+
+  test('drawer closes on Escape key', async ({ page }) => {
+    const hamburger = page.getByRole('button', { name: /open menu/i });
+    await hamburger.click();
+
+    await page.keyboard.press('Escape');
+
+    const drawer = page.getByRole('dialog', { name: /navigation/i });
+    await expect(drawer).not.toBeVisible();
+  });
+});
+```
+
+### Create `e2e/navigation/app-shell.spec.ts`
+
+Test header, sidebar, and navigation. **Note:** This task uses the `MobileNavPage` page object created above.
+
+```typescript
+import { test, expect, devices } from '@playwright/test';
+import { MobileNavPage } from '../pages/MobileNavPage';
+import { TIMEOUTS } from '../config/timeouts';
+
+test.describe('App Shell', () => {
+  test.describe('Desktop', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.goto('/projects');
+      await page.waitForLoadState('domcontentloaded');
+    });
+
+    test('header is visible with logo', async ({ page }) => {
+      const header = page.locator('header');
+      await expect(header).toBeVisible();
+
+      const logo = header.getByRole('link', { name: /quill/i });
+      await expect(logo).toBeVisible();
+    });
+
+    test('Quill logo navigates to /projects', async ({ page }) => {
+      // Navigate to a different page first
+      await page.goto('/vault');
+      await page.waitForLoadState('domcontentloaded');
+
+      // Click the Quill logo in header
+      const logo = page.locator('header').getByRole('link', { name: /quill/i });
+      await logo.click();
+
+      // Should navigate to projects page
+      await expect(page).toHaveURL(/\/projects/);
+    });
+
+    test('sidebar navigation is visible on desktop', async ({ page }) => {
+      const sidebar = page.getByRole('navigation', { name: /main navigation/i });
+      await expect(sidebar).toBeVisible();
+    });
+
+    test('navigation links highlight active route', async ({ page }) => {
+      const projectsLink = page.getByRole('link', { name: /projects/i }).first();
+      await expect(projectsLink).toHaveAttribute('aria-current', 'page');
+    });
+
+    test('sidebar collapse button works', async ({ page }) => {
+      const collapseButton = page.getByRole('button', { name: /collapse sidebar/i });
+      await collapseButton.click();
+
+      // Sidebar should be collapsed (narrower width)
+      const sidebar = page.getByRole('navigation', { name: /main navigation/i });
+      const box = await sidebar.boundingBox();
+      expect(box?.width).toBeLessThan(100); // Collapsed width ~64px
+    });
+  });
+
+  test.describe('Mobile', () => {
+    test.use({ ...devices['iPhone 12'] });
+
+    let mobileNav: MobileNavPage;
+
+    test.beforeEach(async ({ page }) => {
+      mobileNav = new MobileNavPage(page);
+    });
+
+    test('hamburger menu visible on mobile', async ({ page }) => {
+      await page.goto('/projects');
+      await mobileNav.expectHamburgerVisible();
+    });
+
+    test('sidebar not visible on mobile', async ({ page }) => {
+      await page.goto('/projects');
+
+      const sidebar = page.getByRole('navigation', { name: /main navigation/i });
+      await expect(sidebar).not.toBeVisible();
+    });
+
+    test('Quill logo navigates to /projects on mobile', async ({ page }) => {
+      // Navigate to a different page first
+      await page.goto('/vault');
+      await page.waitForLoadState('domcontentloaded');
+
+      // Click the Quill logo in header
+      await mobileNav.clickLogo();
+
+      // Should navigate to projects page
+      await expect(page).toHaveURL(/\/projects/);
+    });
+  });
+});
+```
+
+---
+
+## Touch Target Testing
+
+**IMPORTANT:** All interactive elements must meet WCAG 2.5.8 Target Size (Minimum) of 44x44 pixels.
+
+### Create touch target verification tests in `e2e/navigation/app-shell.spec.ts`
+
+Add this test to the Desktop describe block:
+
+```typescript
+test('all buttons meet 44px minimum touch target', async ({ page }) => {
+  await page.goto('/projects');
+
+  // Check all buttons in the app shell
+  const buttons = page.locator('button');
+  const count = await buttons.count();
+
+  for (let i = 0; i < count; i++) {
+    const button = buttons.nth(i);
+    if (await button.isVisible()) {
+      const box = await button.boundingBox();
+      if (box) {
+        expect(box.height, `Button ${i} height should be >= 44px`).toBeGreaterThanOrEqual(44);
+        expect(box.width, `Button ${i} width should be >= 44px`).toBeGreaterThanOrEqual(44);
+      }
+    }
+  }
+});
+```
+
+### Testing Best Practices Pattern
+
+Following the pattern from `docs/best-practices/testing-best-practices.md`:
+
+```typescript
+// Use boundingBox() to verify touch target size
+const box = await button.boundingBox();
+if (box) {
+  expect(box.height).toBeGreaterThanOrEqual(44);
+  expect(box.width).toBeGreaterThanOrEqual(44);
+}
+```
+
+This pattern should be applied to all new interactive elements created in this task.
+
+---
+
+## ARIA Testing
+
+**IMPORTANT:** Verify ARIA attributes are correctly set for accessibility.
+
+### Add ARIA verification to mobile-nav tests
+
+Add these tests to `e2e/navigation/mobile-nav.spec.ts`:
+
+```typescript
+test('hamburger button has aria-expanded attribute', async ({ page }) => {
+  const hamburger = page.getByRole('button', { name: /open menu/i });
+
+  // Initially not expanded
+  await expect(hamburger).toHaveAttribute('aria-expanded', 'false');
+
+  await hamburger.click();
+
+  // After opening
+  await expect(hamburger).toHaveAttribute('aria-expanded', 'true');
+});
+
+test('mobile drawer has correct ARIA attributes', async ({ page }) => {
+  const hamburger = page.getByRole('button', { name: /open menu/i });
+  await hamburger.click();
+
+  const drawer = page.getByRole('dialog', { name: /navigation/i });
+
+  // Verify dialog role and modal behavior
+  await expect(drawer).toHaveAttribute('role', 'dialog');
+  await expect(drawer).toHaveAttribute('aria-modal', 'true');
+});
+
+test('close button focuses when drawer opens', async ({ page }) => {
+  const hamburger = page.getByRole('button', { name: /open menu/i });
+  await hamburger.click();
+
+  const closeButton = page.getByRole('button', { name: /close menu/i });
+  await expect(closeButton).toBeFocused();
+});
+```
+
+### Run E2E Tests
+
+```bash
+npm run test:e2e -- --grep "Skip Links|Mobile Navigation|App Shell"
+```
+
+**Expected:** All navigation E2E tests pass
+
+---
+
+## E2E Verification
+
+Before proceeding to the next task, verify:
+
+- [ ] All unit tests pass (`npm test -- src/hooks/ src/components/layout/`)
+- [ ] Skip link tests pass (`npm run test:e2e -- --grep "Skip Links"`)
+- [ ] Mobile nav tests pass (`npm run test:e2e -- --grep "Mobile Navigation"`)
+- [ ] App shell tests pass (`npm run test:e2e -- --grep "App Shell"`)
+- [ ] All buttons meet 44x44px touch target minimum (verified via boundingBox)
+- [ ] Hamburger menu has `aria-expanded` attribute
+- [ ] Mobile drawer has `role="dialog"` and `aria-modal="true"`
+
+**Do not proceed to Task 6.4 until all E2E tests pass.**
+
+---
+
 ## Verification Checklist
 
 - [ ] accessibility.css created with focus-visible, touch targets, reduced motion
@@ -834,18 +1290,82 @@ All interactive elements use `min-h-[44px] min-w-[44px]` to meet WCAG 2.5.8 Targ
 - Skip link allows keyboard users to bypass navigation
 - Mobile nav traps focus and returns it when closed
 - UserMenu returns focus to trigger on close
+- Focus rings use `focus:ring-2 focus:ring-quill focus:ring-offset-2`
 
-### Color Contrast
+### Color Contrast (Design System Compliance)
 
-The color scheme uses:
+The color scheme uses design system tokens that meet WCAG 2.1 AA:
 
-- `text-gray-900` on white backgrounds (contrast ratio > 12:1)
-- `text-blue-700` on `bg-blue-100` for active states (contrast ratio > 4.5:1)
-- `text-gray-700` for secondary text (contrast ratio > 4.5:1)
+- `text-ink-primary` (#1c1917) on `bg-bg-primary` (#faf8f5) = 14.5:1 (AAA)
+- `text-ink-secondary` (#44403c) on `bg-bg-primary` = 8.2:1 (AAA)
+- `text-quill` (#7c3aed) on `bg-quill-light` (#ede9fe) = 4.6:1 (AA)
+- White on `bg-quill` (#7c3aed) = 4.6:1 (AA)
 
 ### Reduced Motion
 
-All components include `motion-reduce:transition-none` to respect user preferences.
+All components include `motion-reduce:transition-none` to respect user preferences per WCAG 2.3.3.
+
+### Design System Token Summary
+
+| Use Case       | Token                       | Accessibility Note          |
+| -------------- | --------------------------- | --------------------------- |
+| Primary text   | `text-ink-primary`          | 14.5:1 contrast on cream    |
+| Secondary text | `text-ink-secondary`        | 8.2:1 contrast (AAA)        |
+| Muted text     | `text-ink-tertiary`         | 4.8:1 contrast (AA)         |
+| Active nav     | `bg-quill-light text-quill` | 4.6:1 contrast (AA)         |
+| Focus rings    | `ring-quill`                | High visibility brand color |
+
+---
+
+## Additional E2E Tests
+
+Add to `e2e/navigation/app-shell.spec.ts`:
+
+```typescript
+test('sign out flow completes successfully', async ({ page, loginAsWorker }) => {
+  await loginAsWorker();
+  // Click user menu
+  await page.getByTestId('user-menu').click();
+  // Click sign out
+  await page.getByRole('menuitem', { name: /sign out/i }).click();
+  // Verify redirect to login
+  await expect(page).toHaveURL(/\/login/);
+  // Verify session cleared (try to access protected route)
+  await page.goto('/projects');
+  await expect(page).toHaveURL(/\/login/);
+});
+
+test('sidebar collapse state persists across navigation', async ({ page, loginAsWorker }) => {
+  await loginAsWorker();
+  // Collapse sidebar
+  await page.getByTestId('sidebar-toggle').click();
+  // Navigate to another page
+  await page.getByRole('link', { name: /vault/i }).click();
+  // Verify sidebar still collapsed
+  await expect(page.getByTestId('sidebar')).toHaveAttribute('data-collapsed', 'true');
+});
+
+test('mobile drawer closes on route change', async ({ page, loginAsWorker }) => {
+  await loginAsWorker();
+  // Set mobile viewport
+  await page.setViewportSize({ width: 375, height: 667 });
+  // Open drawer
+  await page.getByTestId('mobile-menu-button').click();
+  // Click nav link
+  await page.getByRole('link', { name: /projects/i }).click();
+  // Verify drawer closed AND navigation occurred
+  await expect(page.getByTestId('mobile-drawer')).not.toBeVisible();
+  await expect(page).toHaveURL(/\/projects/);
+});
+```
+
+### E2E Test Execution (Required Before Proceeding)
+
+```bash
+npm run test:e2e e2e/navigation/
+```
+
+**Gate:** All tests must pass before proceeding to Task 6.4.
 
 ---
 

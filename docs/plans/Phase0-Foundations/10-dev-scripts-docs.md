@@ -178,8 +178,8 @@ if ! command -v node &> /dev/null; then
 fi
 
 NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
-if [ "$NODE_VERSION" -lt 20 ]; then
-  echo "Node.js 20+ is required. Found: $(node -v)"
+if [ "$NODE_VERSION" -lt 24 ]; then
+  echo "Node.js 24+ is required. Found: $(node -v)"
   exit 1
 fi
 echo "Node.js $(node -v)"
@@ -277,7 +277,7 @@ Create `DEVELOPMENT.md`:
 
 ## Prerequisites
 
-- Node.js 20+
+- Node.js 24+
 - pnpm 9+ (`npm install -g pnpm`)
 - Docker (for Supabase local development)
 

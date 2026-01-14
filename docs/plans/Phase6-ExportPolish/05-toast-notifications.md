@@ -4,6 +4,37 @@
 
 ---
 
+## Design System Context
+
+Toast notifications follow the **Scholarly Craft** aesthetic with understated, professional feedback that doesn't disrupt focused writing.
+
+### Key Design Tokens for This Task
+
+| Toast Type | Background                   | Border              | Text                          | Icon Color     |
+| ---------- | ---------------------------- | ------------------- | ----------------------------- | -------------- |
+| Success    | `bg-success-light` (#dcfce7) | `border-success/20` | `text-success-dark` (#14532d) | `text-success` |
+| Error      | `bg-error-light` (#fee2e2)   | `border-error/20`   | `text-error-dark` (#7f1d1d)   | `text-error`   |
+| Warning    | `bg-warning-light` (#fef3c7) | `border-warning/20` | `text-warning-dark` (#854d0e) | `text-warning` |
+| Info       | `bg-info-light` (#dbeafe)    | `border-info/20`    | `text-info-dark` (#1e3a8a)    | `text-info`    |
+
+### Typography
+
+- **Toast Message:** `font-ui text-sm` (Source Sans 3, 14px)
+- **No headings in toasts** - keep messages concise
+
+### Layout & Spacing
+
+- **Container:** Fixed bottom-right, `z-50`, `space-y-2`
+- **Toast:** `px-4 py-3`, `min-w-[300px] max-w-[400px]`, `rounded-lg`, `shadow-lg`
+- **Dismiss Button:** 44x44px touch target (`min-h-[44px] min-w-[44px]`)
+
+### Animation
+
+- **Slide-in:** `animate-slide-in` (custom keyframe, 0.2s ease-out)
+- **Reduced Motion:** `motion-reduce:animate-none`
+
+---
+
 ## Context
 
 **This task implements a toast notification system using Zustand for state management.** Users receive visual feedback for actions like saving, errors, and success messages.
@@ -134,6 +165,11 @@ Create `src/components/ui/Toast.tsx`:
 import { useToast } from '@/hooks/useToast';
 import { X, CheckCircle, XCircle, Info, AlertTriangle } from 'lucide-react';
 
+/**
+ * Toast notification container with Scholarly Craft styling.
+ * Uses semantic design tokens for each toast type (success, error, warning, info).
+ */
+
 const icons = {
   success: CheckCircle,
   error: XCircle,
@@ -141,11 +177,19 @@ const icons = {
   warning: AlertTriangle,
 };
 
+// Design system semantic colors for toast types
 const styles = {
-  success: 'bg-green-50 border-green-200 text-green-800',
-  error: 'bg-red-50 border-red-200 text-red-800',
-  info: 'bg-blue-50 border-blue-200 text-blue-800',
-  warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
+  success: 'bg-success-light border-success/20 text-success-dark',
+  error: 'bg-error-light border-error/20 text-error-dark',
+  info: 'bg-info-light border-info/20 text-info-dark',
+  warning: 'bg-warning-light border-warning/20 text-warning-dark',
+};
+
+const iconStyles = {
+  success: 'text-success',
+  error: 'text-error',
+  info: 'text-info',
+  warning: 'text-warning',
 };
 
 export function ToastContainer() {
@@ -163,14 +207,14 @@ export function ToastContainer() {
         return (
           <div
             key={toast.id}
-            className={`flex items-center gap-3 px-4 py-3 border rounded-lg shadow-lg min-w-[300px] max-w-[400px] animate-slide-in motion-reduce:animate-none ${styles[toast.type]}`}
+            className={`flex items-center gap-3 px-4 py-3 border rounded-lg shadow-lg min-w-[300px] max-w-[400px] animate-slide-in motion-reduce:animate-none font-ui text-sm ${styles[toast.type]}`}
             role="alert"
           >
-            <Icon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+            <Icon className={`w-5 h-5 flex-shrink-0 ${iconStyles[toast.type]}`} aria-hidden="true" />
             <span className="flex-1">{toast.message}</span>
             <button
               onClick={() => removeToast(toast.id)}
-              className="min-h-[44px] min-w-[44px] -mr-2 flex items-center justify-center rounded hover:bg-black/5 transition-colors motion-reduce:transition-none"
+              className="min-h-[44px] min-w-[44px] -mr-2 flex items-center justify-center rounded-md hover:bg-black/5 transition-colors motion-reduce:transition-none"
               aria-label="Dismiss notification"
             >
               <X className="w-4 h-4" aria-hidden="true" />
@@ -427,7 +471,7 @@ describe('ToastContainer', () => {
     expect(screen.getByRole('alert')).toBeInTheDocument();
   });
 
-  it('applies correct styles for each toast type', () => {
+  it('applies correct design system styles for each toast type', () => {
     vi.mocked(useToast).mockReturnValue({
       toasts: [{ id: '1', message: 'Error', type: 'error' }],
       addToast: vi.fn(),
@@ -436,7 +480,9 @@ describe('ToastContainer', () => {
 
     render(<ToastContainer />);
     const toast = screen.getByRole('alert');
-    expect(toast).toHaveClass('bg-red-50');
+    // Verify design system token usage (not generic Tailwind colors)
+    expect(toast).toHaveClass('bg-error-light');
+    expect(toast).toHaveClass('text-error-dark');
   });
 
   it('dismiss button meets touch target requirements', () => {
@@ -519,6 +565,317 @@ git commit -m "feat: add toast notification system
 
 ---
 
+## Timeout Constants
+
+**IMPORTANT:** Add toast-specific timeout constants to the centralized E2E timeouts file.
+
+### Add to `e2e/config/timeouts.ts`
+
+```typescript
+// Add to existing TIMEOUTS object
+export const TIMEOUTS = {
+  // ... existing timeouts ...
+
+  /** Timeout for toast auto-dismiss verification (5s default + 2s buffer) */
+  TOAST_AUTO_DISMISS: 7000,
+} as const;
+
+// Add pre-built wait options
+export const TOAST_WAIT = { timeout: TIMEOUTS.TOAST_AUTO_DISMISS };
+```
+
+This timeout provides a 2-second buffer beyond the 5-second default auto-dismiss to account for test execution variability.
+
+---
+
+## E2E Page Object
+
+**IMPORTANT:** Page objects must be created in the same task as the feature they test, not deferred to Task 6.7. This ensures consistent test patterns and reduces integration issues.
+
+### Create `e2e/pages/ToastPage.ts`
+
+Create the ToastPage page object following the existing pattern from Phase 0:
+
+```typescript
+import { Page, Locator, expect } from '@playwright/test';
+import { TIMEOUTS, TOAST_WAIT } from '../config/timeouts';
+
+/**
+ * Page object for toast notification interactions.
+ * Follows Phase 0 page object pattern from LoginPage.ts.
+ */
+export class ToastPage {
+  readonly page: Page;
+  readonly toastContainer: Locator;
+  readonly toast: Locator;
+  readonly dismissButton: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.toastContainer = page.locator('[role="status"][aria-live="polite"]');
+    this.toast = page.getByRole('alert');
+    this.dismissButton = this.toast.getByRole('button', { name: /dismiss/i });
+  }
+
+  async expectToastVisible(textPattern?: string | RegExp) {
+    await expect(this.toast.first()).toBeVisible(TOAST_WAIT);
+    if (textPattern) {
+      await expect(this.toast.first()).toContainText(textPattern);
+    }
+  }
+
+  async expectToastNotVisible() {
+    await expect(this.toast).not.toBeVisible();
+  }
+
+  async dismiss() {
+    await this.dismissButton.first().click();
+  }
+
+  async waitForAutoDismiss() {
+    await expect(this.toast.first()).toBeVisible(TOAST_WAIT);
+    await expect(this.toast).not.toBeVisible({ timeout: TIMEOUTS.TOAST_AUTO_DISMISS });
+  }
+
+  async getToastCount(): Promise<number> {
+    return await this.toast.count();
+  }
+
+  async expectToastCount(count: number) {
+    await expect(this.toast).toHaveCount(count);
+  }
+
+  async expectMaxToastsVisible(maxCount: number) {
+    const count = await this.getToastCount();
+    expect(count).toBeLessThanOrEqual(maxCount);
+  }
+
+  async getAllToastMessages(): Promise<string[]> {
+    const toasts = await this.toast.all();
+    const messages: string[] = [];
+    for (const toast of toasts) {
+      const text = await toast.textContent();
+      if (text) messages.push(text);
+    }
+    return messages;
+  }
+}
+```
+
+---
+
+## E2E Tests
+
+**IMPORTANT:** E2E tests must be created as part of this task, not deferred to Task 6.7. This follows the incremental testing pattern established in earlier phases.
+
+### Create `e2e/notifications/toast.spec.ts`
+
+Create E2E tests covering toast notification functionality. **Note:** This task uses the `ToastPage` page object created above.
+
+```typescript
+import { test, expect } from '../fixtures/test-fixtures';
+import { ToastPage } from '../pages/ToastPage';
+import { TIMEOUTS } from '../config/timeouts';
+
+test.describe('Toast Notifications', () => {
+  let toastPage: ToastPage;
+
+  test.beforeEach(async ({ page, loginAsWorker }) => {
+    await loginAsWorker();
+    toastPage = new ToastPage(page);
+    await page.goto('/projects');
+    await page.waitForLoadState('domcontentloaded');
+  });
+
+  test('toast appears on action', async ({ page }) => {
+    // Trigger an action that shows a toast (e.g., create project)
+    await page.getByRole('link', { name: /new project/i }).click();
+    await page.getByLabel(/project name/i).fill('Toast Test Project');
+    await page.getByRole('button', { name: /create/i }).click();
+
+    // Toast should appear
+    await toastPage.expectToastVisible();
+  });
+
+  test('success toast auto-dismisses after 5 seconds', async ({ page }) => {
+    // Trigger success action
+    await page.getByRole('link', { name: /new project/i }).click();
+    await page.getByLabel(/project name/i).fill('Auto Dismiss Test');
+    await page.getByRole('button', { name: /create/i }).click();
+
+    // Toast should appear and auto-dismiss
+    await toastPage.waitForAutoDismiss();
+  });
+
+  test('toast can be manually dismissed', async ({ page }) => {
+    // Trigger action that shows toast
+    await page.getByRole('link', { name: /new project/i }).click();
+    await page.getByLabel(/project name/i).fill('Manual Dismiss Test');
+    await page.getByRole('button', { name: /create/i }).click();
+
+    // Toast should appear
+    await toastPage.expectToastVisible();
+
+    // Click dismiss button
+    await toastPage.dismiss();
+
+    // Toast should be gone immediately
+    await toastPage.expectToastNotVisible();
+  });
+
+  test('toast has aria-live="polite" for screen readers', async () => {
+    // Check aria-live attribute on container
+    await expect(toastPage.toastContainer).toHaveAttribute('aria-live', 'polite');
+  });
+
+  test('dismiss button meets 44px touch target', async ({ page }) => {
+    // Trigger action that shows toast
+    await page.getByRole('link', { name: /new project/i }).click();
+    await page.getByLabel(/project name/i).fill('Touch Target Test');
+    await page.getByRole('button', { name: /create/i }).click();
+
+    await toastPage.expectToastVisible();
+
+    const box = await toastPage.dismissButton.first().boundingBox();
+
+    if (box) {
+      expect(box.height).toBeGreaterThanOrEqual(44);
+      expect(box.width).toBeGreaterThanOrEqual(44);
+    }
+  });
+
+  test('error toast has longer display time', async ({ page }) => {
+    // Mock an API error to trigger error toast
+    await page.route('**/api/projects', (route) =>
+      route.fulfill({
+        status: 500,
+        body: JSON.stringify({ error: 'Server error' }),
+      })
+    );
+
+    await page.getByRole('link', { name: /new project/i }).click();
+    await page.getByLabel(/project name/i).fill('Error Test');
+    await page.getByRole('button', { name: /create/i }).click();
+
+    // Error toast should appear
+    await toastPage.expectToastVisible();
+
+    // Should still be visible after 5s (default timeout)
+    await page.waitForTimeout(5500);
+    await toastPage.expectToastVisible();
+
+    // Should dismiss after 10s total (error timeout)
+    await expect(toastPage.toast).not.toBeVisible({ timeout: 5500 });
+  });
+
+  test('toast stacking behavior limits visible toasts', async ({ page }) => {
+    // Create a test page that can trigger multiple toasts rapidly
+    // or use the API to inject toasts
+    await page.evaluate(() => {
+      const addToast = (window as any).__TOAST_STORE__?.addToast;
+      if (addToast) {
+        // Trigger 7 toasts rapidly (exceeds MAX_VISIBLE of 5)
+        for (let i = 0; i < 7; i++) {
+          addToast(`Test toast ${i + 1}`, 'info');
+        }
+      }
+    });
+
+    // Allow toasts to render
+    await page.waitForTimeout(500);
+
+    // Should not exceed MAX_VISIBLE (5)
+    await toastPage.expectMaxToastsVisible(5);
+  });
+
+  test('multiple toasts stack vertically', async ({ page }) => {
+    // Trigger multiple actions that show toasts
+    await page.evaluate(() => {
+      const addToast = (window as any).__TOAST_STORE__?.addToast;
+      if (addToast) {
+        addToast('First toast', 'success');
+        addToast('Second toast', 'info');
+        addToast('Third toast', 'warning');
+      }
+    });
+
+    // Allow toasts to render
+    await page.waitForTimeout(500);
+
+    // Should have multiple toasts
+    const count = await toastPage.getToastCount();
+    expect(count).toBeGreaterThanOrEqual(2);
+
+    // Verify they are stacked (get bounding boxes)
+    const toasts = await toastPage.toast.all();
+    if (toasts.length >= 2) {
+      const box1 = await toasts[0].boundingBox();
+      const box2 = await toasts[1].boundingBox();
+
+      if (box1 && box2) {
+        // Toasts should be vertically stacked (different Y positions)
+        expect(box1.y).not.toBe(box2.y);
+      }
+    }
+  });
+
+  test('oldest toast is removed when exceeding max', async ({ page }) => {
+    // Trigger exactly MAX_VISIBLE + 1 toasts
+    await page.evaluate(() => {
+      const addToast = (window as any).__TOAST_STORE__?.addToast;
+      if (addToast) {
+        addToast('Toast 1 - oldest', 'info');
+        addToast('Toast 2', 'info');
+        addToast('Toast 3', 'info');
+        addToast('Toast 4', 'info');
+        addToast('Toast 5', 'info');
+        addToast('Toast 6 - newest', 'info');
+      }
+    });
+
+    // Allow toasts to render
+    await page.waitForTimeout(500);
+
+    // Get all toast messages
+    const messages = await toastPage.getAllToastMessages();
+
+    // The oldest toast should have been removed
+    const hasOldest = messages.some((m) => m.includes('Toast 1'));
+    const hasNewest = messages.some((m) => m.includes('Toast 6'));
+
+    expect(hasOldest).toBe(false); // Oldest removed
+    expect(hasNewest).toBe(true); // Newest kept
+  });
+});
+```
+
+### Run E2E Tests
+
+```bash
+npm run test:e2e -- --grep "Toast Notifications"
+```
+
+**Expected:** All toast notification E2E tests pass
+
+---
+
+## E2E Verification
+
+Before proceeding to the next task, verify:
+
+- [ ] All unit tests pass (`npm test -- src/hooks/__tests__/useToast.test.ts src/components/ui/__tests__/Toast.test.tsx`)
+- [ ] E2E tests pass (`npm run test:e2e -- --grep "Toast Notifications"`)
+- [ ] Toast appears on user actions
+- [ ] Success toast auto-dismisses after 5 seconds
+- [ ] Error toast stays visible for 10 seconds
+- [ ] Manual dismiss works immediately
+- [ ] `aria-live="polite"` verified on container
+- [ ] `TIMEOUTS.TOAST_AUTO_DISMISS` added to `e2e/config/timeouts.ts`
+
+**Do not proceed to Task 6.6 until all E2E tests pass.**
+
+---
+
 ## Verification Checklist
 
 - [ ] TOAST constants defined (DEFAULT_TIMEOUT_MS, ERROR_TIMEOUT_MS, MAX_VISIBLE)
@@ -537,6 +894,52 @@ git commit -m "feat: add toast notification system
 - [ ] Animation respects prefers-reduced-motion
 - [ ] All tests pass
 - [ ] Changes committed
+
+---
+
+## Additional E2E Tests
+
+Add to `e2e/notifications/toast.spec.ts`:
+
+```typescript
+test('maximum 5 toasts visible at once', async ({ page, loginAsWorker }) => {
+  await loginAsWorker();
+  // Trigger 7 toasts rapidly
+  for (let i = 0; i < 7; i++) {
+    await page.evaluate(() =>
+      window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: 'Test ' + i } }))
+    );
+  }
+  // Verify max 5 visible
+  const toasts = await page.getByRole('status').all();
+  expect(toasts.length).toBeLessThanOrEqual(5);
+});
+
+test('export success shows toast', async ({ page, workerCtx, loginAsWorker }) => {
+  await loginAsWorker();
+  // Navigate to document
+  // Trigger export
+  // Verify success toast appears
+  await expect(page.getByRole('status')).toContainText(/exported|success/i);
+});
+
+test('API error shows error toast', async ({ page, loginAsWorker }) => {
+  await loginAsWorker();
+  // Mock API error
+  await page.route('**/api/projects', (route) => route.fulfill({ status: 500 }));
+  // Trigger action
+  // Verify error toast
+  await expect(page.getByRole('status')).toContainText(/error|failed/i);
+});
+```
+
+### E2E Test Execution (Required Before Proceeding)
+
+```bash
+npm run test:e2e e2e/notifications/
+```
+
+**Gate:** All tests must pass before proceeding to Task 6.6.
 
 ---
 

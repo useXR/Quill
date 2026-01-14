@@ -10,6 +10,75 @@
 
 ---
 
+## Design System Compliance Verification
+
+All Phase 3 UI components **MUST** comply with the [Quill Design System](../../design-system.md). Verify:
+
+### Design System Checklist
+
+- [ ] **Typography**: All UI text uses `font-ui` (Source Sans 3), all prose uses `font-prose` (Libre Baskerville)
+- [ ] **Colors**: Components use semantic tokens (`text-ink-primary`, `bg-surface`, `text-quill`) not raw hex values
+- [ ] **Buttons**: Primary buttons use `bg-quill hover:bg-quill-dark`, secondary use `bg-surface hover:bg-surface-hover`
+- [ ] **Focus states**: All interactive elements use `focus:ring-2 focus:ring-quill focus:ring-offset-2`
+- [ ] **Border radius**: Toolbars use `rounded-lg`, buttons use `rounded-md`
+- [ ] **Shadows**: Floating UI uses warm-tinted `shadow-lg` or `shadow-xl`
+- [ ] **Icons**: Lucide icons at `w-4 h-4` (16px) or `w-5 h-5` (20px)
+- [ ] **Loading states**: Spinners use `text-quill animate-spin`
+- [ ] **Error states**: Use `bg-error-light text-error-dark` semantic tokens
+- [ ] **Transitions**: All interactions use `transition-all duration-150`
+
+### Quick Visual Inspection
+
+| Component           | Expected Appearance                                        |
+| ------------------- | ---------------------------------------------------------- |
+| Selection Toolbar   | White card (`bg-surface`) with warm shadow, ghost buttons  |
+| Toolbar Buttons     | Gray text (`text-ink-tertiary`), purple on hover/focus     |
+| Accept Button       | Purple background (`bg-quill`), white text, rounded        |
+| Reject Button       | White/cream background (`bg-surface`), dark text, bordered |
+| Loading Spinner     | Purple color (`text-quill`), spinning                      |
+| Error Alert         | Soft red background (`bg-error-light`), dark red text      |
+| Cursor Prompt Modal | White card with blurred backdrop, purple accent icon       |
+
+---
+
+## E2E Test Execution Requirements
+
+**Before marking Phase 3 complete, the following E2E test suites MUST pass:**
+
+### Required E2E Test Execution
+
+```bash
+# 1. Phase 1 Editor Regression Tests (REQUIRED)
+npm run test:e2e e2e/editor/
+
+# 2. Phase 3 AI E2E Tests (REQUIRED)
+npm run test:e2e e2e/ai/
+
+# 3. Cross-Phase Integration Tests (REQUIRED)
+npm run test:e2e e2e/ai/ai-cross-phase-integration.spec.ts
+
+# 4. User Journey Tests (REQUIRED)
+npm run test:e2e e2e/ai/ai-user-journey.spec.ts
+
+# 5. Full E2E Suite (REQUIRED - final gate)
+npm run test:e2e
+```
+
+**Gate:** ALL tests must pass. Any failures must be resolved before Phase 3 is considered complete.
+
+### Cross-Phase Regression Verification
+
+Phase 3 introduces AI integration that touches multiple previous phases. Verify no regressions:
+
+| Phase   | Test Command                     | What It Verifies                                    |
+| ------- | -------------------------------- | --------------------------------------------------- |
+| Phase 1 | `npm run test:e2e e2e/editor/`   | Editor functionality not broken by SelectionTracker |
+| Phase 1 | `npm run test:e2e e2e/auth/`     | Authentication still works with AI endpoints        |
+| Phase 1 | `npm run test:e2e e2e/projects/` | Project/document context preserved for AI           |
+| Phase 2 | `npm run test:e2e e2e/vault/`    | Vault integration available for AI context          |
+
+---
+
 ## Automated Verification
 
 Run this script to verify all tests pass:
@@ -20,6 +89,14 @@ set -e
 
 echo "=== Phase 3 Verification ==="
 echo ""
+
+# Check design system tokens are used (no raw colors in components)
+echo "Checking design system compliance..."
+if grep -rE "(bg-white|bg-gray|bg-blue|bg-green|text-gray|text-blue|border-gray)" \
+  src/components/editor/SelectionToolbar.tsx \
+  src/components/editor/CursorPrompt.tsx 2>/dev/null; then
+  echo "WARN: Found non-design-system colors. Should use semantic tokens instead."
+fi
 
 # Check Claude CLI
 echo "Checking Claude CLI..."
@@ -67,6 +144,12 @@ echo ""
 echo "Checking rate limiting in API route..."
 grep -q "checkRateLimit" src/app/api/ai/generate/route.ts || { echo "FAIL: Rate limiting not implemented in AI API route"; exit 1; }
 
+# Check AI timeout constants exist in E2E config
+echo ""
+echo "Checking AI E2E timeout constants..."
+grep -q "AI_STREAMING" e2e/config/timeouts.ts || { echo "FAIL: AI_STREAMING timeout constant missing"; exit 1; }
+grep -q "AI_HEARTBEAT" e2e/config/timeouts.ts || { echo "FAIL: AI_HEARTBEAT timeout constant missing"; exit 1; }
+
 # Run all AI-related tests
 echo ""
 echo "Running AI unit tests..."
@@ -89,8 +172,22 @@ echo "Running API route tests..."
 npm test src/app/api/ai/ || { echo "FAIL: API route tests"; exit 1; }
 
 echo ""
-echo "Running E2E tests..."
-npm run test:e2e || { echo "FAIL: E2E tests"; exit 1; }
+echo "=== Running Full E2E Test Suite ==="
+echo ""
+
+# Run Phase 1 editor regression tests
+echo "Running Phase 1 editor regression tests..."
+npx playwright test e2e/editor/*.spec.ts || { echo "FAIL: Phase 1 editor E2E tests (regression)"; exit 1; }
+
+# Run Phase 3 AI E2E tests
+echo ""
+echo "Running Phase 3 AI E2E tests..."
+npx playwright test e2e/ai/ || { echo "FAIL: Phase 3 AI E2E tests"; exit 1; }
+
+# Run complete E2E suite
+echo ""
+echo "Running complete E2E suite..."
+npm run test:e2e || { echo "FAIL: Full E2E test suite"; exit 1; }
 
 echo ""
 echo "Running lint..."
@@ -103,6 +200,100 @@ npm run build || { echo "FAIL: Build failed"; exit 1; }
 echo ""
 echo "=== All Phase 3 Checks Passed ==="
 ```
+
+---
+
+## E2E Test Suite Requirements
+
+**The following E2E test files MUST exist and pass:**
+
+### API Tests (`e2e/ai/ai-api.spec.ts`)
+
+| Test                                       | Description                      |
+| ------------------------------------------ | -------------------------------- |
+| Authenticated user can call endpoint (200) | Verify successful API call       |
+| Unauthenticated user gets 401              | Verify auth error response       |
+| Rate limited user gets 429 with retryAfter | Verify rate limit response       |
+| Invalid request gets 400 validation error  | Verify validation error response |
+| Prompt exceeding max length gets 400       | Verify length validation         |
+
+### Toolbar Basic Tests (`e2e/ai/ai-toolbar-basic.spec.ts`)
+
+| Test                              | Description                    |
+| --------------------------------- | ------------------------------ |
+| Toolbar appears on text selection | Basic visibility               |
+| All action buttons are visible    | Refine/Extend/Shorten/Simplify |
+| Escape closes toolbar             | Keyboard dismissal             |
+
+### Selection Toolbar Tests (`e2e/ai/ai-selection-toolbar.spec.ts`)
+
+| Test                                          | Description        |
+| --------------------------------------------- | ------------------ |
+| Should appear when text is selected           | Toolbar visibility |
+| Should support keyboard navigation            | Arrow keys, focus  |
+| Should show loading spinner during generation | Loading UI         |
+| Should accept and replace selected text       | Accept flow        |
+| Should have proper ARIA live regions          | Accessibility      |
+| Should use polling pattern for slow streaming | Async handling     |
+
+### Cursor Generation Tests (`e2e/ai/ai-cursor-generation.spec.ts`)
+
+| Test                                      | Description        |
+| ----------------------------------------- | ------------------ |
+| Should open modal on Cmd+K                | Keyboard shortcut  |
+| Should have correct ARIA attributes       | Accessibility      |
+| Should close on Escape                    | Keyboard dismissal |
+| Should trap focus within modal            | Focus management   |
+| Should show streaming preview             | Preview UI         |
+| Should insert content at cursor on Accept | Accept flow        |
+| Should support keyboard-only operation    | Full a11y          |
+
+### Error States Tests (`e2e/ai/ai-error-states.spec.ts`)
+
+| Test                                           | Description      |
+| ---------------------------------------------- | ---------------- |
+| Should display error alert on API failure      | Error UI         |
+| Should show retry button for retryable errors  | Retry UI         |
+| Should display rate limit countdown            | Rate limit UI    |
+| Should display validation error inline         | Validation UI    |
+| Should handle network disconnection gracefully | Network error    |
+| Should allow retry after network failure       | Recovery flow    |
+| Should handle stream timeout                   | Timeout handling |
+
+### Reject/Undo Tests (`e2e/ai/ai-reject-undo.spec.ts`)
+
+| Test                                                | Description          |
+| --------------------------------------------------- | -------------------- |
+| Should restore original text on reject              | Reject flow          |
+| Should close toolbar on reject                      | Reject UI            |
+| Should cancel streaming on reject during generation | Cancel during stream |
+| Should undo accepted changes with Ctrl+Z            | Undo flow            |
+| Should support multiple undo operations             | Multi-undo           |
+| Should support redo after undo with Ctrl+Shift+Z    | Redo flow            |
+| Should close modal on cancel                        | Cursor prompt cancel |
+| Should undo cursor insertion with Ctrl+Z            | Cursor undo          |
+
+### Cross-Phase Integration Tests (`e2e/ai/ai-cross-phase-integration.spec.ts`)
+
+| Test                                                       | Description                       |
+| ---------------------------------------------------------- | --------------------------------- |
+| AI changes persist through autosave (Phase 1)              | Verify AI changes save correctly  |
+| AI works within project document context (Phase 1)         | Verify project/document isolation |
+| Vault context available for AI generation (Phase 2)        | Verify vault integration          |
+| Auth session expiry during AI streaming handled gracefully | Verify graceful error handling    |
+
+### User Journey Tests (`e2e/ai/ai-user-journey.spec.ts`)
+
+| Test                                      | Description                           |
+| ----------------------------------------- | ------------------------------------- |
+| Complete selection toolbar workflow       | Select -> refine -> accept -> verify  |
+| Complete cursor prompt workflow           | Cmd+K -> prompt -> generate -> accept |
+| Reject flow preserves original content    | Verify reject doesn't lose data       |
+| Undo restores previous state after accept | Verify undo works after AI accept     |
+
+### Phase 1 Regression Tests
+
+All existing `e2e/editor/*.spec.ts` tests must continue to pass.
 
 ---
 
@@ -312,15 +503,31 @@ claude --version
 ### Task 3.14 - E2E Tests
 
 - [ ] `e2e/pages/AIToolbarPage.ts` exists (per Phase 2 Page Object pattern)
-- [ ] `e2e/selection-toolbar.spec.ts` exists
-- [ ] `e2e/cursor-generation.spec.ts` exists
+- [ ] `e2e/config/timeouts.ts` updated with AI constants:
+  - [ ] `AI_STREAMING: 30000` defined
+  - [ ] `AI_HEARTBEAT: 6000` defined
+  - [ ] `AI_ERROR_DISPLAY: 3000` defined
+- [ ] `e2e/ai/ai-api.spec.ts` exists (API error response tests)
+- [ ] `e2e/ai/ai-toolbar-basic.spec.ts` exists (basic toolbar tests)
+- [ ] `e2e/ai/ai-selection-toolbar.spec.ts` exists (full toolbar tests)
+- [ ] `e2e/ai/ai-cursor-generation.spec.ts` exists (Cmd+K tests)
+- [ ] `e2e/ai/ai-error-states.spec.ts` exists (error UI tests)
+- [ ] `e2e/ai/ai-reject-undo.spec.ts` exists (reject/undo flow tests)
+- [ ] `e2e/ai/ai-cross-phase-integration.spec.ts` exists (cross-phase tests)
+- [ ] `e2e/ai/ai-user-journey.spec.ts` exists (complete workflow tests)
 - [ ] Tests use `AIToolbarPage` Page Object
 - [ ] `waitForStreamingComplete()` uses `expect().toPass()` polling pattern
+- [ ] CursorPrompt modal has axe-core accessibility tests
+- [ ] All AI E2E tests pass: `npx playwright test e2e/ai/`
 
 ### Task 3.15 - Editor Integration
 
 - [ ] `src/components/editor/CursorPrompt.tsx` exists
 - [ ] DocumentEditor imports all AI components
+- [ ] **E2E Regression Verification:**
+  - [ ] All `e2e/editor/*.spec.ts` tests pass (Phase 1 regression)
+  - [ ] All `e2e/ai/*.spec.ts` tests pass (Phase 3 AI tests)
+  - [ ] Full E2E suite passes: `npm run test:e2e`
 
 ---
 
@@ -334,6 +541,42 @@ claude --version
 - [ ] Live regions announce state changes (loading, preview, error)
 - [ ] Screen reader can navigate all actions
 - [ ] Keyboard-only operation works end-to-end
+
+---
+
+## Design System Visual Verification
+
+Per the [Quill Design System](../../design-system.md) "Scholarly Craft" aesthetic:
+
+### Selection Toolbar Appearance
+
+- [ ] Background is clean white (`bg-surface`) not gray
+- [ ] Shadow has warm undertones (not blue-gray)
+- [ ] Buttons use ghost style (transparent background)
+- [ ] Button text is `text-ink-tertiary` (warm gray)
+- [ ] Hover state shows `bg-surface-hover` (warm cream)
+- [ ] Focus ring is purple (`ring-quill`)
+- [ ] Icons are 16px Lucide icons
+- [ ] Typography uses Source Sans 3 (`font-ui`)
+
+### Cursor Prompt Modal Appearance
+
+- [ ] Backdrop is subtle blur with `bg-ink-primary/40`
+- [ ] Card has large radius (`rounded-xl`)
+- [ ] Header icon has purple tint (`bg-quill-light`)
+- [ ] Title uses Libre Baskerville (`font-display`)
+- [ ] Input has proper focus ring in purple
+- [ ] Preview panel uses prose font for reading
+- [ ] Streaming cursor pulses in purple
+
+### Color Token Usage (no hardcoded colors)
+
+- [ ] No `bg-white` (use `bg-surface`)
+- [ ] No `bg-gray-*` (use `bg-surface-hover`, `bg-surface-muted`)
+- [ ] No `text-gray-*` (use `text-ink-primary/secondary/tertiary`)
+- [ ] No `bg-blue-*` or `bg-purple-*` (use `bg-quill`, `bg-quill-light`)
+- [ ] No `bg-green-*` (use `bg-success`, `bg-success-light`)
+- [ ] No `bg-red-*` (use `bg-error`, `bg-error-light`)
 
 ---
 

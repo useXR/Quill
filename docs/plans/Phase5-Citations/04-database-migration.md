@@ -8,6 +8,18 @@
 
 **This task creates database schema enhancements for citations.** It adds new fields to the citations table and creates a junction table for document-citation relationships.
 
+### Design System Note
+
+While this task is backend-focused, the schema fields directly support UI rendering in the Scholarly Craft design:
+
+| DB Column        | UI Purpose   | Design Token Mapping                                                             |
+| ---------------- | ------------ | -------------------------------------------------------------------------------- |
+| `title`          | Card heading | `font-display text-ink-primary`                                                  |
+| `authors`        | Author line  | `font-ui text-ink-secondary`                                                     |
+| `verified`       | DOI badge    | `bg-success-light text-success` (true) / `bg-warning-light text-warning` (false) |
+| `citation_count` | Metric badge | `bg-bg-secondary text-ink-secondary`                                             |
+| `deleted_at`     | Soft delete  | No UI display (filtered by RLS)                                                  |
+
 ### Prerequisites
 
 - **Task 5.1** completed (Paper types defined - schema mirrors type structure)

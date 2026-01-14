@@ -6,6 +6,26 @@
 
 ---
 
+## Design System Reference
+
+This phase implements UI components following the **Scholarly Craft** design system documented in `docs/design-system.md`. Key design tokens used:
+
+| Element    | Design Token                             | Purpose                      |
+| ---------- | ---------------------------------------- | ---------------------------- |
+| Typography | `font-display` (Libre Baskerville)       | Citation titles, headings    |
+| Typography | `font-ui` (Source Sans 3)                | UI labels, buttons, metadata |
+| Colors     | `bg-surface`, `border-ink-faint`         | Citation cards               |
+| Colors     | `text-ink-primary`, `text-ink-secondary` | Text hierarchy               |
+| Colors     | `bg-success-light`, `text-success`       | Verified DOI badge           |
+| Colors     | `bg-warning-light`, `text-warning`       | No DOI warning badge         |
+| Colors     | `bg-quill`, `text-quill`                 | Primary actions, links       |
+| Spacing    | `p-4`, `p-6`, `gap-2`, `gap-4`           | Component padding            |
+| Radius     | `rounded-lg`                             | Cards                        |
+| Radius     | `rounded-md`                             | Buttons, badges, inputs      |
+| Shadows    | `shadow-sm`, `shadow-md`                 | Card elevation               |
+
+---
+
 ## Phase 5 Task Map
 
 ```
@@ -62,17 +82,17 @@
 
 ## Task Files
 
-| File                                                             | Tasks     | Description                                   | Prerequisites              |
-| ---------------------------------------------------------------- | --------- | --------------------------------------------- | -------------------------- |
-| [01-citation-types.md](./01-citation-types.md)                   | 5.1       | Define Paper and SearchResult types           | Pre-flight checklist       |
-| [02-semantic-scholar-client.md](./02-semantic-scholar-client.md) | 5.2-5.12  | Semantic Scholar API client with TDD          | 5.1                        |
-| [03-tiptap-extension.md](./03-tiptap-extension.md)               | 5.13-5.14 | TipTap citation mark extension                | 5.1 (parallel to 5.2-5.12) |
-| [04-database-migration.md](./04-database-migration.md)           | 5.15-5.16 | Citation DB schema enhancements               | 5.1 (parallel to 5.2-5.14) |
-| [05-citations-api-helpers.md](./05-citations-api-helpers.md)     | 5.17-5.20 | Supabase citation CRUD helpers                | 5.12, 5.16                 |
-| [06-api-routes.md](./06-api-routes.md)                           | 5.21-5.23 | Next.js API routes for citations              | 5.20                       |
-| [07-ui-components.md](./07-ui-components.md)                     | 5.24-5.32 | React components (Card, Search, List, Picker) | 5.23                       |
-| [08-e2e-tests.md](./08-e2e-tests.md)                             | 5.33-5.35 | Playwright E2E test infrastructure            | 5.32                       |
-| [99-verification.md](./99-verification.md)                       | -         | Phase completion verification                 | All tasks                  |
+| File                                                             | Tasks      | Description                                                                                   | Prerequisites              |
+| ---------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------- | -------------------------- |
+| [01-citation-types.md](./01-citation-types.md)                   | 5.1        | Define Paper and SearchResult types                                                           | Pre-flight checklist       |
+| [02-semantic-scholar-client.md](./02-semantic-scholar-client.md) | 5.2-5.12   | Semantic Scholar API client with TDD                                                          | 5.1                        |
+| [03-tiptap-extension.md](./03-tiptap-extension.md)               | 5.13-5.14  | TipTap citation mark extension + **Editor integration**                                       | 5.1 (parallel to 5.2-5.12) |
+| [04-database-migration.md](./04-database-migration.md)           | 5.15-5.16  | Citation DB schema enhancements                                                               | 5.1 (parallel to 5.2-5.14) |
+| [05-citations-api-helpers.md](./05-citations-api-helpers.md)     | 5.17-5.20  | Supabase citation CRUD helpers                                                                | 5.12, 5.16                 |
+| [06-api-routes.md](./06-api-routes.md)                           | 5.21-5.23  | Next.js API routes for citations + **E2E tests**                                              | 5.20                       |
+| [07-ui-components.md](./07-ui-components.md)                     | 5.23a-5.32 | **Citations page route (CRITICAL)**, React components, **toolbar integration**, **E2E tests** | 5.23                       |
+| [08-e2e-tests.md](./08-e2e-tests.md)                             | 5.33-5.35  | Playwright E2E test infrastructure                                                            | 5.32                       |
+| [99-verification.md](./99-verification.md)                       | -          | Phase completion verification                                                                 | All tasks                  |
 
 ---
 
@@ -91,7 +111,7 @@ Before starting **any** task, verify prerequisites:
 
 ```bash
 # Check Node.js and package manager
-node --version        # Must be 20+
+node --version        # Must be 24+
 npm --version
 
 # Check dev server runs
@@ -114,9 +134,11 @@ npx supabase --version
 
 **Database:** Supabase tables for citation storage with document-citation junction table.
 
-**UI:** React components for search/list/picker functionality.
+**UI:** React components for search/list/picker functionality following the Scholarly Craft design system with warm paper tones, serif typography for citations, and clean UI chrome.
 
 **Tech Stack:** Next.js API routes, TipTap editor extensions, Supabase (PostgreSQL + RLS), Vitest for unit tests, Playwright for E2E, MSW for API mocking.
+
+**Design System:** Tailwind v4 with `@theme` tokens defined in `globals.css`. All UI components use design tokens from `docs/design-system.md` for consistent scholarly aesthetic.
 
 ---
 

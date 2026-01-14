@@ -8,6 +8,22 @@
 
 **This task creates Playwright E2E test infrastructure and tests for the citation system.** Tests cover user workflows from search to insertion.
 
+### Design System Testing
+
+E2E tests verify that UI components correctly implement the Scholarly Craft design system. Tests should check:
+
+| Visual Element  | Test Assertion                                |
+| --------------- | --------------------------------------------- |
+| Citation titles | Rendered with serif font (Libre Baskerville)  |
+| Verified badges | Green background (`bg-success-light`)         |
+| No DOI badges   | Yellow/amber background (`bg-warning-light`)  |
+| Primary buttons | Purple background (`bg-quill`)                |
+| Error alerts    | Red-tinted background with proper contrast    |
+| Focus rings     | Visible on keyboard navigation (quill color)  |
+| Card hover      | Shadow increases (`shadow-sm` to `shadow-md`) |
+
+Visual regression testing (if configured) should verify consistent implementation of the warm cream/paper color palette (`bg-bg-primary: #faf8f5`).
+
 ### Prerequisites
 
 - **Tasks 5.24-5.32** completed (UI components ready)
@@ -44,9 +60,14 @@
 - `e2e/pages/CitationSearchPage.ts` (create - in `pages/` NOT `page-objects/`)
 - `e2e/pages/CitationListPage.ts` (create)
 - `e2e/pages/CitationPickerPage.ts` (create)
+- `e2e/pages/CitationEditorPage.ts` (create - **CRITICAL** for editor integration tests)
 - `e2e/citations/citation-search.spec.ts` (create)
 - `e2e/citations/citation-management.spec.ts` (create)
 - `e2e/citations/citation-accessibility.spec.ts` (create)
+- `e2e/citations/citation-rate-limit.spec.ts` (create - rate limit UI feedback tests)
+- `e2e/citations/citation-hover-tooltip.spec.ts` (create - tooltip E2E tests)
+- `e2e/citations/citation-view-paper.spec.ts` (create - external link tests)
+- `e2e/citations/citation-manual-entry.spec.ts` (create - manual entry if UI exists)
 
 ---
 
@@ -362,6 +383,171 @@ export class CitationPickerPage {
 }
 ```
 
+Create `e2e/pages/CitationEditorPage.ts`:
+
+> **CRITICAL**: This page object encapsulates all citation interactions within the document editor. All tests involving citation insertion, hover tooltips, and editor integration MUST use this page object.
+
+```typescript
+// e2e/pages/CitationEditorPage.ts
+import { Page, Locator, expect } from '@playwright/test';
+import { TIMEOUTS } from '../config/timeouts';
+
+/**
+ * Page object for citation interactions within the document editor.
+ * Encapsulates all citation-related editor operations for consistent test patterns.
+ *
+ * Usage:
+ *   const citationEditor = new CitationEditorPage(page);
+ *   await citationEditor.goto(projectId, documentId);
+ *   await citationEditor.insertCitation('machine learning');
+ *   await citationEditor.hoverCitation(0);
+ */
+export class CitationEditorPage {
+  readonly page: Page;
+  readonly editor: Locator;
+  readonly citationPickerButton: Locator;
+  readonly citationPickerDialog: Locator;
+  readonly pickerSearchInput: Locator;
+  readonly pickerSearchButton: Locator;
+  readonly pickerResults: Locator;
+  readonly pickerCloseButton: Locator;
+  readonly citationMarks: Locator;
+  readonly citationTooltip: Locator;
+  readonly rateLimitMessage: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.editor = page.locator('[role="textbox"]');
+    this.citationPickerButton = page.getByRole('button', { name: /insert citation/i });
+    this.citationPickerDialog = page.getByRole('dialog');
+    this.pickerSearchInput = page.getByRole('dialog').getByPlaceholder(/search/i);
+    this.pickerSearchButton = page.getByRole('dialog').getByRole('button', { name: /search/i });
+    this.pickerResults = page.getByRole('dialog').getByTestId('citation-results');
+    this.pickerCloseButton = page.getByRole('dialog').getByRole('button', { name: /close/i });
+    this.citationMarks = page.locator('cite[data-citation-id]');
+    this.citationTooltip = page.getByRole('tooltip');
+    this.rateLimitMessage = page.getByText(/rate limit|too many requests|try again/i);
+  }
+
+  /**
+   * Navigate to the document editor page
+   */
+  async goto(projectId: string, documentId: string) {
+    await this.page.goto(`/projects/${projectId}/documents/${documentId}`);
+    await expect(this.editor).toBeVisible({ timeout: TIMEOUTS.PAGE_LOAD });
+  }
+
+  /**
+   * Open the citation picker modal from the toolbar
+   */
+  async openCitationPicker() {
+    await this.citationPickerButton.click();
+    await expect(this.citationPickerDialog).toBeVisible({ timeout: TIMEOUTS.DIALOG });
+  }
+
+  /**
+   * Search for papers within the citation picker
+   */
+  async searchInPicker(query: string) {
+    await this.pickerSearchInput.fill(query);
+    await this.pickerSearchButton.click();
+    // Wait for results to load using toPass pattern (Best Practice: Phase 2)
+    await expect(async () => {
+      const cards = await this.pickerResults.getByTestId('citation-card').count();
+      expect(cards).toBeGreaterThan(0);
+    }).toPass({ timeout: TIMEOUTS.API_CALL });
+  }
+
+  /**
+   * Select a citation from picker results by index
+   */
+  async selectCitationFromPicker(index: number) {
+    const addButtons = this.pickerResults.getByRole('button', { name: /add/i });
+    await addButtons.nth(index).click();
+    // Dialog should close after selection
+    await expect(this.citationPickerDialog).not.toBeVisible({ timeout: TIMEOUTS.DIALOG });
+  }
+
+  /**
+   * Close the citation picker without selecting
+   */
+  async closeCitationPicker() {
+    await this.pickerCloseButton.click();
+    await expect(this.citationPickerDialog).not.toBeVisible({ timeout: TIMEOUTS.DIALOG });
+  }
+
+  /**
+   * Verify a citation exists in the editor
+   */
+  async expectCitationInEditor(citationId?: string) {
+    if (citationId) {
+      await expect(this.page.locator(`cite[data-citation-id="${citationId}"]`)).toBeVisible({
+        timeout: TIMEOUTS.ELEMENT_VISIBLE,
+      });
+    } else {
+      await expect(this.citationMarks.first()).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+    }
+  }
+
+  /**
+   * Get count of citations in the editor
+   */
+  async getCitationCount(): Promise<number> {
+    return await this.citationMarks.count();
+  }
+
+  /**
+   * Hover over a citation to show tooltip
+   */
+  async hoverCitation(index: number = 0) {
+    await this.citationMarks.nth(index).hover();
+    await expect(this.citationTooltip).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+  }
+
+  /**
+   * Click "View Paper" link in citation tooltip
+   * Returns the URL that would be opened
+   */
+  async clickViewPaperLink(): Promise<string> {
+    const viewPaperLink = this.citationTooltip.getByRole('link', { name: /view paper/i });
+    const href = await viewPaperLink.getAttribute('href');
+    // Verify link opens in new tab
+    const target = await viewPaperLink.getAttribute('target');
+    expect(target).toBe('_blank');
+    return href || '';
+  }
+
+  /**
+   * Complete workflow: open picker, search, select citation
+   */
+  async insertCitation(searchQuery: string, resultIndex: number = 0) {
+    await this.openCitationPicker();
+    await this.searchInPicker(searchQuery);
+    await this.selectCitationFromPicker(resultIndex);
+    await this.expectCitationInEditor();
+  }
+
+  /**
+   * Expect rate limit message to be visible
+   */
+  async expectRateLimitMessage() {
+    await expect(this.rateLimitMessage).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+  }
+
+  /**
+   * Wait for editor to be ready (hydrated)
+   */
+  async waitForEditorReady() {
+    await expect(this.editor).toBeVisible({ timeout: TIMEOUTS.PAGE_LOAD });
+    // Wait for form hydration (Best Practice: Phase 1)
+    await expect(async () => {
+      const hydrated = await this.page.locator('form[data-hydrated="true"]').count();
+      expect(hydrated).toBeGreaterThan(0);
+    }).toPass({ timeout: TIMEOUTS.HYDRATION });
+  }
+}
+```
+
 ### Step 3: Commit
 
 ```bash
@@ -491,6 +677,273 @@ npm run test:e2e e2e/citations/
 ```bash
 git add e2e/citations/
 git commit -m "test(e2e): add citation search E2E tests"
+```
+
+---
+
+## Task 5.34a: E2E Tests - Rate Limit UI Feedback
+
+> **CRITICAL**: Users must receive clear feedback when rate limits are hit. This is essential for a good user experience when the Semantic Scholar API returns 429 responses.
+
+### Step 1: Write rate limit feedback tests
+
+Create `e2e/citations/citation-rate-limit.spec.ts`:
+
+```typescript
+// e2e/citations/citation-rate-limit.spec.ts
+// CRITICAL: Import from test-fixtures, NOT from @playwright/test (Best Practice: Phase 0)
+import { test, expect } from '../fixtures/test-fixtures';
+import { CitationSearchPage } from '../pages/CitationSearchPage';
+import { CitationEditorPage } from '../pages/CitationEditorPage';
+import { TIMEOUTS } from '../config/timeouts';
+
+test.describe('Citation Rate Limit UI Feedback', () => {
+  test.beforeEach(async ({ page }) => {
+    // Setup rate limit mock for specific query
+    await page.route('**/api/citations/search**', async (route) => {
+      const url = new URL(route.request().url());
+      const query = url.searchParams.get('q') || '';
+
+      if (query.includes('__rate_limited__')) {
+        await route.fulfill({
+          status: 429,
+          json: {
+            error: 'Rate limited',
+            message: 'Too many requests. Please try again in 60 seconds.',
+            retryAfter: 60,
+          },
+          headers: {
+            'Retry-After': '60',
+          },
+        });
+        return;
+      }
+
+      // Default: return normal results
+      await route.fulfill({
+        json: {
+          papers: [
+            {
+              paperId: 'test-1',
+              title: 'Normal Result',
+              authors: [{ name: 'Author' }],
+              year: 2024,
+              url: 'https://example.com',
+            },
+          ],
+          total: 1,
+        },
+      });
+    });
+  });
+
+  test('shows user-friendly rate limit message on 429 response', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+
+    const citationSearch = new CitationSearchPage(page);
+    await citationSearch.goto(workerCtx.projectId);
+
+    // Trigger rate limited search
+    await citationSearch.search('__rate_limited__');
+
+    // Wait for rate limit message to appear
+    await citationSearch.expectRateLimited();
+
+    // Verify the message is user-friendly (not technical jargon)
+    await expect(page.getByText(/too many requests|rate limit|try again/i)).toBeVisible({
+      timeout: TIMEOUTS.ELEMENT_VISIBLE,
+    });
+
+    // Should NOT show raw HTTP status code to user
+    await expect(page.getByText(/429/)).not.toBeVisible();
+  });
+
+  test('rate limit message includes retry timing information', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+
+    const citationSearch = new CitationSearchPage(page);
+    await citationSearch.goto(workerCtx.projectId);
+
+    await citationSearch.search('__rate_limited__');
+    await citationSearch.expectRateLimited();
+
+    // Should show when user can retry
+    await expect(page.getByText(/60 seconds|1 minute|try again later/i)).toBeVisible({
+      timeout: TIMEOUTS.ELEMENT_VISIBLE,
+    });
+  });
+
+  test('rate limit message has appropriate visual styling', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+
+    const citationSearch = new CitationSearchPage(page);
+    await citationSearch.goto(workerCtx.projectId);
+
+    await citationSearch.search('__rate_limited__');
+
+    // Wait for rate limit alert to appear
+    const rateLimitAlert = page.getByRole('alert').filter({ hasText: /rate limit|too many/i });
+    await expect(rateLimitAlert).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+
+    // Verify it uses warning/info colors (not error colors - it's not a user error)
+    // Design system: bg-warning-light or bg-info-light
+    const bgColor = await rateLimitAlert.evaluate((el) => {
+      return window.getComputedStyle(el).backgroundColor;
+    });
+
+    // Should have a visible background color (not transparent)
+    expect(bgColor).not.toBe('rgba(0, 0, 0, 0)');
+  });
+
+  test('user can retry search after rate limit', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+
+    // Track request count
+    let requestCount = 0;
+    await page.route('**/api/citations/search**', async (route) => {
+      requestCount++;
+      const url = new URL(route.request().url());
+      const query = url.searchParams.get('q') || '';
+
+      // First request rate limited, second succeeds
+      if (requestCount === 1 && query.includes('retry_test')) {
+        await route.fulfill({
+          status: 429,
+          json: { error: 'Rate limited', retryAfter: 1 },
+        });
+        return;
+      }
+
+      await route.fulfill({
+        json: {
+          papers: [
+            {
+              paperId: 'success-1',
+              title: 'Successful Retry Result',
+              authors: [{ name: 'Author' }],
+              year: 2024,
+              url: 'https://example.com',
+            },
+          ],
+          total: 1,
+        },
+      });
+    });
+
+    const citationSearch = new CitationSearchPage(page);
+    await citationSearch.goto(workerCtx.projectId);
+
+    // First search - rate limited
+    await citationSearch.search('retry_test');
+    await citationSearch.expectRateLimited();
+
+    // Wait briefly then retry
+    await page.waitForTimeout(1500);
+
+    // Clear and retry
+    await citationSearch.searchInput.clear();
+    await citationSearch.search('retry_test_2');
+
+    // Should succeed on retry
+    await citationSearch.waitForResults();
+    await expect(page.getByText('Successful Retry Result')).toBeVisible({
+      timeout: TIMEOUTS.ELEMENT_VISIBLE,
+    });
+  });
+
+  test('rate limit in citation picker shows message in dialog', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+
+    const citationEditor = new CitationEditorPage(page);
+    await citationEditor.goto(workerCtx.projectId, workerCtx.documentId);
+
+    // Open citation picker
+    await citationEditor.openCitationPicker();
+
+    // Search with rate limited query
+    await citationEditor.pickerSearchInput.fill('__rate_limited__');
+    await citationEditor.pickerSearchButton.click();
+
+    // Rate limit message should appear within the dialog
+    await citationEditor.expectRateLimitMessage();
+
+    // Message should be inside the dialog, not outside
+    const dialogContent = page.getByRole('dialog');
+    await expect(dialogContent.getByText(/rate limit|too many/i)).toBeVisible({
+      timeout: TIMEOUTS.ELEMENT_VISIBLE,
+    });
+  });
+
+  test('rate limit does not break subsequent searches', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+
+    const citationSearch = new CitationSearchPage(page);
+    await citationSearch.goto(workerCtx.projectId);
+
+    // First search - rate limited
+    await citationSearch.search('__rate_limited__');
+    await citationSearch.expectRateLimited();
+
+    // Second search with different query - should work
+    await citationSearch.searchInput.clear();
+    await citationSearch.search('normal search');
+    await citationSearch.waitForResults();
+
+    // Should show results, not stuck in rate limit state
+    const cards = await citationSearch.getCitationCards();
+    expect(cards.length).toBeGreaterThan(0);
+  });
+
+  test('rate limit message is accessible', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+
+    const citationSearch = new CitationSearchPage(page);
+    await citationSearch.goto(workerCtx.projectId);
+
+    await citationSearch.search('__rate_limited__');
+
+    // Rate limit message should have appropriate ARIA role
+    const rateLimitMessage = page.getByRole('alert').filter({ hasText: /rate limit|too many/i });
+    await expect(rateLimitMessage).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+
+    // Should be announced to screen readers (role="alert" or aria-live)
+    const role = await rateLimitMessage.getAttribute('role');
+    const ariaLive = await rateLimitMessage.getAttribute('aria-live');
+
+    expect(role === 'alert' || ariaLive === 'polite' || ariaLive === 'assertive').toBe(true);
+  });
+});
+```
+
+### Step 2: Update CitationSearchPage with rate limit expectation
+
+Add to `e2e/pages/CitationSearchPage.ts`:
+
+```typescript
+// Add to CitationSearchPage class
+readonly rateLimitMessage: Locator;
+
+constructor(page: Page) {
+  // ... existing locators ...
+  this.rateLimitMessage = page.getByText(/rate limit|too many requests|try again/i);
+}
+
+async expectRateLimited() {
+  await expect(this.rateLimitMessage).toBeVisible({ timeout: TIMEOUTS.API_CALL });
+}
+```
+
+### Step 3: Run rate limit tests
+
+```bash
+npm run test:e2e e2e/citations/citation-rate-limit.spec.ts
+```
+
+### Step 4: Commit
+
+```bash
+git add e2e/citations/citation-rate-limit.spec.ts
+git commit -m "test(e2e): add rate limit UI feedback tests"
 ```
 
 ---
@@ -721,6 +1174,246 @@ git commit -m "test(e2e): add citation management and accessibility tests with a
 
 ---
 
+## Task 5.35a: Extended E2E Test Coverage
+
+> **IMPORTANT**: The following test scenarios must be covered in addition to the basic E2E tests.
+
+### Citation Insertion into Editor via Picker
+
+Test file: `e2e/citations/citation-editor-integration.spec.ts` (defined in 07-ui-components.md)
+
+**Must test:**
+
+- [ ] User can insert citation into editor via toolbar picker
+- [ ] Inserted citation renders with correct `<cite>` element
+- [ ] Citation has correct `data-citation-id` attribute
+- [ ] Citation display text shows correct format (e.g., "[1]")
+
+### Citation Persistence Across Save/Reload
+
+**Must test:**
+
+- [ ] Citation persists after document autosave
+- [ ] Citation persists after manual save
+- [ ] Citation is visible after page reload
+- [ ] Citation data (ID, DOI, title) is preserved
+
+### Navigation Tests
+
+Test file: `e2e/citations/citation-navigation.spec.ts`
+
+```typescript
+// e2e/citations/citation-navigation.spec.ts
+import { test, expect } from '../fixtures/test-fixtures';
+import { TIMEOUTS } from '../config/timeouts';
+
+test.describe('Citation Navigation', () => {
+  test('user can navigate from project page to citations page', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    await page.goto(`/projects/${workerCtx.projectId}`);
+
+    // Find and click citations link
+    await page.getByRole('link', { name: /citations/i }).click();
+
+    // Should be on citations page
+    await expect(page).toHaveURL(`/projects/${workerCtx.projectId}/citations`);
+    await expect(page.getByRole('heading', { name: /citations/i })).toBeVisible({ timeout: TIMEOUTS.PAGE_LOAD });
+  });
+
+  test('user can navigate from editor to citations page', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    await page.goto(`/projects/${workerCtx.projectId}/documents/${workerCtx.documentId}`);
+
+    // Navigate to citations (via toolbar or navigation)
+    await page.getByRole('link', { name: /citations/i }).click();
+
+    await expect(page).toHaveURL(`/projects/${workerCtx.projectId}/citations`);
+  });
+
+  test('user is redirected to login if not authenticated', async ({ page, workerCtx }) => {
+    // Don't log in
+    await page.goto(`/projects/${workerCtx.projectId}/citations`);
+
+    // Should redirect to login
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  test('user is redirected if accessing another user project citations', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+
+    // Try to access a non-existent or other user's project
+    await page.goto('/projects/00000000-0000-0000-0000-000000000000/citations');
+
+    // Should redirect to projects list
+    await expect(page).toHaveURL(/\/projects\/?$/);
+  });
+});
+```
+
+### Optimistic Update Rollback Tests
+
+Test file: `e2e/citations/citation-optimistic-updates.spec.ts`
+
+```typescript
+// e2e/citations/citation-optimistic-updates.spec.ts
+import { test, expect } from '../fixtures/test-fixtures';
+import { TIMEOUTS } from '../config/timeouts';
+
+test.describe('Citation Optimistic Updates', () => {
+  test('citation is immediately removed from UI on delete', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+
+    // Setup: Create a citation via API first
+    const createResponse = await page.request.post('/api/citations', {
+      data: {
+        projectId: workerCtx.projectId,
+        title: 'Test Citation',
+        authors: 'Author',
+        year: 2024,
+      },
+    });
+    const citation = await createResponse.json();
+
+    // Navigate to citations page
+    await page.goto(`/projects/${workerCtx.projectId}/citations`);
+    await expect(page.getByText('Test Citation')).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+
+    // Click delete and confirm
+    await page
+      .getByRole('button', { name: /delete citation/i })
+      .first()
+      .click();
+    await page.getByRole('button', { name: /^delete$/i }).click();
+
+    // Citation should be removed immediately (optimistic update)
+    await expect(page.getByText('Test Citation')).not.toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+  });
+
+  test('citation is restored on delete failure', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+
+    // Setup: Create a citation
+    const createResponse = await page.request.post('/api/citations', {
+      data: {
+        projectId: workerCtx.projectId,
+        title: 'Rollback Test Citation',
+        authors: 'Author',
+        year: 2024,
+      },
+    });
+    const citation = await createResponse.json();
+
+    // Mock the delete to fail
+    await page.route(`**/api/citations/${citation.id}`, async (route) => {
+      if (route.request().method() === 'DELETE') {
+        await route.fulfill({ status: 500, json: { error: 'Server error' } });
+      } else {
+        await route.continue();
+      }
+    });
+
+    await page.goto(`/projects/${workerCtx.projectId}/citations`);
+    await expect(page.getByText('Rollback Test Citation')).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+
+    // Delete and confirm
+    await page
+      .getByRole('button', { name: /delete citation/i })
+      .first()
+      .click();
+    await page.getByRole('button', { name: /^delete$/i }).click();
+
+    // Citation should reappear after failed delete (rollback)
+    await expect(page.getByText('Rollback Test Citation')).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+
+    // Error toast should appear
+    await expect(page.getByText(/failed to delete/i)).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+  });
+});
+```
+
+### Full Integration with Phase 1 Editor
+
+Test file: `e2e/citations/citation-full-integration.spec.ts`
+
+```typescript
+// e2e/citations/citation-full-integration.spec.ts
+import { test, expect } from '../fixtures/test-fixtures';
+import { setupCitationMocks } from '../fixtures/citation-mocks';
+import { TIMEOUTS } from '../config/timeouts';
+
+test.describe('Citation Full Integration with Editor', () => {
+  test.beforeEach(async ({ page }) => {
+    await setupCitationMocks(page);
+  });
+
+  test('complete workflow: search, add, insert, save, verify', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+
+    // 1. Navigate to editor
+    await page.goto(`/projects/${workerCtx.projectId}/documents/${workerCtx.documentId}`);
+
+    // 2. Write some content
+    const editor = page.locator('[role="textbox"]');
+    await editor.fill('This is my document content. ');
+
+    // 3. Open citation picker
+    await page.getByRole('button', { name: /insert citation/i }).click();
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: TIMEOUTS.DIALOG });
+
+    // 4. Search for paper
+    await page.getByPlaceholder(/search/i).fill('machine learning');
+    await page.keyboard.press('Enter');
+
+    // 5. Wait for results and add citation
+    await expect(page.getByTestId('citation-card').first()).toBeVisible({ timeout: TIMEOUTS.API_CALL });
+    await page.getByRole('button', { name: /add/i }).first().click();
+
+    // 6. Verify citation in editor
+    await expect(page.locator('cite[data-citation-id]')).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+
+    // 7. Wait for autosave
+    await page.waitForTimeout(2000);
+
+    // 8. Reload and verify persistence
+    await page.reload();
+    await expect(page.locator('cite[data-citation-id]')).toBeVisible({ timeout: TIMEOUTS.PAGE_LOAD });
+
+    // 9. Navigate to citations page and verify citation exists
+    await page.goto(`/projects/${workerCtx.projectId}/citations`);
+    await expect(page.getByText(/machine learning/i)).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+  });
+
+  test('citation mark styling matches design system', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    await page.goto(`/projects/${workerCtx.projectId}/documents/${workerCtx.documentId}`);
+
+    // Insert citation
+    await page.getByRole('button', { name: /insert citation/i }).click();
+    await page.getByPlaceholder(/search/i).fill('styling test');
+    await page.keyboard.press('Enter');
+    await page.getByRole('button', { name: /add/i }).first().click();
+
+    // Verify citation styling
+    const citation = page.locator('cite[data-citation-id]');
+    await expect(citation).toBeVisible();
+
+    // Check for quill brand color (design system)
+    const styles = await citation.evaluate((el) => {
+      const computed = window.getComputedStyle(el);
+      return {
+        color: computed.color,
+        cursor: computed.cursor,
+      };
+    });
+
+    expect(styles.cursor).toBe('pointer');
+    // Color should be quill purple (approximately #7c3aed)
+  });
+});
+```
+
+---
+
 ## Verification Checklist
 
 - [ ] `e2e/fixtures/citation-mocks.ts` exists
@@ -728,6 +1421,7 @@ git commit -m "test(e2e): add citation management and accessibility tests with a
   - [ ] `CitationSearchPage.ts`
   - [ ] `CitationListPage.ts`
   - [ ] `CitationPickerPage.ts`
+  - [ ] **CRITICAL**: `CitationEditorPage.ts` (for editor integration tests)
 - [ ] Tests import from `../fixtures/test-fixtures` (NOT `@playwright/test`)
 - [ ] Tests use `workerCtx` and `loginAsWorker` fixtures
 - [ ] Tests import `TIMEOUTS` from `../config/timeouts.ts`
@@ -736,8 +1430,108 @@ git commit -m "test(e2e): add citation management and accessibility tests with a
 - [ ] `citation-search.spec.ts` passes
 - [ ] `citation-management.spec.ts` passes
 - [ ] `citation-accessibility.spec.ts` passes
-- [ ] All E2E tests pass (10+ tests)
+- [ ] **New E2E coverage tests:**
+  - [ ] `citation-rate-limit.spec.ts` passes (rate limit UI feedback)
+  - [ ] `citation-hover-tooltip.spec.ts` passes (tooltip shows title/authors/DOI)
+  - [ ] `citation-view-paper.spec.ts` passes (external link opens in new tab)
+  - [ ] `citation-manual-entry.spec.ts` passes or skips if UI not implemented
+- [ ] **Extended coverage tests:**
+  - [ ] `citation-editor-integration.spec.ts` passes (citation insertion via picker)
+  - [ ] `citation-navigation.spec.ts` passes (navigation between pages)
+  - [ ] `citation-optimistic-updates.spec.ts` passes (optimistic update rollback)
+  - [ ] `citation-full-integration.spec.ts` passes (end-to-end workflow)
+- [ ] All E2E tests pass (55+ tests total)
 - [ ] Changes committed
+
+---
+
+## E2E Test File Summary
+
+After completing this task, the following E2E test files should exist:
+
+| File                                                | Purpose                                       | Tests         |
+| --------------------------------------------------- | --------------------------------------------- | ------------- |
+| `e2e/citations/citations-api.spec.ts`               | API authentication and CRUD                   | 6+            |
+| `e2e/citations/citation-search.spec.ts`             | Search UI functionality                       | 7+            |
+| `e2e/citations/citation-management.spec.ts`         | List and delete operations                    | 4+            |
+| `e2e/citations/citation-accessibility.spec.ts`      | Accessibility compliance                      | 8+            |
+| `e2e/citations/citation-picker.spec.ts`             | Picker modal functionality                    | 4+            |
+| `e2e/citations/citation-list.spec.ts`               | List display and interaction                  | 4+            |
+| `e2e/citations/citation-editor-integration.spec.ts` | **CRITICAL**: Editor integration              | 4+            |
+| `e2e/citations/citation-navigation.spec.ts`         | Navigation between pages                      | 4+            |
+| `e2e/citations/citation-optimistic-updates.spec.ts` | Optimistic update rollback                    | 2+            |
+| `e2e/citations/citation-full-integration.spec.ts`   | End-to-end workflow                           | 2+            |
+| `e2e/citations/citation-rate-limit.spec.ts`         | **NEW**: Rate limit UI feedback               | 7+            |
+| `e2e/citations/citation-hover-tooltip.spec.ts`      | **NEW**: Hover tooltip with details           | 4+            |
+| `e2e/citations/citation-view-paper.spec.ts`         | **NEW**: View Paper link behavior             | 4+            |
+| `e2e/citations/citation-manual-entry.spec.ts`       | **NEW**: Manual citation entry (if UI exists) | 4+            |
+| **Total**                                           |                                               | **64+ tests** |
+
+### Page Objects Summary
+
+| File                              | Purpose                                                             |
+| --------------------------------- | ------------------------------------------------------------------- |
+| `e2e/pages/CitationSearchPage.ts` | Search page interactions                                            |
+| `e2e/pages/CitationListPage.ts`   | Citation list and delete operations                                 |
+| `e2e/pages/CitationPickerPage.ts` | Picker modal interactions                                           |
+| `e2e/pages/CitationEditorPage.ts` | **CRITICAL**: Editor citation interactions (insert, hover, tooltip) |
+
+---
+
+---
+
+### Cross-Phase Integration Tests
+
+Create `e2e/citations/citation-cross-phase-integration.spec.ts`:
+
+```typescript
+import { test, expect } from '../fixtures/test-fixtures';
+
+test.describe('Citation Cross-Phase Integration', () => {
+  test('citations persist through document autosave (Phase 1)', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    // Navigate to editor
+    // Insert citation
+    // Wait for autosave
+    // Reload page
+    // Verify citation still present
+  });
+
+  test('citation + bold/italic formatting works together (Phase 1)', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    // Select text
+    // Apply bold
+    // Insert citation on same text
+    // Verify both formatting applied
+  });
+
+  test('citation hover shows tooltip with details', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    // Insert citation
+    // Hover over citation
+    // Verify tooltip appears with title/DOI
+  });
+
+  test('removing citation from editor works', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    // Insert citation
+    // Select citation text
+    // Delete
+    // Verify citation removed
+  });
+});
+
+// Future Phase Integration (Phase 6)
+test.describe.skip('Citation Export Integration (Phase 6)', () => {
+  test('DOCX export includes citations', async ({ page }) => {
+    // Will be implemented in Phase 6
+  });
+
+  test('PDF export includes bibliography', async ({ page }) => {
+    // Will be implemented in Phase 6
+  });
+});
+```
 
 ---
 

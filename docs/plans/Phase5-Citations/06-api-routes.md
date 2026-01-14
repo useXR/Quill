@@ -25,10 +25,23 @@
 
 ### Best Practices Applied
 
-- **Next.js 15 Async Params** - Route params are `Promise<{}>` and must be awaited (Best Practice: Phase 4)
+- **Next.js 16 Async Params** - Route params are `Promise<{}>` and must be awaited (Best Practice: Phase 4)
 - **Error Response Helpers** - Use `validationError()`, `serverError()` etc. from `@/lib/api/error-response` (Best Practice: Phase 4)
 - **handleApiError Pattern** - Use established error handler in catch blocks (Best Practice: Phase 1)
 - **Server-Side Rate Limiting** - Use `@/lib/rate-limit` for API protection (Best Practice: Phase 4)
+
+### Design System Context
+
+API responses are consumed by UI components that follow the Scholarly Craft design system:
+
+| Endpoint                   | UI Consumer        | Design System Application                                |
+| -------------------------- | ------------------ | -------------------------------------------------------- |
+| GET /api/citations         | `CitationList`     | Cards with `bg-surface`, `border-ink-faint`, `shadow-sm` |
+| GET /api/citations/search  | `CitationSearch`   | Results grid with `gap-4`, card hover states             |
+| POST /api/citations        | Toast notification | `bg-success-light text-success` for success              |
+| DELETE /api/citations/[id] | `ConfirmDialog`    | Uses `bg-error`, destructive button variant              |
+
+Error responses (400, 429, 500) trigger alert components styled with `bg-error-light border-error text-error-dark`.
 
 ---
 
@@ -280,9 +293,9 @@ import { handleApiError } from '@/lib/api/handle-error';
 // Validate UUID parameter (Best Practice: Validation §3)
 const uuidSchema = z.string().uuid();
 
-// IMPORTANT: Next.js 15 requires params to be a Promise (Best Practice: Phase 4)
+// IMPORTANT: Next.js 16 requires params to be a Promise (Best Practice: Phase 4)
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params; // Must await params in Next.js 15
+  const { id } = await params; // Must await params in Next.js 16
   const log = citationLogger({ citationId: id });
 
   const idResult = uuidSchema.safeParse(id);
@@ -301,9 +314,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-// IMPORTANT: Next.js 15 requires params to be a Promise (Best Practice: Phase 4)
+// IMPORTANT: Next.js 16 requires params to be a Promise (Best Practice: Phase 4)
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params; // Must await params in Next.js 15
+  const { id } = await params; // Must await params in Next.js 16
   const log = citationLogger({ citationId: id });
 
   const idResult = uuidSchema.safeParse(id);
@@ -328,9 +341,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 }
 
-// IMPORTANT: Next.js 15 requires params to be a Promise (Best Practice: Phase 4)
+// IMPORTANT: Next.js 16 requires params to be a Promise (Best Practice: Phase 4)
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params; // Must await params in Next.js 15
+  const { id } = await params; // Must await params in Next.js 16
   const log = citationLogger({ citationId: id });
 
   const idResult = uuidSchema.safeParse(id);
@@ -488,6 +501,196 @@ Search Semantic Scholar.
 
 ---
 
+## E2E Tests
+
+> **IMPORTANT**: API routes should be tested with E2E tests to verify authentication, authorization, and real database interactions.
+
+### Step 1: Create API E2E tests
+
+Create `e2e/citations/citations-api.spec.ts`:
+
+```typescript
+// e2e/citations/citations-api.spec.ts
+// CRITICAL: Import from test-fixtures, NOT from @playwright/test (Best Practice: Phase 0)
+import { test, expect } from '../fixtures/test-fixtures';
+import { TIMEOUTS } from '../config/timeouts';
+
+test.describe('Citations API', () => {
+  test.describe('Authentication', () => {
+    test('GET /api/citations returns 401 for unauthenticated requests', async ({ request }) => {
+      const response = await request.get('/api/citations?projectId=test-uuid');
+      expect(response.status()).toBe(401);
+    });
+
+    test('POST /api/citations returns 401 for unauthenticated requests', async ({ request }) => {
+      const response = await request.post('/api/citations', {
+        data: { projectId: 'test-uuid', title: 'Test' },
+      });
+      expect(response.status()).toBe(401);
+    });
+
+    test('DELETE /api/citations/[id] returns 401 for unauthenticated requests', async ({ request }) => {
+      const response = await request.delete('/api/citations/test-uuid');
+      expect(response.status()).toBe(401);
+    });
+  });
+
+  test.describe('CRUD Operations', () => {
+    test('user can create and retrieve citation', async ({ page, workerCtx, loginAsWorker }) => {
+      await loginAsWorker();
+
+      // Create citation via API
+      const createResponse = await page.request.post('/api/citations', {
+        data: {
+          projectId: workerCtx.projectId,
+          title: 'E2E Test Citation',
+          authors: 'Test Author',
+          year: 2024,
+        },
+      });
+      expect(createResponse.ok()).toBe(true);
+      const created = await createResponse.json();
+      expect(created.id).toBeDefined();
+
+      // Retrieve citation
+      const getResponse = await page.request.get(`/api/citations/${created.id}`);
+      expect(getResponse.ok()).toBe(true);
+      const retrieved = await getResponse.json();
+      expect(retrieved.title).toBe('E2E Test Citation');
+    });
+
+    test('user can update citation', async ({ page, workerCtx, loginAsWorker }) => {
+      await loginAsWorker();
+
+      // Create then update
+      const createResponse = await page.request.post('/api/citations', {
+        data: {
+          projectId: workerCtx.projectId,
+          title: 'Original Title',
+          authors: 'Author',
+          year: 2024,
+        },
+      });
+      const created = await createResponse.json();
+
+      const updateResponse = await page.request.patch(`/api/citations/${created.id}`, {
+        data: { title: 'Updated Title' },
+      });
+      expect(updateResponse.ok()).toBe(true);
+      const updated = await updateResponse.json();
+      expect(updated.title).toBe('Updated Title');
+    });
+
+    test('user can delete citation (soft delete)', async ({ page, workerCtx, loginAsWorker }) => {
+      await loginAsWorker();
+
+      // Create then delete
+      const createResponse = await page.request.post('/api/citations', {
+        data: {
+          projectId: workerCtx.projectId,
+          title: 'To Delete',
+          authors: 'Author',
+          year: 2024,
+        },
+      });
+      const created = await createResponse.json();
+
+      const deleteResponse = await page.request.delete(`/api/citations/${created.id}`);
+      expect(deleteResponse.ok()).toBe(true);
+
+      // Should not appear in list after soft delete
+      const listResponse = await page.request.get(`/api/citations?projectId=${workerCtx.projectId}`);
+      const list = await listResponse.json();
+      expect(list.find((c: any) => c.id === created.id)).toBeUndefined();
+    });
+  });
+
+  test.describe('Rate Limiting', () => {
+    test('search endpoint returns 429 after too many requests', async ({ page, workerCtx, loginAsWorker }) => {
+      await loginAsWorker();
+
+      // Make many rapid requests to trigger rate limit
+      const requests = [];
+      for (let i = 0; i < 35; i++) {
+        requests.push(page.request.get(`/api/citations/search?q=test${i}`));
+      }
+
+      const responses = await Promise.all(requests);
+      const rateLimited = responses.some((r) => r.status() === 429);
+
+      // At least one request should be rate limited
+      expect(rateLimited).toBe(true);
+    });
+  });
+});
+```
+
+### Step 2: Run E2E tests
+
+```bash
+npm run test:e2e e2e/citations/citations-api.spec.ts
+```
+
+### Step 3: Commit
+
+```bash
+git add e2e/citations/citations-api.spec.ts
+git commit -m "test(e2e): add citations API E2E tests"
+```
+
+---
+
+## E2E Verification
+
+Before proceeding to the next task, ensure these E2E tests pass:
+
+```bash
+npm run test:e2e e2e/citations/citations-api.spec.ts
+```
+
+**Expected Results:**
+
+- [ ] All authentication tests pass (401 for unauthenticated)
+- [ ] CRUD operations work correctly with authenticated user
+- [ ] Rate limiting triggers 429 response
+- [ ] No test failures or timeouts
+
+---
+
+### Additional E2E Tests - Authorization
+
+Add to `e2e/citations/citations-api.spec.ts`:
+
+```typescript
+test.describe('Authorization', () => {
+  test('user cannot GET another user citations', async ({ request, workerCtx }) => {
+    // Create citation as user A
+    // Try to access as user B
+    // Verify 403 forbidden
+  });
+
+  test('user cannot DELETE another user citation', async ({ request, workerCtx }) => {
+    // Similar pattern
+  });
+
+  test('duplicate citation returns 409 with existingId', async ({ request, workerCtx }) => {
+    // Create citation
+    // Try to create same citation again
+    // Verify 409 with existingId in response
+  });
+});
+```
+
+### E2E Test Execution (Required Before Proceeding)
+
+```bash
+npm run test:e2e e2e/citations/citations-api.spec.ts
+```
+
+**Gate:** All tests must pass before proceeding to Task 5.7.
+
+---
+
 ## Verification Checklist
 
 - [ ] `src/app/api/citations/route.ts` exists
@@ -505,7 +708,8 @@ Search Semantic Scholar.
 - [ ] Uses `validationError()`, `notFoundError()`, `rateLimitError()` helpers
 - [ ] Uses `handleApiError()` pattern in catch blocks
 - [ ] Uses `citationLogger()` domain logger
-- [ ] Next.js 15 async params pattern used (params awaited)
+- [ ] Next.js 16 async params pattern used (params awaited)
+- [ ] **E2E Tests**: `e2e/citations/citations-api.spec.ts` exists and passes
 - [ ] Changes committed
 
 ---

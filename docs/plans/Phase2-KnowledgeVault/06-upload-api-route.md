@@ -8,6 +8,8 @@
 
 **This task creates the API routes for file upload, listing, and deletion using TDD.** It includes the extraction queue for background processing.
 
+> **Design System:** This task is API infrastructure. UI components that call these APIs follow the "Scholarly Craft" aesthetic documented in [`docs/design-system.md`](../../design-system.md).
+
 ### Prerequisites
 
 - **Task 2.4** completed (vault API helpers available)
@@ -610,7 +612,7 @@ export async function GET(request: Request) {
 
 ---
 
-### Step 10: Create vault item route with auth (Next.js 14+ params)
+### Step 10: Create vault item route with auth (Next.js 16+ params)
 
 Create `src/app/api/vault/[id]/route.ts`:
 

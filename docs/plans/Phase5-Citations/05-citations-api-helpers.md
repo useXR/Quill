@@ -29,6 +29,16 @@
 - **Audit Logging** - Log all create/update/delete operations (Best Practice: Phase 2)
 - **Soft Delete** - Use `deleted_at` column, not hard delete (Best Practice: Database §5)
 
+### Design System Context
+
+These API helpers return data that directly populates UI components following the Scholarly Craft aesthetic:
+
+- `getCitations()` returns data for `CitationList` (renders with `font-ui`, card styling)
+- `createCitationFromPaper()` maps Paper fields to DB columns that render as:
+  - Title: `font-display text-lg text-ink-primary`
+  - Authors: `font-ui text-sm text-ink-secondary`
+  - Verified badge: `bg-success-light text-success rounded-md` (when DOI present)
+
 ---
 
 ## Files to Create
@@ -621,6 +631,18 @@ git commit -m "feat(api): implement citations write operations (GREEN)"
 - [ ] Domain logger used (`citationLogger()`) - no bare `logger` calls
 - [ ] Audit logging via `createAuditLog()` helper
 - [ ] Changes committed
+
+---
+
+---
+
+## E2E Verification Note
+
+> **Note**: The API helpers implemented in this task are verified through E2E tests in Task 5.21-5.23 (API Routes). The following E2E tests exercise these helper functions:
+>
+> - `e2e/citations/citations-api.spec.ts` - Tests CRUD operations which use `getCitations`, `createCitation`, `updateCitation`, `deleteCitation`
+> - Authorization tests verify `isDuplicateCitation` (409 response) and ownership checks
+> - The `createCitationFromPaper` helper is tested via the search-then-add workflow in `e2e/citations/citation-full-integration.spec.ts`
 
 ---
 

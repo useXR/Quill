@@ -11,12 +11,12 @@
 ### Prerequisites
 
 - Pre-flight checklist completed (see [Overview](./00-overview.md))
-- Git, Node.js 20+, pnpm 9+, and Docker installed and running
+- Git, Node.js 24+, pnpm 9+, and Docker installed and running
 
 ### What This Task Creates
 
 - Git repository
-- Next.js 14+ project with App Router
+- Next.js 16+ project with App Router
 - TypeScript configuration
 - Tailwind CSS setup
 - Basic project structure
@@ -54,7 +54,7 @@ git init
 Create `.nvmrc`:
 
 ```
-20
+24
 ```
 
 ### Step 3: Create .gitattributes for consistent line endings
@@ -76,13 +76,15 @@ Create `.gitattributes`:
 ### Step 4: Create Next.js project with TypeScript
 
 ```bash
-# Pin to Next.js 14.x for stability - update when ready to migrate
-pnpm create next-app@14 . --typescript --tailwind --eslint --app --src-dir --import-alias "@/*"
+# Pin to Next.js 16.x for stability - update when ready to migrate
+pnpm create next-app@16 . --typescript --tailwind --eslint --app --src-dir --import-alias "@/*"
 ```
 
 **Expected output:** Project scaffolded with App Router structure
 
-**Note on version pinning:** Using `@14` instead of `@latest` ensures all developers get the same Next.js version. Tailwind CSS will be the version bundled with create-next-app. To upgrade later, explicitly update the dependencies.
+**Note on version pinning:** Using `@16` instead of `@latest` ensures all developers get the same Next.js version. Tailwind CSS 4 will be configured automatically. To upgrade later, explicitly update the dependencies.
+
+**Note on Tailwind CSS 4:** The create-next-app command will set up Tailwind CSS 4, which uses a new configuration approach. Instead of `tailwind.config.ts`, configuration is done via CSS using the `@theme` directive. The `@import 'tailwindcss'` directive replaces the old `@tailwind base/components/utilities` directives.
 
 ### Step 5: Add Node.js engine requirements and packageManager to package.json
 
@@ -91,7 +93,7 @@ Add to `package.json`:
 ```json
 "packageManager": "pnpm@9.15.0",
 "engines": {
-  "node": ">=20.0.0"
+  "node": ">=24.0.0"
 }
 ```
 
@@ -125,7 +127,7 @@ pnpm dev
 
 ```bash
 git add .
-git commit -m "chore: initialize Next.js 14 project with TypeScript and Tailwind"
+git commit -m "chore: initialize Next.js 16 project with TypeScript and Tailwind"
 ```
 
 ---
@@ -133,7 +135,7 @@ git commit -m "chore: initialize Next.js 14 project with TypeScript and Tailwind
 ## Verification Checklist
 
 - [ ] Git repository initialized
-- [ ] `.nvmrc` contains `20`
+- [ ] `.nvmrc` contains `24`
 - [ ] `.gitattributes` created with LF line endings for scripts
 - [ ] `package.json` has `packageManager` and `engines` fields
 - [ ] `next.config.ts` has `output: 'standalone'`

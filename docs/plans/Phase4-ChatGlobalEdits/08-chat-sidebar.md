@@ -8,6 +8,20 @@
 
 **This task creates the ChatSidebar component and useStreamingChat hook.** The sidebar provides the main chat interface, while the hook manages SSE streaming and message state.
 
+### Design System Reference
+
+The ChatSidebar follows the **Scholarly Craft** aesthetic from `docs/design-system.md`:
+
+| Element       | Design Tokens                                                           |
+| ------------- | ----------------------------------------------------------------------- |
+| Sidebar Panel | `bg-surface`, `border-l border-ink-faint`, `shadow-lg`                  |
+| Header        | `border-b border-ink-faint`, `font-display` for title                   |
+| Toggle Button | `bg-quill`, `text-white`, `shadow-lg`, `rounded-full`                   |
+| Icon Buttons  | `text-ink-tertiary`, `hover:text-ink-primary`, `hover:bg-surface-hover` |
+| Loading State | `text-ink-tertiary`, `bg-quill` cursor, `animate-pulse`                 |
+| Error State   | `bg-error-light`, `text-error`                                          |
+| Empty State   | `text-ink-tertiary`, uses Lucide icons at `opacity-50`                  |
+
 ### Prerequisites
 
 - **Task 4.7** completed (Database indexes)
@@ -144,34 +158,88 @@ export function ChatSidebar({ documentId, projectId }: ChatSidebarProps) {
     dispatch({ type: 'CLEAR_MESSAGES' });
   }, [projectId, documentId, dispatch]);
 
+  /**
+   * ChatSidebar Closed State - Floating Action Button
+   *
+   * Design System: FAB pattern with quill brand color
+   * - Position: fixed bottom-right with spacing-6
+   * - Style: bg-quill, rounded-full, shadow-lg
+   * - Hover: scale transform for tactile feedback
+   */
   if (!state.isOpen) {
     return (
       <button
         onClick={handleToggle}
-        className="fixed right-4 bottom-4 p-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700"
+        className="
+          fixed right-6 bottom-6
+          p-3
+          bg-quill text-white
+          rounded-full shadow-lg
+          hover:bg-quill-dark hover:shadow-xl hover:scale-105
+          active:bg-quill-darker active:scale-95
+          transition-all duration-150
+          focus:outline-none focus:ring-2 focus:ring-quill focus:ring-offset-2
+        "
         data-testid="chat-sidebar-toggle"
+        aria-label="Open chat sidebar"
       >
         <MessageSquare size={24} />
       </button>
     );
   }
 
+  /**
+   * ChatSidebar Open State - Panel
+   *
+   * Design System: Side panel with scholarly aesthetic
+   * - Background: bg-surface (clean white)
+   * - Border: border-l border-ink-faint (subtle separation)
+   * - Shadow: shadow-lg for elevation
+   */
   return (
-    <div className="fixed right-0 top-0 h-full w-96 bg-white border-l shadow-xl flex flex-col z-50" data-testid="chat-sidebar">
-      <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="font-semibold">Document Chat</h2>
-        <div className="flex items-center gap-2">
+    <div
+      className="
+        fixed right-0 top-0 h-full w-96
+        bg-surface
+        border-l border-ink-faint
+        shadow-lg
+        flex flex-col
+        z-50
+      "
+      data-testid="chat-sidebar"
+    >
+      {/* Header - uses display font for scholarly title */}
+      <div className="flex items-center justify-between p-4 border-b border-ink-faint">
+        <h2 className="font-display font-semibold text-ink-primary">
+          Document Chat
+        </h2>
+        <div className="flex items-center gap-1">
+          {/* Icon buttons - subtle with hover states */}
           <button
             onClick={() => setShowClearConfirm(true)}
-            className="p-1 text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+            className="
+              p-2 rounded-md
+              text-ink-tertiary hover:text-ink-primary
+              hover:bg-surface-hover
+              transition-colors duration-150
+              focus:outline-none focus:ring-2 focus:ring-quill
+            "
             data-testid="chat-clear-history"
+            aria-label="Clear chat history"
           >
             <Trash2 size={18} />
           </button>
           <button
             onClick={handleToggle}
-            className="p-1 text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+            className="
+              p-2 rounded-md
+              text-ink-tertiary hover:text-ink-primary
+              hover:bg-surface-hover
+              transition-colors duration-150
+              focus:outline-none focus:ring-2 focus:ring-quill
+            "
             data-testid="chat-sidebar-toggle"
+            aria-label="Close chat sidebar"
           >
             <X size={20} />
           </button>
@@ -187,11 +255,18 @@ export function ChatSidebar({ documentId, projectId }: ChatSidebarProps) {
         message="Are you sure you want to clear all chat history? This cannot be undone."
       />
 
+      {/* Message List - scrollable area */}
       <div className="flex-1 overflow-y-auto" data-testid="chat-message-list">
         {state.messages.length === 0 ? (
-          <div className="p-8 text-center text-gray-400">
-            <MessageSquare size={48} className="mx-auto mb-4 opacity-50" />
-            <p>Start a conversation about your document</p>
+          /* Empty State - centered with subdued styling */
+          <div className="p-8 text-center">
+            <MessageSquare
+              size={48}
+              className="mx-auto mb-4 text-ink-faint opacity-50"
+            />
+            <p className="font-ui text-ink-tertiary">
+              Start a conversation about your document
+            </p>
           </div>
         ) : (
           state.messages.map((msg) => (
@@ -208,21 +283,41 @@ export function ChatSidebar({ documentId, projectId }: ChatSidebarProps) {
           ))
         )}
         <div ref={messagesEndRef} />
+        {/* Loading State - thinking indicator */}
         {isLoading && !isStreaming && (
-          <div className="p-4 flex items-center gap-2 text-gray-400" data-testid="chat-loading">
-            <Loader2 size={16} className="animate-spin" />
-            <span className="text-sm">Claude is thinking...</span>
+          <div
+            className="p-4 flex items-center gap-2 text-ink-tertiary"
+            data-testid="chat-loading"
+          >
+            <Loader2
+              size={16}
+              className="animate-spin motion-reduce:animate-none"
+            />
+            <span className="font-ui text-sm">Claude is thinking...</span>
           </div>
         )}
       </div>
 
+      {/* Error Banner - uses error semantic colors */}
       {state.error && (
-        <div className="px-4 py-2 bg-red-50 text-red-600 text-sm" data-testid="chat-error">
+        <div
+          className="
+            px-4 py-2
+            bg-error-light
+            font-ui text-sm text-error
+          "
+          data-testid="chat-error"
+        >
           {state.error}
         </div>
       )}
 
-      <ChatInput onSend={sendMessage} onCancel={cancelStream} disabled={isLoading && !isStreaming} isStreaming={isStreaming} />
+      <ChatInput
+        onSend={sendMessage}
+        onCancel={cancelStream}
+        disabled={isLoading && !isStreaming}
+        isStreaming={isStreaming}
+      />
     </div>
   );
 }
@@ -382,6 +477,226 @@ git commit -m "feat: add useStreamingChat hook"
 
 ---
 
+## E2E Tests
+
+### Required E2E Test File: `e2e/chat/chat-sidebar.spec.ts`
+
+Create E2E tests for sidebar visibility and toggle behavior:
+
+```typescript
+import { test, expect } from '../fixtures/test-fixtures';
+import { ChatPage } from '../pages/ChatPage';
+import { ClaudeCLIMock, mockResponses } from '../fixtures/claude-cli-mock';
+
+test.describe('Chat Sidebar E2E', () => {
+  let chatPage: ChatPage;
+  let claudeMock: ClaudeCLIMock;
+
+  test.beforeEach(async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    chatPage = new ChatPage(page);
+    claudeMock = new ClaudeCLIMock();
+    await claudeMock.setupRoutes(page);
+  });
+
+  test('should show toggle button when sidebar is closed', async ({ workerCtx }) => {
+    await chatPage.goto(workerCtx.projectId, workerCtx.documentId);
+    await expect(chatPage.toggleButton).toBeVisible();
+    await expect(chatPage.sidebar).not.toBeVisible();
+  });
+
+  test('should open sidebar when toggle clicked', async ({ workerCtx }) => {
+    await chatPage.goto(workerCtx.projectId, workerCtx.documentId);
+    await chatPage.open();
+    await expect(chatPage.sidebar).toBeVisible();
+  });
+
+  test('should close sidebar when close button clicked', async ({ workerCtx }) => {
+    await chatPage.goto(workerCtx.projectId, workerCtx.documentId);
+    await chatPage.open();
+    await chatPage.close();
+    await expect(chatPage.sidebar).not.toBeVisible();
+  });
+
+  test('should persist sidebar state across navigation', async ({ page, workerCtx }) => {
+    await chatPage.goto(workerCtx.projectId, workerCtx.documentId);
+    await chatPage.open();
+
+    // Navigate away and back
+    await page.goto('/projects');
+    await chatPage.goto(workerCtx.projectId, workerCtx.documentId);
+
+    // Sidebar state should be remembered (if implemented with localStorage)
+    // or start closed (default behavior)
+    await expect(chatPage.toggleButton).toBeVisible();
+  });
+});
+```
+
+### CRITICAL: Required E2E Test File: `e2e/chat/chat-integration.spec.ts`
+
+**This is a CRITICAL integration test** that verifies the chat sidebar appears on the actual editor page from Phase 1:
+
+```typescript
+import { test, expect } from '../fixtures/test-fixtures';
+import { TIMEOUTS } from '../config/timeouts';
+
+test.describe('Chat + Editor Integration', () => {
+  test.beforeEach(async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    // Navigate to actual editor page (Phase 1 component)
+    await page.goto(`/projects/${workerCtx.projectId}/documents/${workerCtx.documentId}`);
+  });
+
+  test('CRITICAL: chat sidebar toggle appears on editor page', async ({ page }) => {
+    // Verify the editor is loaded first
+    await expect(page.getByTestId('document-editor')).toBeVisible({ timeout: TIMEOUTS.PAGE_LOAD });
+
+    // CRITICAL: Chat sidebar toggle should be present on editor page
+    await expect(page.getByTestId('chat-sidebar-toggle')).toBeVisible();
+  });
+
+  test('CRITICAL: chat sidebar opens alongside editor', async ({ page }) => {
+    await expect(page.getByTestId('document-editor')).toBeVisible();
+
+    // Open chat sidebar
+    await page.getByTestId('chat-sidebar-toggle').click();
+    await expect(page.getByTestId('chat-sidebar')).toBeVisible();
+
+    // Editor should still be visible (not hidden by sidebar)
+    await expect(page.getByTestId('document-editor')).toBeVisible();
+  });
+
+  test('should send chat message about document content', async ({ page }) => {
+    // Type some content in the editor
+    const editor = page.getByTestId('document-editor').locator('.ProseMirror');
+    await editor.click();
+    await editor.type('This is my research paper about machine learning.');
+
+    // Open chat and ask about the content
+    await page.getByTestId('chat-sidebar-toggle').click();
+    await page.getByTestId('chat-input').fill('What is my document about?');
+    await page.getByTestId('chat-send-button').click();
+
+    // Verify message was sent (appears in list)
+    await expect(page.getByTestId('chat-message').first()).toContainText('What is my document about?');
+  });
+});
+```
+
+### Additional E2E Tests
+
+Add to `e2e/chat/chat-sidebar.spec.ts`:
+
+```typescript
+test.describe('ChatSidebar Empty and Loading States', () => {
+  test('shows empty state when no messages', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+
+    // Clear any existing chat history first
+    await page.goto(`/projects/${workerCtx.projectId}/documents/${workerCtx.documentId}`);
+    await page.getByTestId('chat-sidebar-toggle').click();
+
+    // If clear button exists, clear history
+    const clearButton = page.getByTestId('chat-clear-history');
+    if (await clearButton.isVisible()) {
+      await clearButton.click();
+      await page.getByTestId('confirm-confirm').click();
+    }
+
+    // Verify empty state message visible
+    await expect(page.getByText('Start a conversation')).toBeVisible();
+    await expect(page.locator('[data-testid="chat-message"]')).toHaveCount(0);
+  });
+
+  test('shows loading indicator during thinking phase', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+
+    // Mock slow response to observe loading state
+    await page.route('**/api/ai/chat', async (route) => {
+      // Delay before first chunk to show "thinking" state
+      await new Promise((r) => setTimeout(r, 2000));
+      await route.fulfill({
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+        body: 'data: {"type":"content","content":"Response"}\n\ndata: {"type":"done"}\n\n',
+      });
+    });
+
+    await page.goto(`/projects/${workerCtx.projectId}/documents/${workerCtx.documentId}`);
+    await page.getByTestId('chat-sidebar-toggle').click();
+    await page.getByTestId('chat-input').fill('Test loading state');
+    await page.getByTestId('chat-send-button').click();
+
+    // Verify "thinking" indicator appears before stream starts
+    await expect(page.getByTestId('chat-loading')).toBeVisible();
+    await expect(page.getByText('Claude is thinking')).toBeVisible();
+  });
+
+  test('shows error banner on API failure', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+
+    // Mock API failure
+    await page.route('**/api/ai/chat', async (route) => {
+      await route.fulfill({
+        status: 500,
+        body: JSON.stringify({ error: 'Internal server error', code: 'SERVER_ERROR' }),
+      });
+    });
+
+    await page.goto(`/projects/${workerCtx.projectId}/documents/${workerCtx.documentId}`);
+    await page.getByTestId('chat-sidebar-toggle').click();
+    await page.getByTestId('chat-input').fill('Test error state');
+    await page.getByTestId('chat-send-button').click();
+
+    // Verify error banner appears
+    await expect(page.getByTestId('chat-error')).toBeVisible();
+    await expect(page.getByTestId('chat-error')).toHaveClass(/bg-error-light/);
+  });
+
+  test('error banner clears when new message sent successfully', async ({ page, workerCtx, loginAsWorker }) => {
+    await loginAsWorker();
+    let callCount = 0;
+
+    await page.route('**/api/ai/chat', async (route) => {
+      callCount++;
+      if (callCount === 1) {
+        await route.fulfill({ status: 500, body: JSON.stringify({ error: 'Error' }) });
+      } else {
+        await route.fulfill({
+          status: 200,
+          headers: { 'Content-Type': 'text/event-stream' },
+          body: 'data: {"type":"content","content":"Success"}\n\ndata: {"type":"done"}\n\n',
+        });
+      }
+    });
+
+    await page.goto(`/projects/${workerCtx.projectId}/documents/${workerCtx.documentId}`);
+    await page.getByTestId('chat-sidebar-toggle').click();
+
+    // First message fails
+    await page.getByTestId('chat-input').fill('First message');
+    await page.getByTestId('chat-send-button').click();
+    await expect(page.getByTestId('chat-error')).toBeVisible();
+
+    // Second message succeeds - error should clear
+    await page.getByTestId('chat-input').fill('Second message');
+    await page.getByTestId('chat-send-button').click();
+    await expect(page.getByTestId('chat-error')).not.toBeVisible();
+  });
+});
+```
+
+### E2E Test Execution (Required Before Proceeding)
+
+```bash
+npm run test:e2e e2e/chat/chat-sidebar.spec.ts e2e/chat/chat-integration.spec.ts
+```
+
+**Gate:** All tests must pass before proceeding to Task 4.9.
+
+---
+
 ## Verification Checklist
 
 - [ ] ChatSidebar toggle button appears when closed
@@ -392,7 +707,9 @@ git commit -m "feat: add useStreamingChat hook"
 - [ ] useStreamingChat handles streaming responses
 - [ ] Cancel stream aborts fetch
 - [ ] Retry resends last user message
-- [ ] All tests pass
+- [ ] All unit tests pass
+- [ ] **E2E tests pass:** `npm run test:e2e e2e/chat/chat-sidebar.spec.ts`
+- [ ] **CRITICAL E2E tests pass:** `npm run test:e2e e2e/chat/chat-integration.spec.ts`
 - [ ] Changes committed (2 commits for Tasks 23-24)
 
 ---

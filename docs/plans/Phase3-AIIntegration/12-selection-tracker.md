@@ -23,6 +23,35 @@
 - **Task 3.13** (Selection Toolbar) - uses selection state from this extension
 - **Task 3.15** (Editor Integration) - uses this extension
 
+### Design System: Selection Highlight Styling
+
+The selection highlight in the editor should follow the [Quill Design System](../../design-system.md) editor colors:
+
+**Editor Selection CSS (in globals.css):**
+
+```css
+/* Per design system editor tokens */
+.ProseMirror ::selection {
+  background: var(--color-editor-selection); /* #ede9fe - quill-light */
+}
+
+.ProseMirror .selection-highlight {
+  background: var(--color-editor-highlight); /* #fef3c7 - warm yellow */
+  border-radius: 2px;
+}
+```
+
+**Tailwind v4 @theme reference:**
+
+```css
+@theme {
+  --color-editor-selection: #ede9fe;
+  --color-editor-highlight: #fef3c7;
+}
+```
+
+**Important:** The selection color uses `--color-editor-selection` (a light quill/violet tint) rather than browser default blue to maintain the "Scholarly Craft" aesthetic with warm, paper-like tones.
+
 ### Parallel Tasks
 
 This task can be done in parallel with:
@@ -184,6 +213,29 @@ git commit -m "feat(editor): add TipTap selection tracker extension"
 
 ---
 
+### E2E Verification
+
+Before proceeding to the next task, verify that the TipTap integration doesn't break existing editor functionality.
+
+**Run existing Phase 1 editor E2E tests:**
+
+```bash
+# Verify editor regression - all existing tests must pass
+npx playwright test e2e/editor/*.spec.ts
+
+# Expected: All existing editor tests continue to pass
+# This ensures the SelectionTracker extension doesn't interfere with:
+# - Basic text editing
+# - Formatting operations
+# - Save/load functionality
+# - Toolbar interactions
+```
+
+- [ ] All `e2e/editor/*.spec.ts` tests pass
+- [ ] No regressions in existing editor functionality
+
+---
+
 ## Verification Checklist
 
 - [ ] `src/components/editor/extensions/selection-tracker.ts` exists
@@ -194,7 +246,19 @@ git commit -m "feat(editor): add TipTap selection tracker extension"
 - [ ] Selection state includes: from, to, text, rect
 - [ ] Listeners are notified on selection changes
 - [ ] Selection cleared when collapsed
+- [ ] E2E regression tests pass: `npx playwright test e2e/editor/*.spec.ts`
 - [ ] Changes committed
+
+---
+
+### E2E Regression Test (Required Before Proceeding)
+
+```bash
+# Verify selection tracker doesn't break existing editor functionality
+npm run test:e2e e2e/editor/
+```
+
+**Gate:** All existing editor tests must pass before proceeding.
 
 ---
 

@@ -8,6 +8,8 @@
 
 **This task creates the OpenAI embeddings integration with batching and rate limiting.** It handles the conversion of text chunks into vector embeddings for semantic search.
 
+> **Design System:** This task is backend processing. UI components that trigger search follow the "Scholarly Craft" aesthetic documented in [`docs/design-system.md`](../../design-system.md).
+
 ### Prerequisites
 
 - **Task 2.0** completed (constants available)
