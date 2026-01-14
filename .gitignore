@@ -42,3 +42,7 @@ playwright/.auth/
 
 # Test environment
 .env.test.local
+
+# Supabase
+supabase/.branches
+supabase/.temp
