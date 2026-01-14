@@ -2,6 +2,9 @@
 
 import { useState, type FormEvent } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Alert } from '@/components/ui/Alert';
 
 type FormStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -22,7 +25,6 @@ export function LoginForm() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Validate email
     if (!email.trim()) {
       setFormState({ status: 'error', message: 'Email is required' });
       return;
@@ -36,7 +38,6 @@ export function LoginForm() {
     setFormState({ status: 'loading', message: '' });
 
     try {
-      // Check rate limit before sending magic link
       const rateLimitResponse = await fetch('/api/auth/check-rate-limit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -56,7 +57,6 @@ export function LoginForm() {
         throw new Error('Rate limit check failed');
       }
 
-      // Send magic link
       const supabase = createClient();
       const { error } = await supabase.auth.signInWithOtp({
         email,
@@ -85,45 +85,26 @@ export function LoginForm() {
   const isLoading = formState.status === 'loading';
 
   return (
-    <form onSubmit={handleSubmit} data-testid="login-form" data-hydrated="true" className="space-y-4 w-full max-w-sm">
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-          Email
-        </label>
-        <input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={isLoading}
-          placeholder="you@example.com"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-xs placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          autoComplete="email"
-        />
-      </div>
-
-      {formState.message && (
-        <div
-          className={`p-3 rounded-md text-sm ${
-            formState.status === 'success'
-              ? 'bg-green-50 text-green-700 border border-green-200'
-              : formState.status === 'error'
-                ? 'bg-red-50 text-red-700 border border-red-200'
-                : ''
-          }`}
-          role={formState.status === 'error' ? 'alert' : 'status'}
-        >
-          {formState.message}
-        </div>
-      )}
-
-      <button
-        type="submit"
+    <form onSubmit={handleSubmit} data-testid="login-form" data-hydrated="true" className="space-y-5 w-full">
+      <Input
+        id="email"
+        type="email"
+        label="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
         disabled={isLoading}
-        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-xs text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
+        placeholder="you@example.com"
+        autoComplete="email"
+        required
+      />
+
+      {formState.message && formState.status === 'success' && <Alert variant="success">{formState.message}</Alert>}
+
+      {formState.message && formState.status === 'error' && <Alert variant="error">{formState.message}</Alert>}
+
+      <Button type="submit" isLoading={isLoading} className="w-full">
         {isLoading ? 'Sending...' : 'Send Magic Link'}
-      </button>
+      </Button>
     </form>
   );
 }

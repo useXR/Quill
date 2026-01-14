@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@/lib/supabase/server';
 import { recordAuthAttempt } from '@/lib/auth';
 import { logger } from '@/lib/logger';
-import type { Database } from '@/lib/supabase/database.types';
 
 /**
  * Validate that a redirect URL is safe (same origin or relative)
@@ -35,36 +34,26 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   // Validate redirect URL to prevent open redirect
   const redirectTo = isValidRedirectUrl(next, origin) ? next : '/projects';
 
+  // Debug: Log all cookies present at callback
+  const allCookies = request.cookies.getAll();
+  logger.info(
+    {
+      cookieNames: allCookies.map((c) => c.name),
+      cookieCount: allCookies.length,
+      ipAddress,
+    },
+    'Auth callback - cookies present'
+  );
+
   if (!code) {
     logger.warn({ ipAddress }, 'Auth callback called without code');
     return NextResponse.redirect(new URL('/login?error=missing_code', origin));
   }
 
-  // Create response that we'll add cookies to
-  const redirectUrl = new URL(redirectTo, origin);
-  const response = NextResponse.redirect(redirectUrl);
-
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error('Missing Supabase environment variables');
-    }
-
-    // Create Supabase client that sets cookies on the response
-    const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
-          });
-        },
-      },
-    });
+    // Use the server client helper which uses cookies() from next/headers
+    // This properly reads the PKCE code_verifier cookie set during login
+    const supabase = await createClient();
 
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
@@ -79,7 +68,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       logger.info({ userId: data.user.id, email: data.user.email }, 'User authenticated successfully');
     }
 
-    return response;
+    // Redirect to the intended destination
+    const redirectUrl = new URL(redirectTo, origin);
+    return NextResponse.redirect(redirectUrl);
   } catch (error) {
     logger.error({ error, ipAddress }, 'Auth callback error');
     return NextResponse.redirect(new URL('/login?error=server_error', origin));
