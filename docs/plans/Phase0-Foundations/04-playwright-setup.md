@@ -36,7 +36,7 @@ This task can be done in parallel with:
 
 ### Key Design Decisions
 
-- **Port 3099** for E2E tests (isolated from dev server on 3000)
+- **Port 3088** for E2E tests (isolated from dev server on 3000)
 - **Worker isolation** for true parallel testing
 - **Centralized timeouts** - never hardcode timeout values in tests
 
@@ -85,8 +85,8 @@ Create `.env.test`:
 
 ```bash
 # Test environment - isolated from development
-# Use port 3099 to avoid conflicts with dev server on 3000
-NEXT_PUBLIC_APP_URL=http://localhost:3099
+# Use port 3088 to avoid conflicts with dev server on 3000
+NEXT_PUBLIC_APP_URL=http://localhost:3088
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 NEXT_PUBLIC_SUPABASE_ANON_KEY=test-anon-key
 SUPABASE_SERVICE_ROLE_KEY=test-service-role-key
@@ -591,8 +591,8 @@ Create `playwright.config.ts`:
 ```typescript
 import { defineConfig, devices } from '@playwright/test';
 
-// Use isolated port 3099 to avoid conflicts with dev server
-const PORT = process.env.PORT || 3099;
+// Use isolated port 3088 to avoid conflicts with dev server
+const PORT = process.env.PORT || 3088;
 const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 
 export default defineConfig({

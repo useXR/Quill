@@ -28,7 +28,7 @@ A comprehensive guide to testing infrastructure patterns for TypeScript, React, 
 | **Test Data Cleanup Utilities**                                          | Task 0.4       | `e2e/helpers/cleanup.ts`                                    |
 | **Page Object Model Base**                                               | Task 0.4       | `e2e/pages/LoginPage.ts`                                    |
 | **Global Setup/Teardown**                                                | Task 0.4       | `e2e/setup/global-setup.ts`, `e2e/setup/global-teardown.ts` |
-| **Environment Isolation** (port 3000 dev, 3099 test)                     | Task 0.4       | `playwright.config.ts`, `.env.test`                         |
+| **Environment Isolation** (port 3000 dev, 3088 test)                     | Task 0.4       | `playwright.config.ts`, `.env.test`                         |
 | **Supabase Test Utilities** (service role client, user creation)         | Task 0.8       | `src/lib/supabase/test-utils.ts`                            |
 | **TestData Class with Auto-cleanup**                                     | Task 0.8       | `src/lib/supabase/test-utils.ts`                            |
 | **GitHub Actions CI Workflow**                                           | Task 0.9       | `.github/workflows/ci.yml`                                  |
@@ -1804,7 +1804,7 @@ e2e/
 // playwright.config.ts
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = process.env.PORT || 3099;
+const PORT = process.env.PORT || 3088;
 const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 
 export default defineConfig({
@@ -1907,11 +1907,11 @@ Use separate ports and directories to avoid conflicts:
 | Environment | App Port | Database | Build Directory |
 | ----------- | -------- | -------- | --------------- |
 | Development | 3000     | Default  | `.next`         |
-| Test        | 3099     | Test DB  | `.next-test`    |
+| Test        | 3088     | Test DB  | `.next-test`    |
 
 ```bash
 # .env.test
-NEXT_PUBLIC_APP_URL=http://localhost:3099
+NEXT_PUBLIC_APP_URL=http://localhost:3088
 NEXT_PUBLIC_SUPABASE_URL=http://localhost:54322  # Local Supabase
 NODE_ENV=test
 ```

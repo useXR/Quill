@@ -208,7 +208,7 @@ For parallel execution with multiple agents:
 | Environment | App Port | Purpose                           |
 | ----------- | -------- | --------------------------------- |
 | Development | 3000     | Local development with hot reload |
-| E2E Testing | 3099     | Isolated E2E test runs            |
+| E2E Testing | 3088     | Isolated E2E test runs            |
 
 This isolation prevents conflicts between development and test environments.
 
@@ -237,7 +237,7 @@ Phase 0 establishes the **development and testing foundation**. The following pr
 - ✅ `output: 'standalone'` in `next.config.ts` (required for Docker)
 - ✅ `/api/health` endpoint (required for Docker health checks)
 - ✅ `.gitattributes` for LF line endings (prevents script failures)
-- ✅ Port isolation strategy (dev: 3000, test: 3099, prod: internal)
+- ✅ Port isolation strategy (dev: 3000, test: 3088, prod: internal)
 - ✅ `audit_logs` table (for security tracking)
 - ✅ RLS policies on all tables (database-level access control)
 - ✅ Typed Supabase clients (type-safe database queries)

@@ -21,7 +21,7 @@ These are **one-time setups** that later phases automatically benefit from:
 | **Test Render Utilities**     | `render()` with providers, `userEvent.setup()`            | Create alternate render functions                    |
 | **CI Pipeline**               | GitHub Actions with lint→test→build→e2e                   | Create separate workflow files                       |
 | **Type Generation Script**    | `pnpm db:types` regenerates from schema                   | Manually write database types                        |
-| **Port Isolation**            | Dev: 3000, E2E: 3099                                      | Use different ports or conflict with these           |
+| **Port Isolation**            | Dev: 3000, E2E: 3088                                      | Use different ports or conflict with these           |
 | **Line Ending Normalization** | `.gitattributes` ensures LF for scripts                   | Worry about CRLF issues in bash/SQL                  |
 | **Standalone Output**         | `next.config.ts` has `output: 'standalone'`               | Modify output config                                 |
 

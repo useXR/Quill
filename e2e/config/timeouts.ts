@@ -21,6 +21,7 @@ export const TIMEOUTS = {
   API_CALL: 5000, // API request completion
   AUTH: 5000, // Auth operations
   LOGIN_REDIRECT: 30000, // Login to dashboard redirect
+  EMAIL_DELIVERY: 30000, // Magic link email delivery (Inbucket)
 
   // Autosave
   AUTOSAVE_DEBOUNCE: 2000, // Autosave debounce delay (matches AUTOSAVE.DEBOUNCE_MS)

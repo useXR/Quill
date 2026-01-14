@@ -1,6 +1,6 @@
 /**
  * Page Object Model for the login page.
- * Encapsulates selectors and actions for the login form.
+ * Encapsulates selectors and actions for the magic link login form.
  */
 import { Page, Locator, expect } from '@playwright/test';
 import { TIMEOUTS } from '../config/timeouts';
@@ -9,17 +9,17 @@ import { waitForFormReady } from '../helpers/hydration';
 export class LoginPage {
   readonly page: Page;
   readonly emailInput: Locator;
-  readonly passwordInput: Locator;
   readonly submitButton: Locator;
   readonly errorMessage: Locator;
+  readonly successMessage: Locator;
 
   constructor(page: Page) {
     this.page = page;
     this.emailInput = page.locator('#email');
-    this.passwordInput = page.locator('#password');
     this.submitButton = page.locator('[type="submit"]');
     // Use form-specific selector to avoid matching route announcer
     this.errorMessage = page.locator('[data-testid="login-form"] [role="alert"]');
+    this.successMessage = page.locator('[data-testid="login-form"] [role="status"]');
   }
 
   async goto() {
@@ -27,31 +27,47 @@ export class LoginPage {
     await waitForFormReady(this.page);
   }
 
-  async fillCredentials(email: string, password: string) {
+  async fillEmail(email: string) {
     await this.emailInput.fill(email);
-    await this.passwordInput.fill(password);
   }
 
   async submit() {
     await this.submitButton.click();
   }
 
-  async login(email: string, password: string) {
-    await this.fillCredentials(email, password);
+  /**
+   * Request a magic link for the given email.
+   */
+  async requestMagicLink(email: string) {
+    await this.fillEmail(email);
     await this.submit();
   }
 
-  async loginAndWaitForDashboard(email: string, password: string) {
-    await this.login(email, password);
-    await this.page.waitForURL('**/dashboard', { timeout: TIMEOUTS.LOGIN_REDIRECT });
+  /**
+   * Request magic link and wait for success message.
+   */
+  async requestMagicLinkAndWaitForSuccess(email: string) {
+    await this.requestMagicLink(email);
+    await expect(this.successMessage).toContainText(/check your email/i, {
+      timeout: TIMEOUTS.API_CALL,
+    });
   }
 
   async expectError(pattern: string | RegExp) {
     await expect(this.errorMessage).toContainText(pattern);
   }
 
+  async expectSuccess(pattern: string | RegExp) {
+    await expect(this.successMessage).toContainText(pattern);
+  }
+
   async expectVisible() {
     await expect(this.emailInput).toBeVisible();
-    await expect(this.passwordInput).toBeVisible();
+    await expect(this.submitButton).toBeVisible();
+  }
+
+  async expectLoading() {
+    await expect(this.submitButton).toContainText(/sending/i);
+    await expect(this.submitButton).toBeDisabled();
   }
 }

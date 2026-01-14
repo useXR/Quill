@@ -546,8 +546,8 @@ Create `.env.test`:
 
 ```bash
 # Test environment - isolated from development
-# Use port 3099 to avoid conflicts with dev server on 3000
-NEXT_PUBLIC_APP_URL=http://localhost:3099
+# Use port 3088 to avoid conflicts with dev server on 3000
+NEXT_PUBLIC_APP_URL=http://localhost:3088
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 NEXT_PUBLIC_SUPABASE_ANON_KEY=test-anon-key
 SUPABASE_SERVICE_ROLE_KEY=test-service-role-key
@@ -906,8 +906,8 @@ Create `playwright.config.ts`:
 ```typescript
 import { defineConfig, devices } from '@playwright/test';
 
-// Use isolated port 3099 to avoid conflicts with dev server
-const PORT = process.env.PORT || 3099;
+// Use isolated port 3088 to avoid conflicts with dev server
+const PORT = process.env.PORT || 3088;
 const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 
 export default defineConfig({
@@ -2153,12 +2153,12 @@ jobs:
 
       # NOTE: The Playwright webServer is configured to run 'pnpm start' in CI
       # since we already have the build artifact downloaded above.
-      # Port 3099 is used to avoid conflicts with any other services.
+      # Port 3088 is used to avoid conflicts with any other services.
       - name: Run Playwright tests (Chromium only in CI)
         run: pnpm exec playwright test --project=chromium
         env:
-          PORT: '3099'
-          BASE_URL: 'http://localhost:3099'
+          PORT: '3088'
+          BASE_URL: 'http://localhost:3088'
           NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
           NEXT_PUBLIC_SUPABASE_ANON_KEY: test-key
           CI: 'true'
@@ -2443,7 +2443,7 @@ before or alongside implementation, not as an afterthought.
 - Located in `e2e/` folder organized by feature
 - Use `data-testid` attributes for stable selectors
 - Use centralized timeouts from `e2e/config/timeouts.ts`
-- Use port 3099 (isolated from dev server on 3000)
+- Use port 3088 (isolated from dev server on 3000)
 
 ### Test Utilities
 

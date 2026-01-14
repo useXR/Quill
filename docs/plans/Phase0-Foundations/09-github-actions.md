@@ -199,13 +199,13 @@ jobs:
 
       # NOTE: The Playwright webServer is configured to run 'pnpm start' in CI
       # since we already have the build artifact downloaded above.
-      # Port 3099 is used to avoid conflicts with any other services.
+      # Port 3088 is used to avoid conflicts with any other services.
       # The /api/health endpoint is available for debugging if tests fail.
       - name: Run Playwright tests (Chromium + Serial)
         run: pnpm exec playwright test --project=chromium --project=serial
         env:
-          PORT: '3099'
-          BASE_URL: 'http://localhost:3099'
+          PORT: '3088'
+          BASE_URL: 'http://localhost:3088'
           NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU' }}
@@ -216,7 +216,7 @@ jobs:
         if: failure()
         run: |
           echo "Checking application health for debugging..."
-          curl -sf http://localhost:3099/api/health || echo "Health check failed"
+          curl -sf http://localhost:3088/api/health || echo "Health check failed"
         continue-on-error: true
 
       - name: Upload Playwright report
@@ -305,7 +305,7 @@ git commit -m "chore: add GitHub Actions CI workflow"
 | Node version        | 20                 | Match project requirements        |
 | pnpm cache          | enabled            | Faster dependency installation    |
 | Playwright browsers | Chromium only      | Faster E2E runs in CI             |
-| E2E port            | 3099               | Isolated from other services      |
+| E2E port            | 3088               | Isolated from other services      |
 | Concurrency         | cancel-in-progress | Don't waste resources on old runs |
 | Timeouts            | 10-30 min          | Prevent hung jobs                 |
 
@@ -346,7 +346,7 @@ pnpm test:coverage
 pnpm build
 
 # E2E (with test port)
-PORT=3099 pnpm test:e2e:chromium
+PORT=3088 pnpm test:e2e:chromium
 ```
 
 ---

@@ -14,7 +14,7 @@ Lessons learned from building and deploying a production TypeScript/React/Next.j
 | ------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | **Health Check Endpoint**       | `src/app/api/health/route.ts`                              | Complete `/api/health` endpoint with status, timestamp, version, database checks. Ready for Docker health checks. |
 | **Standalone Output**           | `next.config.ts`                                           | `output: 'standalone'` configured - required for multi-stage Docker builds.                                       |
-| **Port Isolation Strategy**     | Throughout                                                 | Dev: 3000, Test: 3099, Prod: internal only. Already enforced in Playwright config.                                |
+| **Port Isolation Strategy**     | Throughout                                                 | Dev: 3000, Test: 3088, Prod: internal only. Already enforced in Playwright config.                                |
 | **Environment Files Pattern**   | Root                                                       | `.env.local`, `.env.local.example`, `.env.test` structure established.                                            |
 | **LF Line Endings**             | `.gitattributes`                                           | `*.sh text eol=lf` and `*.sql text eol=lf` - prevents script failures.                                            |
 | **Database RLS Policies**       | `supabase/migrations/`                                     | Row Level Security on all tables - database-level access control.                                                 |
@@ -815,7 +815,7 @@ When adding new export formats (e.g., Markdown, LaTeX):
 
 ## Docker Compose Structure
 
-> **⏳ Deferred:** Create these files when setting up Docker deployment. Phase 0 has already established the port isolation strategy (dev: 3000, test: 3099, prod: internal).
+> **⏳ Deferred:** Create these files when setting up Docker deployment. Phase 0 has already established the port isolation strategy (dev: 3000, test: 3088, prod: internal).
 
 ### Use Separate Compose Files for Each Environment
 
@@ -1088,7 +1088,7 @@ CMD ["pnpm", "dev"]
 
 ## Environment Isolation
 
-> **✅ Phase 0 Status:** Port strategy and environment files are already implemented. See `playwright.config.ts` (port 3099), `.env.local.example`, and `.env.test`.
+> **✅ Phase 0 Status:** Port strategy and environment files are already implemented. See `playwright.config.ts` (port 3088), `.env.local.example`, and `.env.test`.
 
 ### Port Strategy
 
@@ -1097,7 +1097,7 @@ Use different ports for each environment to avoid conflicts:
 | Environment | App Port | Database Port | Notes              |
 | ----------- | -------- | ------------- | ------------------ |
 | Development | 3000     | 5432          | Standard ports     |
-| Test        | 3099     | 5433          | Non-conflicting    |
+| Test        | 3088     | 5433          | Non-conflicting    |
 | Production  | Internal | Internal      | Only proxy exposed |
 
 ### Directory Strategy

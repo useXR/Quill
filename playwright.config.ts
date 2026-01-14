@@ -5,8 +5,8 @@ import path from 'path';
 // Load test environment variables
 dotenv.config({ path: path.resolve(__dirname, '.env.test') });
 
-// Use isolated port 3099 to avoid conflicts with dev server
-const PORT = process.env.PORT || 3099;
+// Use isolated port 3088 to avoid conflicts with dev server
+const PORT = process.env.PORT || 3088;
 const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 
 export default defineConfig({

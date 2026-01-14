@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const isDev = process.env.NODE_ENV === 'development';
+
 const securityHeaders = [
   {
     key: 'X-DNS-Prefetch-Control',
@@ -32,7 +34,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' blob: data:",
       "font-src 'self'",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+      `connect-src 'self' https://*.supabase.co wss://*.supabase.co${isDev ? ' http://127.0.0.1:* ws://127.0.0.1:*' : ''}`,
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
@@ -42,6 +44,9 @@ const securityHeaders = [
 
 const nextConfig = {
   output: 'standalone',
+  experimental: {
+    serverComponentsExternalPackages: ['pino', 'pino-pretty', 'thread-stream'],
+  },
   async headers() {
     return [
       {

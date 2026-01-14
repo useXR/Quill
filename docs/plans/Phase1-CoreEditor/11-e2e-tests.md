@@ -128,7 +128,7 @@ Create `.env.test`:
 
 ```bash
 # Test environment - uses separate port to avoid conflicts with dev
-NEXT_PUBLIC_APP_URL=http://localhost:3099
+NEXT_PUBLIC_APP_URL=http://localhost:3088
 NEXT_PUBLIC_SUPABASE_URL=http://localhost:54322  # Local Supabase
 NODE_ENV=test
 
@@ -139,7 +139,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 E2E_TEST_EMAIL=e2e-test@test.local
 ```
 
-**Note:** Add `.env.test` to `.gitignore`. Use port 3099 to avoid conflicts with development server on 3000.
+**Note:** Add `.env.test` to `.gitignore`. Use port 3088 to avoid conflicts with development server on 3000.
 
 ### Step 10.3: Create centralized timeout constants
 
@@ -634,7 +634,7 @@ import path from 'path';
 
 dotenv.config({ path: path.resolve(__dirname, '.env.test') });
 
-const PORT = process.env.PORT || 3099;
+const PORT = process.env.PORT || 3088;
 const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 
 export default defineConfig({
@@ -972,7 +972,7 @@ git commit -m "test: add Playwright E2E tests with worker isolation, timeouts, f
 ## Verification Checklist
 
 - [ ] Playwright and axe-core installed
-- [ ] Test environment configured (port 3099)
+- [ ] Test environment configured (port 3088)
 - [ ] `.gitattributes` created for line ending enforcement
 - [ ] Centralized timeout constants created (`e2e/config/timeouts.ts`)
 - [ ] Test account strategy file created (shared + worker accounts)

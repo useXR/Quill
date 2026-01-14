@@ -192,7 +192,7 @@ before or alongside implementation, not as an afterthought.
 - Located in `e2e/` folder organized by feature
 - Use `data-testid` attributes for stable selectors
 - Use centralized timeouts from `e2e/config/timeouts.ts`
-- Use port 3099 (isolated from dev server on 3000)
+- Use port 3088 (isolated from dev server on 3000)
 
 ### Test Utilities
 
