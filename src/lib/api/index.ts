@@ -4,5 +4,8 @@ export { handleApiError } from './handle-error';
 export type { ApiResponse, PaginatedResponse } from './types';
 export { getProjects, getProject, createProject, updateProject, deleteProject } from './projects';
 export type { GetProjectsOptions } from './projects';
+export { getDocuments, getDocument, createDocument, updateDocument, deleteDocument } from './documents';
 export { CreateProjectSchema, UpdateProjectSchema } from './schemas';
 export type { CreateProjectInput, UpdateProjectInput } from './schemas';
+export { CreateDocumentSchema, UpdateDocumentSchema } from './schemas';
+export type { CreateDocumentInput, UpdateDocumentInput } from './schemas';
