@@ -5,7 +5,7 @@ import path from 'path';
 // Load test environment variables
 dotenv.config({ path: path.resolve(__dirname, '.env.test') });
 
-// Use isolated port 3088 to avoid conflicts with dev server
+// Use isolated port 3088 for tests to avoid conflicts with dev server on port 3000
 const PORT = process.env.PORT || 3088;
 const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 
@@ -56,12 +56,21 @@ export default defineConfig({
   // Browser projects with serial/parallel separation
   projects: [
     // ============================================
+    // AUTH SETUP - Runs first, creates storage state
+    // ============================================
+    {
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+
+    // ============================================
     // UNAUTHENTICATED TESTS - No auth state needed
-    // Use for login form, public pages
+    // Use for login form, public pages, auth redirects
     // ============================================
     {
       name: 'chromium-unauth',
-      testMatch: '**/auth/**/*.spec.ts',
+      testMatch: ['**/auth/**/*.spec.ts', '**/projects/projects.spec.ts'],
       use: { ...devices['Desktop Chrome'] },
     },
 
@@ -73,40 +82,85 @@ export default defineConfig({
       name: 'serial',
       testMatch: ['**/onboarding/**/*.spec.ts', '**/invites/**/*.spec.ts'],
       fullyParallel: false,
-      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup'],
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: '.playwright/.auth/user.json',
+      },
     },
 
     // ============================================
-    // PARALLEL TESTS - Worker-isolated
+    // PARALLEL TESTS - Worker-isolated (authenticated)
     // Use for most tests
     // ============================================
     {
       name: 'chromium',
-      testIgnore: ['**/auth/**/*.spec.ts', '**/onboarding/**/*.spec.ts', '**/invites/**/*.spec.ts'],
-      use: { ...devices['Desktop Chrome'] },
+      testIgnore: [
+        '**/auth/**/*.spec.ts',
+        '**/onboarding/**/*.spec.ts',
+        '**/invites/**/*.spec.ts',
+        '**/projects/projects.spec.ts',
+        /auth\.setup\.ts/,
+      ],
+      dependencies: ['setup'],
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: '.playwright/.auth/user.json',
+      },
     },
     {
       name: 'firefox',
-      testIgnore: ['**/auth/**/*.spec.ts', '**/onboarding/**/*.spec.ts', '**/invites/**/*.spec.ts'],
-      use: { ...devices['Desktop Firefox'] },
+      testIgnore: [
+        '**/auth/**/*.spec.ts',
+        '**/onboarding/**/*.spec.ts',
+        '**/invites/**/*.spec.ts',
+        '**/projects/projects.spec.ts',
+        /auth\.setup\.ts/,
+      ],
+      dependencies: ['setup'],
+      use: {
+        ...devices['Desktop Firefox'],
+        storageState: '.playwright/.auth/user.json',
+      },
     },
     {
       name: 'webkit',
-      testIgnore: ['**/auth/**/*.spec.ts', '**/onboarding/**/*.spec.ts', '**/invites/**/*.spec.ts'],
-      use: { ...devices['Desktop Safari'] },
+      testIgnore: [
+        '**/auth/**/*.spec.ts',
+        '**/onboarding/**/*.spec.ts',
+        '**/invites/**/*.spec.ts',
+        '**/projects/projects.spec.ts',
+        /auth\.setup\.ts/,
+      ],
+      dependencies: ['setup'],
+      use: {
+        ...devices['Desktop Safari'],
+        storageState: '.playwright/.auth/user.json',
+      },
     },
     {
       name: 'mobile',
-      testIgnore: ['**/auth/**/*.spec.ts', '**/onboarding/**/*.spec.ts', '**/invites/**/*.spec.ts'],
-      use: { ...devices['iPhone 12'] },
+      testIgnore: [
+        '**/auth/**/*.spec.ts',
+        '**/onboarding/**/*.spec.ts',
+        '**/invites/**/*.spec.ts',
+        '**/projects/projects.spec.ts',
+        /auth\.setup\.ts/,
+      ],
+      dependencies: ['setup'],
+      use: {
+        ...devices['iPhone 12'],
+        storageState: '.playwright/.auth/user.json',
+      },
     },
   ],
 
   // Web server configuration
   // NOTE: In CI, we use 'pnpm start' because the build artifact is downloaded.
   // Locally, we use 'pnpm dev' with the test port for isolation.
+  // Next.js automatically loads .env.test when NODE_ENV=test.
   webServer: {
-    command: process.env.CI ? `PORT=${PORT} pnpm start` : `PORT=${PORT} pnpm dev`,
+    command: process.env.CI ? `PORT=${PORT} pnpm start` : `PORT=${PORT} NODE_ENV=test pnpm dev`,
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 120000,

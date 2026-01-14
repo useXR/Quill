@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-const isDev = process.env.NODE_ENV === 'development';
+const isLocalDev = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
 
 const securityHeaders = [
   {
@@ -34,7 +34,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' blob: data:",
       "font-src 'self'",
-      `connect-src 'self' https://*.supabase.co wss://*.supabase.co${isDev ? ' http://127.0.0.1:* ws://127.0.0.1:*' : ''}`,
+      `connect-src 'self' https://*.supabase.co wss://*.supabase.co${isLocalDev ? ' http://127.0.0.1:* ws://127.0.0.1:*' : ''}`,
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
