@@ -28,6 +28,10 @@ interface ToolbarButton {
   group: string;
 }
 
+function Divider() {
+  return <div role="separator" className="w-px h-6 bg-gray-300 mx-1" aria-hidden="true" />;
+}
+
 export function Toolbar({ editor }: ToolbarProps) {
   if (!editor) return null;
 
@@ -149,8 +153,6 @@ export function Toolbar({ editor }: ToolbarProps) {
       </button>
     );
   };
-
-  const Divider = () => <div role="separator" className="w-px h-6 bg-gray-300 mx-1" aria-hidden="true" />;
 
   return (
     <div role="toolbar" aria-label="Text formatting" className="flex items-center gap-1 p-2 border-b bg-gray-50">

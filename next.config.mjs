@@ -44,9 +44,7 @@ const securityHeaders = [
 
 const nextConfig = {
   output: 'standalone',
-  experimental: {
-    serverComponentsExternalPackages: ['pino', 'pino-pretty', 'thread-stream'],
-  },
+  serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream'],
   async headers() {
     return [
       {

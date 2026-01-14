@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  return <AuthContext.Provider value={{ user, loading }}>{children}</AuthContext.Provider>;
+  return <AuthContext value={{ user, loading }}>{children}</AuthContext>;
 }
 
 export function useAuth() {

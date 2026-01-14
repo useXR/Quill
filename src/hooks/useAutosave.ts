@@ -39,6 +39,9 @@ export function useAutosave({
   const retryCountRef = useRef<number>(0);
   const isMountedRef = useRef<boolean>(true);
 
+  // Ref to store the latest performSave for retry callbacks
+  const performSaveRef = useRef<((content: string) => Promise<void>) | null>(null);
+
   // Clear all timers
   const clearTimers = useCallback(() => {
     if (debounceTimerRef.current) {
@@ -86,8 +89,8 @@ export function useAutosave({
           const backoffMs = Math.pow(2, retryCountRef.current - 1) * 1000;
 
           retryTimerRef.current = setTimeout(() => {
-            if (isMountedRef.current) {
-              performSave(content);
+            if (isMountedRef.current && performSaveRef.current) {
+              performSaveRef.current(content);
             }
           }, backoffMs);
         } else {
@@ -100,6 +103,11 @@ export function useAutosave({
     },
     [save, maxRetries]
   );
+
+  // Keep ref in sync with latest performSave
+  useEffect(() => {
+    performSaveRef.current = performSave;
+  }, [performSave]);
 
   // Trigger a debounced save
   const triggerSave = useCallback(
