@@ -49,7 +49,7 @@ export function createMockClaudeProcess(options: MockClaudeOptions): ChildProces
   proc.stderr = new EventEmitter() as Readable;
   proc.stdin = new Writable({ write: (_chunk, _encoding, callback) => callback() });
   proc.kill = vi.fn().mockReturnValue(true);
-  proc.pid = 12345;
+  Object.defineProperty(proc, 'pid', { value: 12345, writable: false });
 
   setImmediate(() => {
     switch (options.scenario) {
