@@ -1,21 +1,51 @@
 /**
- * Inbucket API helper for E2E tests.
- * Inbucket is a local email server that captures all emails during development.
- * API docs: https://github.com/inbucket/inbucket/wiki/REST-API
+ * Mailpit API helper for E2E tests.
+ * Mailpit is a local email server that captures all emails during development.
+ * API docs: https://mailpit.axllent.org/docs/api-v1/
+ *
+ * Note: This file is still named "inbucket.ts" for backwards compatibility,
+ * but it now uses the Mailpit API which Supabase uses since v1.x.
  */
 
-const INBUCKET_URL = process.env.INBUCKET_URL || 'http://localhost:54324';
+const MAILPIT_URL = process.env.INBUCKET_URL || 'http://localhost:54324';
 
-interface InbucketHeader {
-  mailbox: string;
-  id: string;
-  from: string;
-  to: string[];
-  subject: string;
-  date: string;
-  size: number;
+interface MailpitAddress {
+  Name: string;
+  Address: string;
 }
 
+interface MailpitMessageSummary {
+  ID: string;
+  MessageID: string;
+  Read: boolean;
+  From: MailpitAddress;
+  To: MailpitAddress[];
+  Subject: string;
+  Created: string;
+  Size: number;
+  Attachments: number;
+  Snippet: string;
+}
+
+interface MailpitMessagesResponse {
+  total: number;
+  unread: number;
+  count: number;
+  messages: MailpitMessageSummary[];
+}
+
+interface MailpitMessage {
+  ID: string;
+  MessageID: string;
+  From: MailpitAddress;
+  To: MailpitAddress[];
+  Subject: string;
+  Date: string;
+  Text: string;
+  HTML: string;
+}
+
+// Compatibility interface for existing code
 interface InbucketMessage {
   mailbox: string;
   id: string;
@@ -29,59 +59,107 @@ interface InbucketMessage {
   };
 }
 
-/**
- * Get the mailbox name from an email address.
- * Inbucket uses the local part (before @) as the mailbox name.
- */
-function getMailboxName(email: string): string {
-  return email.split('@')[0];
+interface InbucketHeader {
+  mailbox: string;
+  id: string;
+  from: string;
+  to: string[];
+  subject: string;
+  date: string;
+  size: number;
 }
 
 /**
- * List all messages in a mailbox.
+ * Convert Mailpit message to Inbucket format for compatibility.
+ */
+function toInbucketMessage(msg: MailpitMessage, email: string): InbucketMessage {
+  return {
+    mailbox: email.split('@')[0],
+    id: msg.ID,
+    from: msg.From.Address,
+    to: msg.To.map((t) => t.Address),
+    subject: msg.Subject,
+    date: msg.Date,
+    body: {
+      text: msg.Text,
+      html: msg.HTML,
+    },
+  };
+}
+
+/**
+ * Convert Mailpit message summary to Inbucket header format.
+ */
+function toInbucketHeader(msg: MailpitMessageSummary, email: string): InbucketHeader {
+  return {
+    mailbox: email.split('@')[0],
+    id: msg.ID,
+    from: msg.From.Address,
+    to: msg.To.map((t) => t.Address),
+    subject: msg.Subject,
+    date: msg.Created,
+    size: msg.Size,
+  };
+}
+
+/**
+ * List all messages for a given email address.
  */
 export async function listMessages(email: string): Promise<InbucketHeader[]> {
-  const mailbox = getMailboxName(email);
-  const response = await fetch(`${INBUCKET_URL}/api/v1/mailbox/${mailbox}`);
+  // Search for messages sent to this email address
+  const searchQuery = encodeURIComponent(`to:${email}`);
+  const response = await fetch(`${MAILPIT_URL}/api/v1/search?query=${searchQuery}`);
 
   if (!response.ok) {
+    // If search returns 404, return empty array (no messages)
+    if (response.status === 404) {
+      return [];
+    }
     throw new Error(`Failed to list messages: ${response.status}`);
   }
 
-  return response.json();
+  const data: MailpitMessagesResponse = await response.json();
+  return data.messages.map((m) => toInbucketHeader(m, email));
 }
 
 /**
  * Get a specific message by ID.
  */
-export async function getMessage(email: string, messageId: string): Promise<InbucketMessage> {
-  const mailbox = getMailboxName(email);
-  const response = await fetch(`${INBUCKET_URL}/api/v1/mailbox/${mailbox}/${messageId}`);
+export async function getMessage(_email: string, messageId: string): Promise<InbucketMessage> {
+  const response = await fetch(`${MAILPIT_URL}/api/v1/message/${messageId}`);
 
   if (!response.ok) {
     throw new Error(`Failed to get message: ${response.status}`);
   }
 
-  return response.json();
+  const msg: MailpitMessage = await response.json();
+  return toInbucketMessage(msg, _email);
 }
 
 /**
- * Delete all messages in a mailbox.
+ * Delete all messages for a specific email address.
+ * Since Mailpit doesn't have per-mailbox deletion, we search and delete individually.
  */
 export async function clearMailbox(email: string): Promise<void> {
-  const mailbox = getMailboxName(email);
-  const response = await fetch(`${INBUCKET_URL}/api/v1/mailbox/${mailbox}`, {
-    method: 'DELETE',
-  });
+  const messages = await listMessages(email);
 
-  if (!response.ok && response.status !== 404) {
-    throw new Error(`Failed to clear mailbox: ${response.status}`);
+  for (const msg of messages) {
+    try {
+      await fetch(`${MAILPIT_URL}/api/v1/messages`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ IDs: [msg.id] }),
+      });
+    } catch {
+      // Ignore deletion errors
+    }
   }
 }
 
 /**
- * Wait for a new email to arrive in the mailbox.
- * Returns the latest message that arrived after the call was made.
+ * Wait for an email to arrive for the given address.
+ * If initialMessageIds is provided, only considers messages not in that set.
+ * Otherwise, returns the first message found for this email address.
  */
 export async function waitForEmail(
   email: string,
@@ -89,23 +167,22 @@ export async function waitForEmail(
     timeout?: number;
     pollInterval?: number;
     subject?: string | RegExp;
+    initialMessageIds?: Set<string>;
   } = {}
 ): Promise<InbucketMessage> {
-  const { timeout = 30000, pollInterval = 500, subject } = options;
+  const { timeout = 30000, pollInterval = 500, subject, initialMessageIds } = options;
 
   const startTime = Date.now();
-  const initialMessages = await listMessages(email);
-  const initialIds = new Set(initialMessages.map((m) => m.id));
 
   while (Date.now() - startTime < timeout) {
     const messages = await listMessages(email);
 
-    // Find new messages
-    const newMessages = messages.filter((m) => !initialIds.has(m.id));
+    // Filter to only consider messages we haven't seen before
+    const candidates = initialMessageIds ? messages.filter((m) => !initialMessageIds.has(m.id)) : messages;
 
-    if (newMessages.length > 0) {
-      // Get the most recent new message
-      const latestHeader = newMessages[newMessages.length - 1];
+    if (candidates.length > 0) {
+      // Get the most recent candidate message
+      const latestHeader = candidates[candidates.length - 1];
 
       // If subject filter is provided, check it
       if (subject) {
@@ -132,6 +209,7 @@ export async function waitForEmail(
 /**
  * Extract magic link URL from email body.
  * Supabase magic links contain a token parameter.
+ * Automatically rewrites 127.0.0.1 to localhost for compatibility.
  */
 export function extractMagicLink(message: InbucketMessage): string {
   // Try HTML body first, then text body
@@ -142,25 +220,41 @@ export function extractMagicLink(message: InbucketMessage): string {
   // - /auth/callback?token=...
   // The email usually contains a full URL with the app's redirect
 
+  let link: string | null = null;
+
   // Look for href in HTML
   const hrefMatch = body.match(/href=["']([^"']*(?:token|code)[^"']*)["']/i);
   if (hrefMatch) {
-    return decodeHtmlEntities(hrefMatch[1]);
+    link = decodeHtmlEntities(hrefMatch[1]);
   }
 
   // Look for URL in text (starts with http)
-  const urlMatch = body.match(/(https?:\/\/[^\s<>"]+(?:token|code)[^\s<>"]*)/i);
-  if (urlMatch) {
-    return urlMatch[1];
+  if (!link) {
+    const urlMatch = body.match(/(https?:\/\/[^\s<>"]+(?:token|code)[^\s<>"]*)/i);
+    if (urlMatch) {
+      link = urlMatch[1];
+    }
   }
 
   // Look for any http URL as fallback
-  const anyUrlMatch = body.match(/(https?:\/\/[^\s<>"]+)/);
-  if (anyUrlMatch) {
-    return anyUrlMatch[1];
+  if (!link) {
+    const anyUrlMatch = body.match(/(https?:\/\/[^\s<>"]+)/);
+    if (anyUrlMatch) {
+      link = anyUrlMatch[1];
+    }
   }
 
-  throw new Error(`Could not find magic link in email body:\n${body.substring(0, 500)}`);
+  if (!link) {
+    throw new Error(`Could not find magic link in email body:\n${body.substring(0, 500)}`);
+  }
+
+  // Rewrite 127.0.0.1 to localhost for Docker network compatibility
+  // Supabase might listen on localhost but email contains 127.0.0.1
+  const testPort = process.env.PORT || '3088';
+  return link
+    .replace(/127\.0\.0\.1:54321/g, 'localhost:54321')
+    .replace(/redirect_to=http%3A%2F%2F127\.0\.0\.1%3A3000/g, `redirect_to=http%3A%2F%2Flocalhost%3A${testPort}`)
+    .replace(/redirect_to=http:\/\/127\.0\.0\.1:3000/g, `redirect_to=http://localhost:${testPort}`);
 }
 
 /**

@@ -30,6 +30,7 @@ export async function loginWithMagicLink(page: Page, email: string): Promise<voi
     timeout: TIMEOUTS.EMAIL_DELIVERY,
   });
 
+  // Extract magic link (URL rewriting is handled by extractMagicLink)
   const magicLink = extractMagicLink(message);
 
   // Navigate to magic link (this completes the auth flow)

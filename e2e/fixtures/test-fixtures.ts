@@ -1,20 +1,27 @@
 /**
  * Custom Playwright fixtures for worker isolation and test data management.
+ *
+ * Authentication is handled via storageState from the auth.setup.ts project.
+ * Tests using this fixture will already be authenticated.
  */
-import { test as base, expect, type WorkerInfo } from '@playwright/test';
+/* eslint-disable react-hooks/rules-of-hooks */
+import { test as base, expect, type WorkerInfo, type Page } from '@playwright/test';
 import { getWorkerAccount } from './test-accounts';
-import { TIMEOUTS, HYDRATION_WAIT } from '../config/timeouts';
+import { loginWithMagicLink, generateTestEmail } from '../helpers/auth';
 
 // Worker context for parallel test isolation
 export interface WorkerContext {
   workerIndex: number;
-  account: { email: string; password: string; name: string };
+  account: { email: string; name: string };
   prefix: (name: string) => string;
 }
 
 // Define custom fixtures
 type TestFixtures = {
-  loginAsWorker: () => Promise<void>;
+  /** Ensures the page is authenticated (via storage state or fresh login) */
+  authenticatedPage: Page;
+  /** Login with a fresh magic link (for tests that need a specific email) */
+  loginWithFreshMagicLink: (email?: string) => Promise<void>;
 };
 
 type WorkerFixtures = {
@@ -30,7 +37,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
 
       const ctx: WorkerContext = {
         workerIndex: workerInfo.parallelIndex,
-        account,
+        account: { email: account.email, name: account.name },
         prefix: (name: string) => `W${workerInfo.parallelIndex}_${runId}_${name}`,
       };
 
@@ -39,42 +46,28 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     { scope: 'worker' },
   ],
 
-  // Test-scoped: fresh for each test
-  loginAsWorker: async ({ page, workerCtx }, use) => {
-    const login = async () => {
-      const { email, password } = workerCtx.account;
+  // Authenticated page - verifies auth state is loaded from storageState
+  authenticatedPage: async ({ page }, use) => {
+    // Storage state should already be loaded from the project config
+    // Verify we're authenticated by checking we can access a protected route
+    await page.goto('/projects');
 
-      for (let attempt = 1; attempt <= 2; attempt++) {
-        await page.goto('/login');
-        await page.waitForSelector('form[data-hydrated="true"]', HYDRATION_WAIT);
-        await page.waitForTimeout(TIMEOUTS.ANIMATION);
+    // If redirected to login, storage state wasn't loaded properly
+    if (page.url().includes('/login')) {
+      throw new Error(
+        'Not authenticated. Make sure tests depend on the "setup" project ' +
+          'and storageState is configured in playwright.config.ts'
+      );
+    }
 
-        await page.fill('[name="email"]', email);
-        await page.fill('[name="password"]', password);
+    await use(page);
+  },
 
-        // Verify values weren't cleared by hydration
-        await expect(page.locator('[name="email"]')).toHaveValue(email);
-
-        await page.click('[type="submit"]');
-
-        // Race: success vs failure
-        const result = await Promise.race([
-          page.waitForURL('**/dashboard', { timeout: TIMEOUTS.LOGIN_REDIRECT }).then(() => 'success' as const),
-          page
-            .locator('[role="alert"], [data-error="true"]')
-            .waitFor({ timeout: TIMEOUTS.TOAST })
-            .then(() => 'error' as const),
-        ]).catch(() => 'timeout' as const);
-
-        if (result === 'success') return;
-
-        if (attempt < 2 && result !== 'error') {
-          await page.waitForTimeout(1000);
-          continue;
-        }
-
-        throw new Error(`Login failed for ${email}`);
-      }
+  // Login with fresh magic link - for tests that need specific auth or fresh session
+  loginWithFreshMagicLink: async ({ page }, use) => {
+    const login = async (email?: string) => {
+      const testEmail = email || generateTestEmail('test');
+      await loginWithMagicLink(page, testEmail);
     };
 
     await use(login);
