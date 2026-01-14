@@ -2,6 +2,9 @@
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/Button';
+import { Input, Textarea } from '@/components/ui/Input';
+import { Alert } from '@/components/ui/Alert';
 
 type FormStatus = 'idle' | 'loading' | 'error';
 
@@ -19,7 +22,6 @@ export function NewProjectForm() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Validate
     if (!title.trim()) {
       setFormState({ status: 'error', error: 'Title is required' });
       return;
@@ -61,62 +63,40 @@ export function NewProjectForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-          Project Title <span className="text-red-500">*</span>
-        </label>
-        <input
-          id="title"
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          disabled={isLoading}
-          placeholder="Enter project title"
-          maxLength={255}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-xs placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        />
-        <p className="mt-1 text-xs text-gray-500">{title.length}/255 characters</p>
-      </div>
+      <Input
+        id="title"
+        type="text"
+        label="Project Title"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        disabled={isLoading}
+        placeholder="Enter project title"
+        maxLength={255}
+        helperText={`${title.length}/255 characters`}
+        required
+      />
 
-      <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-          Description
-        </label>
-        <textarea
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          disabled={isLoading}
-          placeholder="Optional description for your project"
-          rows={4}
-          maxLength={1000}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-xs placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed resize-none"
-        />
-        <p className="mt-1 text-xs text-gray-500">{description.length}/1000 characters</p>
-      </div>
+      <Textarea
+        id="description"
+        label="Description"
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        disabled={isLoading}
+        placeholder="Optional description for your project"
+        rows={4}
+        maxLength={1000}
+        helperText={`${description.length}/1000 characters`}
+      />
 
-      {formState.error && (
-        <div className="p-3 rounded-md text-sm bg-red-50 text-red-700 border border-red-200" role="alert">
-          {formState.error}
-        </div>
-      )}
+      {formState.error && <Alert variant="error">{formState.error}</Alert>}
 
       <div className="flex gap-4">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          disabled={isLoading}
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-md shadow-xs text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+        <Button type="button" variant="secondary" onClick={() => router.back()} disabled={isLoading} className="flex-1">
           Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="flex-1 px-4 py-2 border border-transparent rounded-md shadow-xs text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+        </Button>
+        <Button type="submit" isLoading={isLoading} className="flex-1">
           {isLoading ? 'Creating...' : 'Create Project'}
-        </button>
+        </Button>
       </div>
     </form>
   );

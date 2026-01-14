@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { NewProjectForm } from '@/components/projects';
+import { Card } from '@/components/ui/Card';
 
 export default async function NewProjectPage() {
   const supabase = await createClient();
@@ -13,16 +14,23 @@ export default async function NewProjectPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-[var(--color-bg-primary)]">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Create New Project</h1>
-          <p className="mt-1 text-sm text-gray-500">Start a new grant proposal</p>
+          <h1
+            className="text-2xl font-bold text-[var(--color-ink-primary)] tracking-tight"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            Create New Project
+          </h1>
+          <p className="mt-1 text-[var(--color-ink-secondary)]" style={{ fontFamily: 'var(--font-ui)' }}>
+            Start a new grant proposal
+          </p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-6">
+        <Card padding="lg">
           <NewProjectForm />
-        </div>
+        </Card>
       </div>
     </div>
   );

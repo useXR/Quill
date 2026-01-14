@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createLogger } from '@/lib/logger';
 import { handleApiError, ApiError, ErrorCodes } from '@/lib/api';
 import { sanitizeFilename } from '@/lib/utils/filename';
-import { FILE_SIZE_LIMITS, ALLOWED_MIME_TYPES, FILE_TYPE_MAP } from '@/lib/vault/constants';
+import { FILE_SIZE_LIMITS, ALLOWED_MIME_TYPES, FILE_TYPE_MAP, VAULT_STORAGE_BUCKET } from '@/lib/vault/constants';
 import { createVaultItem } from '@/lib/api/vault';
 import { getExtractionQueue } from '@/lib/queue';
 
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
     const storagePath = `${user.id}/${projectId}/${Date.now()}-${sanitizedFilename}`;
 
     // Upload file to Supabase Storage
-    const { error: uploadError } = await supabase.storage.from('vault').upload(storagePath, file, {
+    const { error: uploadError } = await supabase.storage.from(VAULT_STORAGE_BUCKET).upload(storagePath, file, {
       contentType: file.type,
       upsert: false,
     });
