@@ -82,7 +82,7 @@
     "lint-staged": "^16.2.7",
     "postcss": "^8",
     "prettier": "^3.7.4",
-    "supabase": "1.200.3",
+    "supabase": "2.72.6",
     "tailwindcss": "^4.1.18",
     "typescript": "^5",
     "vitest": "^4.0.17"
