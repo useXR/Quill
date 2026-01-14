@@ -1,3 +1,4 @@
-Test document for E2E testing.
-This file validates the complete upload and extraction flow.
-Search queries should find this content.
+This is a test document for the Knowledge Vault.
+It contains sample content that can be searched.
+The extraction process will chunk this text.
+Machine learning and artificial intelligence are topics.
