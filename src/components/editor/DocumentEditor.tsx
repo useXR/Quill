@@ -3,8 +3,11 @@
 import { useCallback, useState, useEffect } from 'react';
 import { Editor } from './Editor';
 import { SaveStatus } from './SaveStatus';
+import { EditableTitle } from './EditableTitle';
 import { useAutosave } from '@/hooks/useAutosave';
-import type { Document, TipTapDocument } from '@/lib/supabase/types';
+import { Button } from '@/components/ui/Button';
+import { Alert } from '@/components/ui/Alert';
+import type { Document } from '@/lib/supabase/types';
 
 interface DocumentEditorProps {
   documentId: string;
@@ -104,6 +107,33 @@ export function DocumentEditor({
     [documentId, version, onSave, onConflict]
   );
 
+  // Save title function
+  const saveTitle = useCallback(
+    async (newTitle: string) => {
+      const response = await fetch(`/api/documents/${documentId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: newTitle,
+        }),
+      });
+
+      const data: ApiResponse | Document = await response.json();
+
+      if (!response.ok) {
+        throw new Error((data as ApiResponse).error || 'Failed to save title');
+      }
+
+      const savedDoc = data as Document;
+      setDocument(savedDoc);
+      setVersion(savedDoc.version ?? version + 1); // Update version to prevent conflicts
+      onSave?.(savedDoc);
+    },
+    [documentId, version, onSave]
+  );
+
   const { triggerSave, saveNow, status, error, lastSavedAt } = useAutosave({
     save: saveContent,
   });
@@ -121,13 +151,16 @@ export function DocumentEditor({
     saveNow();
   }, [saveNow]);
 
-  // Get initial content from document
-  const initialContent = document?.content ? JSON.stringify(document.content as unknown as TipTapDocument) : '';
+  // Get initial content from document - pass JSON object directly to TipTap
+  // TipTap accepts either HTML string or JSON object, not a JSON string
+  const initialContent = document?.content ? (document.content as unknown as object) : '';
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
-        <div className="text-gray-500">Loading document...</div>
+        <div className="text-[var(--color-ink-tertiary)]" style={{ fontFamily: 'var(--font-ui)' }}>
+          Loading document...
+        </div>
       </div>
     );
   }
@@ -135,21 +168,20 @@ export function DocumentEditor({
   if (fetchError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[200px] gap-4">
-        <div className="text-red-500">Error loading document: {fetchError.message}</div>
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-sm hover:bg-blue-700"
-        >
+        <Alert variant="error" title="Error loading document">
+          {fetchError.message}
+        </Alert>
+        <Button variant="primary" onClick={() => window.location.reload()}>
           Retry
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between">
+        <EditableTitle title={document?.title || 'Untitled Document'} onSave={saveTitle} />
         <SaveStatus status={status} lastSavedAt={lastSavedAt} error={error} onRetry={handleRetry} />
       </div>
       <Editor
