@@ -5,7 +5,9 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import { createExtensions } from './extensions';
 import { Toolbar } from './Toolbar';
 import { WordCount } from './WordCount';
+import { SelectionToolbar } from './SelectionToolbar';
 import { useWordCount } from '@/hooks/useWordCount';
+import { useEditorSelection } from '@/hooks/useEditorSelection';
 import { EDITOR } from '@/lib/constants';
 
 export interface WordCountData {
@@ -32,6 +34,12 @@ export interface EditorProps {
   className?: string;
   showToolbar?: boolean;
   showWordCount?: boolean;
+  /** Enable AI features (selection toolbar) */
+  enableAI?: boolean;
+  /** Project ID for AI context (required if enableAI is true) */
+  projectId?: string;
+  /** Document ID for AI context (required if enableAI is true) */
+  documentId?: string;
 }
 
 export function Editor({
@@ -46,6 +54,9 @@ export function Editor({
   className = '',
   showToolbar = true,
   showWordCount = true,
+  enableAI = false,
+  projectId,
+  documentId,
 }: EditorProps) {
   const {
     wordCount,
@@ -130,13 +141,19 @@ export function Editor({
     onWordCountChange,
   ]);
 
+  // Get selection state for AI toolbar
+  const selection = useEditorSelection(editor);
+
   if (!editor) return null;
 
   return (
     <div className="border border-[var(--color-ink-faint)] rounded-[var(--radius-xl)] bg-[var(--color-surface)] shadow-[var(--shadow-warm-md)] overflow-hidden">
       {showToolbar && <Toolbar editor={editor} />}
-      <div className="bg-[var(--color-editor-bg)]">
+      <div className="bg-[var(--color-editor-bg)] relative">
         <EditorContent editor={editor} />
+        {enableAI && projectId && documentId && (
+          <SelectionToolbar editor={editor} selection={selection} projectId={projectId} documentId={documentId} />
+        )}
       </div>
       {showWordCount && (
         <div className="px-4 py-2 border-t border-[var(--color-ink-faint)] bg-[var(--color-bg-secondary)]">

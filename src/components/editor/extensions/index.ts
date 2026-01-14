@@ -6,6 +6,7 @@ import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table
 import TextAlign from '@tiptap/extension-text-align';
 import Image from '@tiptap/extension-image';
 import Highlight from '@tiptap/extension-highlight';
+import { SelectionTracker } from './selection-tracker';
 
 export interface ExtensionConfig {
   placeholder?: string;
@@ -42,5 +43,10 @@ export function createExtensions(config: ExtensionConfig = {}) {
     Highlight.configure({
       multicolor: true,
     }),
+    SelectionTracker,
   ];
 }
+
+// Re-export selection tracker utilities
+export { SelectionTracker } from './selection-tracker';
+export type { SelectionState, SelectionListener, SelectionTrackerStorage } from './selection-tracker';

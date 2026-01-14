@@ -2,13 +2,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { SelectionTracker, SelectionListener, SelectionTrackerStorage } from '../selection-tracker';
-import type { SelectionState } from '../selection-tracker';
 
 /**
  * Helper to get the selection tracker storage with proper typing.
+ * Uses bracket notation to avoid TypeScript errors with editor.storage type.
  */
 function getStorage(editor: Editor): SelectionTrackerStorage {
-  return editor.storage.selectionTracker as SelectionTrackerStorage;
+  return (editor.storage as Record<string, unknown>)['selectionTracker'] as SelectionTrackerStorage;
 }
 
 describe('SelectionTracker Extension', () => {
