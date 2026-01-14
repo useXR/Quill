@@ -15,10 +15,6 @@ export interface WordCountProps {
   className?: string;
 }
 
-/**
- * WordCount component displays word and character counts with optional progress bars.
- * Shows warning (yellow) when near limit and error (red) when over limit.
- */
 export function WordCount({
   wordCount,
   charCount,
@@ -33,39 +29,38 @@ export function WordCount({
   charLimit,
   className = '',
 }: WordCountProps) {
-  // Determine the color based on limit status
   const getWordCountColor = () => {
-    if (isOverLimit) return 'text-red-600';
-    if (isNearLimit) return 'text-yellow-600';
-    return 'text-gray-600';
+    if (isOverLimit) return 'text-[var(--color-error)]';
+    if (isNearLimit) return 'text-[var(--color-warning)]';
+    return 'text-[var(--color-ink-tertiary)]';
   };
 
   const getCharCountColor = () => {
-    if (isCharOverLimit) return 'text-red-600';
-    if (isCharNearLimit) return 'text-yellow-600';
-    return 'text-gray-600';
+    if (isCharOverLimit) return 'text-[var(--color-error)]';
+    if (isCharNearLimit) return 'text-[var(--color-warning)]';
+    return 'text-[var(--color-ink-tertiary)]';
   };
 
   const getProgressBarColor = () => {
-    if (isOverLimit) return 'bg-red-500';
-    if (isNearLimit) return 'bg-yellow-500';
-    return 'bg-blue-500';
+    if (isOverLimit) return 'bg-[var(--color-error)]';
+    if (isNearLimit) return 'bg-[var(--color-warning)]';
+    return 'bg-[var(--color-quill)]';
   };
 
   const getCharProgressBarColor = () => {
-    if (isCharOverLimit) return 'bg-red-500';
-    if (isCharNearLimit) return 'bg-yellow-500';
-    return 'bg-blue-500';
+    if (isCharOverLimit) return 'bg-[var(--color-error)]';
+    if (isCharNearLimit) return 'bg-[var(--color-warning)]';
+    return 'bg-[var(--color-quill)]';
   };
 
   return (
     <div
       className={`flex flex-col gap-2 text-sm ${className}`}
+      style={{ fontFamily: 'var(--font-ui)' }}
       role="status"
       aria-live="polite"
       aria-label="Word and character count"
     >
-      {/* Word count section */}
       <div className="flex items-center gap-4">
         <span className={`font-medium ${getWordCountColor()}`} data-testid="word-count">
           {wordCount} {wordCount === 1 ? 'word' : 'words'}
@@ -73,17 +68,16 @@ export function WordCount({
         </span>
 
         {showCharCount && (
-          <span className={`${getCharCountColor()}`} data-testid="char-count">
+          <span className={getCharCountColor()} data-testid="char-count">
             {charCount} {charCount === 1 ? 'character' : 'characters'}
             {charLimit != null && ` / ${charLimit}`}
           </span>
         )}
       </div>
 
-      {/* Word progress bar (only shown when limit is set) */}
       {percentage != null && (
         <div
-          className="w-full bg-gray-200 rounded-full h-2"
+          className="w-full bg-[var(--color-bg-tertiary)] rounded-full h-1.5"
           role="progressbar"
           aria-valuenow={Math.min(100, percentage)}
           aria-valuemin={0}
@@ -92,17 +86,16 @@ export function WordCount({
           data-testid="word-progress-bar"
         >
           <div
-            className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor()}`}
+            className={`h-1.5 rounded-full transition-all duration-300 ${getProgressBarColor()}`}
             style={{ width: `${Math.min(100, percentage)}%` }}
             data-testid="word-progress-fill"
           />
         </div>
       )}
 
-      {/* Character progress bar (only shown when char limit is set) */}
       {charPercentage != null && (
         <div
-          className="w-full bg-gray-200 rounded-full h-2"
+          className="w-full bg-[var(--color-bg-tertiary)] rounded-full h-1.5"
           role="progressbar"
           aria-valuenow={Math.min(100, charPercentage)}
           aria-valuemin={0}
@@ -111,22 +104,21 @@ export function WordCount({
           data-testid="char-progress-bar"
         >
           <div
-            className={`h-2 rounded-full transition-all duration-300 ${getCharProgressBarColor()}`}
+            className={`h-1.5 rounded-full transition-all duration-300 ${getCharProgressBarColor()}`}
             style={{ width: `${Math.min(100, charPercentage)}%` }}
             data-testid="char-progress-fill"
           />
         </div>
       )}
 
-      {/* Warning/error messages */}
       {isOverLimit && (
-        <p className="text-red-600 text-xs" data-testid="over-limit-warning">
+        <p className="text-[var(--color-error)] text-xs" data-testid="over-limit-warning">
           You have exceeded the word limit.
         </p>
       )}
 
       {isCharOverLimit && !isOverLimit && (
-        <p className="text-red-600 text-xs" data-testid="char-over-limit-warning">
+        <p className="text-[var(--color-error)] text-xs" data-testid="char-over-limit-warning">
           You have exceeded the character limit.
         </p>
       )}

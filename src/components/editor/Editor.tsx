@@ -21,7 +21,7 @@ export interface WordCountData {
 }
 
 export interface EditorProps {
-  content?: string;
+  content?: string | object;
   placeholder?: string;
   characterLimit?: number;
   wordLimit?: number;
@@ -68,6 +68,7 @@ export function Editor({
     extensions: createExtensions({ placeholder, characterLimit }),
     content,
     editable,
+    immediatelyRender: false,
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       const json = editor.getJSON();
@@ -76,7 +77,8 @@ export function Editor({
     },
     editorProps: {
       attributes: {
-        class: `prose prose-lg max-w-none focus:outline-hidden min-h-[200px] p-4 ${className}`,
+        class: `prose prose-lg max-w-none focus:outline-none min-h-[300px] p-6 lg:p-8 ${className}`,
+        style: 'font-family: var(--font-prose); color: var(--color-ink-primary);',
         role: 'textbox',
         'aria-label': 'Document editor',
         'aria-multiline': 'true',
@@ -84,14 +86,25 @@ export function Editor({
     },
   });
 
-  // Update word count on initial content
   useEffect(() => {
-    if (content) {
+    // Only update word count from initial content if it's a string (HTML)
+    // If content is an object (TipTap JSON), the editor's onUpdate will handle it
+    if (content && typeof content === 'string') {
       updateCount(content);
     }
   }, [content, updateCount]);
 
-  // Notify parent of word count changes
+  // When editor is ready with JSON content, update the word count
+  useEffect(() => {
+    if (editor && content && typeof content === 'object') {
+      // Give the editor time to render the content
+      const timer = setTimeout(() => {
+        updateCount(editor.getHTML());
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [editor, content, updateCount]);
+
   useEffect(() => {
     onWordCountChange?.({
       wordCount,
@@ -120,11 +133,13 @@ export function Editor({
   if (!editor) return null;
 
   return (
-    <div className="border rounded-lg bg-white shadow-xs">
+    <div className="border border-[var(--color-ink-faint)] rounded-[var(--radius-xl)] bg-[var(--color-surface)] shadow-[var(--shadow-warm-md)] overflow-hidden">
       {showToolbar && <Toolbar editor={editor} />}
-      <EditorContent editor={editor} />
+      <div className="bg-[var(--color-editor-bg)]">
+        <EditorContent editor={editor} />
+      </div>
       {showWordCount && (
-        <div className="px-4 py-2 border-t">
+        <div className="px-4 py-2 border-t border-[var(--color-ink-faint)] bg-[var(--color-bg-secondary)]">
           <WordCount
             wordCount={wordCount}
             charCount={charCount}

@@ -29,7 +29,7 @@ interface ToolbarButton {
 }
 
 function Divider() {
-  return <div role="separator" className="w-px h-6 bg-gray-300 mx-1" aria-hidden="true" />;
+  return <div role="separator" className="w-px h-5 bg-[var(--color-ink-faint)] mx-1" aria-hidden="true" />;
 }
 
 export function Toolbar({ editor }: ToolbarProps) {
@@ -145,38 +145,36 @@ export function Toolbar({ editor }: ToolbarProps) {
         onClick={button.action}
         aria-label={button.label}
         aria-pressed={isActive}
-        className={`p-2 rounded hover:bg-gray-100 transition-colors ${
-          isActive ? 'bg-gray-200 text-blue-600' : 'text-gray-700'
-        }`}
+        className={`
+          p-2 rounded-[var(--radius-md)]
+          transition-all duration-150
+          focus:outline-none focus:ring-2 focus:ring-[var(--color-quill)] focus:ring-offset-1
+          ${
+            isActive
+              ? 'bg-[var(--color-quill-light)] text-[var(--color-quill)]'
+              : 'text-[var(--color-ink-tertiary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-ink-primary)]'
+          }
+        `}
       >
-        <Icon className="w-5 h-5" />
+        <Icon className="w-4 h-4" />
       </button>
     );
   };
 
   return (
-    <div role="toolbar" aria-label="Text formatting" className="flex items-center gap-1 p-2 border-b bg-gray-50">
-      {/* Format buttons */}
+    <div
+      role="toolbar"
+      aria-label="Text formatting"
+      className="flex items-center gap-1 px-3 py-2 border-b border-[var(--color-ink-faint)] bg-[var(--color-bg-secondary)]"
+    >
       <div className="flex items-center gap-0.5">{formatButtons.map(renderButton)}</div>
-
       <Divider />
-
-      {/* Heading buttons */}
       <div className="flex items-center gap-0.5">{headingButtons.map(renderButton)}</div>
-
       <Divider />
-
-      {/* List buttons */}
       <div className="flex items-center gap-0.5">{listButtons.map(renderButton)}</div>
-
       <Divider />
-
-      {/* Alignment buttons */}
       <div className="flex items-center gap-0.5">{alignmentButtons.map(renderButton)}</div>
-
       <Divider />
-
-      {/* History buttons */}
       <div className="flex items-center gap-0.5">{historyButtons.map(renderButton)}</div>
     </div>
   );

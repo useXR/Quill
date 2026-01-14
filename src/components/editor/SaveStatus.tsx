@@ -23,37 +23,45 @@ export function SaveStatus({ status, lastSavedAt, error, onRetry }: SaveStatusPr
   }
 
   return (
-    <div className="flex items-center gap-2 text-sm" role="status" aria-live="polite">
+    <div
+      className="flex items-center gap-2 text-sm"
+      style={{ fontFamily: 'var(--font-ui)' }}
+      role="status"
+      aria-live="polite"
+      data-testid="save-status"
+    >
       {status === 'pending' && (
         <>
-          <Clock className="h-4 w-4 text-gray-400" aria-hidden="true" />
-          <span className="text-gray-500">Unsaved changes</span>
+          <Clock className="h-4 w-4 text-[var(--color-ink-subtle)]" aria-hidden="true" />
+          <span className="text-[var(--color-ink-tertiary)]">Unsaved changes</span>
         </>
       )}
 
       {status === 'saving' && (
         <>
-          <Loader2 className="h-4 w-4 text-blue-500 animate-spin" aria-hidden="true" />
-          <span className="text-gray-500">Saving...</span>
+          <Loader2 className="h-4 w-4 text-[var(--color-quill)] animate-spin" aria-hidden="true" />
+          <span className="text-[var(--color-ink-tertiary)]">Saving...</span>
         </>
       )}
 
       {status === 'saved' && (
         <>
-          <Check className="h-4 w-4 text-green-500" aria-hidden="true" />
-          <span className="text-gray-500">Saved{lastSavedAt ? ` at ${formatTime(lastSavedAt)}` : ''}</span>
+          <Check className="h-4 w-4 text-[var(--color-success)]" aria-hidden="true" />
+          <span className="text-[var(--color-ink-tertiary)]">
+            Saved{lastSavedAt ? ` at ${formatTime(lastSavedAt)}` : ''}
+          </span>
         </>
       )}
 
       {status === 'error' && (
         <>
-          <AlertTriangle className="h-4 w-4 text-red-500" aria-hidden="true" />
-          <span className="text-red-600">{error?.message || 'Failed to save'}</span>
+          <AlertTriangle className="h-4 w-4 text-[var(--color-error)]" aria-hidden="true" />
+          <span className="text-[var(--color-error)]">{error?.message || 'Failed to save'}</span>
           {onRetry && (
             <button
               type="button"
               onClick={onRetry}
-              className="ml-2 text-sm text-blue-600 hover:text-blue-800 underline focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-sm"
+              className="ml-2 text-sm text-[var(--color-quill)] hover:text-[var(--color-quill-dark)] underline focus:outline-none focus:ring-2 focus:ring-[var(--color-quill)] focus:ring-offset-2 rounded-sm transition-colors duration-150"
               aria-label="Retry saving"
             >
               Retry
