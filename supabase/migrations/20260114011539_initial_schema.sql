@@ -107,8 +107,9 @@ create policy "Users can CRUD own vault items"
   on public.vault_items for all
   using (auth.uid() = user_id);
 
--- Performance index
+-- Performance indexes
 create index idx_vault_items_project_id on public.vault_items(project_id);
+create index idx_vault_items_user_id on public.vault_items(user_id);
 
 -- ============================================
 -- VAULT CHUNKS (for semantic search)
@@ -135,6 +136,9 @@ create policy "Users can access chunks of own vault items"
       select id from public.vault_items where user_id = auth.uid()
     )
   );
+
+-- Foreign key index for joins and cascade deletes
+create index idx_vault_chunks_vault_item_id on public.vault_chunks(vault_item_id);
 
 -- Vector similarity search index
 -- NOTE: Using HNSW instead of IVFFlat because IVFFlat requires training data
@@ -219,7 +223,9 @@ create table public.audit_logs (
 
 alter table public.audit_logs enable row level security;
 
--- Only admins can view audit logs (for now, users can see their own)
+-- NOTE: Audit logs are inserted via service role (admin client) or security definer functions,
+-- not through client RLS policies. This prevents users from tampering with audit trail.
+-- Users can only SELECT their own audit logs.
 create policy "Users can view own audit logs"
   on public.audit_logs for select
   using (auth.uid() = user_id);
