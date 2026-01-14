@@ -16,6 +16,8 @@ interface DocumentEditorProps {
   characterLimit?: number;
   onSave?: (document: Document) => void;
   onConflict?: (serverVersion: number, localVersion: number) => void;
+  /** Enable AI features (selection toolbar) */
+  enableAI?: boolean;
 }
 
 interface ApiResponse {
@@ -31,6 +33,7 @@ export function DocumentEditor({
   characterLimit,
   onSave,
   onConflict,
+  enableAI = false,
 }: DocumentEditorProps) {
   const [document, setDocument] = useState<Document | null>(initialDocument ?? null);
   const [version, setVersion] = useState<number>(initialDocument?.version ?? 1);
@@ -189,6 +192,9 @@ export function DocumentEditor({
         placeholder={placeholder}
         characterLimit={characterLimit}
         onChange={handleChange}
+        enableAI={enableAI}
+        projectId={document?.project_id}
+        documentId={documentId}
       />
     </div>
   );
