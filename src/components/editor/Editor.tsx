@@ -2,6 +2,7 @@
 
 import { useEditor, EditorContent } from '@tiptap/react';
 import { createExtensions } from './extensions';
+import { Toolbar } from './Toolbar';
 
 export interface EditorProps {
   content?: string;
@@ -10,6 +11,7 @@ export interface EditorProps {
   onChange?: (html: string, json: object) => void;
   editable?: boolean;
   className?: string;
+  showToolbar?: boolean;
 }
 
 export function Editor({
@@ -19,6 +21,7 @@ export function Editor({
   onChange,
   editable = true,
   className = '',
+  showToolbar = true,
 }: EditorProps) {
   const editor = useEditor({
     extensions: createExtensions({ placeholder, characterLimit }),
@@ -41,6 +44,7 @@ export function Editor({
 
   return (
     <div className="border rounded-lg bg-white shadow-sm">
+      {showToolbar && <Toolbar editor={editor} />}
       <EditorContent editor={editor} />
     </div>
   );

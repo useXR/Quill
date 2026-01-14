@@ -63,6 +63,8 @@ export interface MockChainCommands {
   toggleBulletList: MockFn;
   toggleOrderedList: MockFn;
   toggleBlockquote: MockFn;
+  toggleHighlight: MockFn;
+  setTextAlign: MockFn;
   setHardBreak: MockFn;
   undo: MockFn;
   redo: MockFn;
@@ -102,6 +104,7 @@ export interface MockEditor {
   commands: MockChainCommands;
   chain: MockFn<() => MockChainCommands>;
   can: MockFn;
+  isActive: MockFn<(name: string, attrs?: Record<string, unknown>) => boolean>;
 
   // Lifecycle
   isEditable: boolean;
@@ -216,6 +219,8 @@ function createMockChainCommands(): MockChainCommands {
     toggleBulletList: vi.fn(),
     toggleOrderedList: vi.fn(),
     toggleBlockquote: vi.fn(),
+    toggleHighlight: vi.fn(),
+    setTextAlign: vi.fn(),
     setHardBreak: vi.fn(),
     undo: vi.fn(),
     redo: vi.fn(),
@@ -304,6 +309,7 @@ export function createMockEditor(options: CreateMockEditorOptions = {}): MockEdi
         run: vi.fn().mockReturnValue(true),
       }),
     }),
+    isActive: vi.fn().mockReturnValue(false),
 
     // Lifecycle
     isEditable: editable,
