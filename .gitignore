@@ -49,3 +49,6 @@ e2e/.auth/
 # Supabase
 supabase/.branches
 supabase/.temp
+
+# Worktrees
+.worktrees/
