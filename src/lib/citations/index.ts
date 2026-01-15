@@ -10,3 +10,4 @@ export {
   searchQuerySchema,
 } from './schemas';
 export { searchPapers, searchPapersWithCache, getPaper, clearCache, resetRateLimitState } from './semantic-scholar';
+export { citationLogger } from './logger';
