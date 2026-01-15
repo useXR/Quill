@@ -25,6 +25,7 @@ export const mockVaultChunk: VaultChunk = {
   embedding: null, // Usually a 1536-dimension vector
   chunk_index: 0,
   created_at: '2024-01-01T00:00:00Z',
+  heading_context: null,
 };
 
 export const mockVaultItems: VaultItem[] = [

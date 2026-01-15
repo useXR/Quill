@@ -6,6 +6,7 @@ import { AlertCircle, RefreshCw, X } from 'lucide-react';
 import { VaultUpload } from '@/components/vault/VaultUpload';
 import { VaultItemList } from '@/components/vault/VaultItemList';
 import { VaultSearch } from '@/components/vault/VaultSearch';
+import { ChunkViewer } from '@/components/vault/ChunkViewer';
 import type { VaultItem } from '@/lib/vault/types';
 
 // Statuses that indicate extraction is in progress
@@ -43,6 +44,7 @@ function VaultErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
 function VaultPageContent({ projectId, initialItems }: VaultPageClientProps) {
   const [items, setItems] = useState<VaultItem[]>(initialItems);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [chunkViewerItem, setChunkViewerItem] = useState<VaultItem | null>(null);
   const pollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const refreshItems = useCallback(async () => {
@@ -124,6 +126,14 @@ function VaultPageContent({ projectId, initialItems }: VaultPageClientProps) {
     setDeleteError(null);
   }, []);
 
+  const handleViewChunks = useCallback((item: VaultItem) => {
+    setChunkViewerItem(item);
+  }, []);
+
+  const handleCloseChunkViewer = useCallback(() => {
+    setChunkViewerItem(null);
+  }, []);
+
   return (
     <div className="space-y-8">
       {/* Page Title */}
@@ -163,8 +173,18 @@ function VaultPageContent({ projectId, initialItems }: VaultPageClientProps) {
         <h2 id="files-heading" className="font-display text-xl font-semibold text-ink-primary mb-4">
           Files
         </h2>
-        <VaultItemList items={items} onDelete={handleDelete} onRetry={handleRetry} />
+        <VaultItemList items={items} onDelete={handleDelete} onRetry={handleRetry} onViewChunks={handleViewChunks} />
       </section>
+
+      {/* Chunk Viewer Modal */}
+      {chunkViewerItem && (
+        <ChunkViewer
+          vaultItemId={chunkViewerItem.id}
+          filename={chunkViewerItem.filename || 'Unknown file'}
+          isOpen={!!chunkViewerItem}
+          onClose={handleCloseChunkViewer}
+        />
+      )}
     </div>
   );
 }

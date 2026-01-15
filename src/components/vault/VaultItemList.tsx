@@ -8,9 +8,10 @@ interface VaultItemListProps {
   items: VaultItem[];
   onDelete: (id: string) => void;
   onRetry?: (id: string) => void;
+  onViewChunks?: (item: VaultItem) => void;
 }
 
-export function VaultItemList({ items, onDelete, onRetry }: VaultItemListProps) {
+export function VaultItemList({ items, onDelete, onRetry, onViewChunks }: VaultItemListProps) {
   if (items.length === 0) {
     return (
       <div
@@ -32,7 +33,7 @@ export function VaultItemList({ items, onDelete, onRetry }: VaultItemListProps) 
   return (
     <div className="space-y-3">
       {items.map((item) => (
-        <VaultItemCard key={item.id} item={item} onDelete={onDelete} onRetry={onRetry} />
+        <VaultItemCard key={item.id} item={item} onDelete={onDelete} onRetry={onRetry} onViewChunks={onViewChunks} />
       ))}
     </div>
   );

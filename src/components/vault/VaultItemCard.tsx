@@ -1,6 +1,6 @@
 'use client';
 
-import { FileText, File, Clock, Loader2, CheckCircle, AlertCircle, Trash2, RefreshCw } from 'lucide-react';
+import { FileText, File, Clock, Loader2, CheckCircle, AlertCircle, Trash2, RefreshCw, Eye } from 'lucide-react';
 import type { VaultItem } from '@/lib/vault/types';
 import type { ExtractionStatus } from '@/lib/vault/types';
 
@@ -8,6 +8,7 @@ export interface VaultItemCardProps {
   item: VaultItem;
   onDelete: (id: string) => void;
   onRetry?: (id: string) => void;
+  onViewChunks?: (item: VaultItem) => void;
 }
 
 const processingStatuses: ExtractionStatus[] = ['downloading', 'extracting', 'chunking', 'embedding'];
@@ -53,10 +54,11 @@ function getStatusColorClass(status: ExtractionStatus): string {
   return 'text-ink-secondary';
 }
 
-export function VaultItemCard({ item, onDelete, onRetry }: VaultItemCardProps) {
+export function VaultItemCard({ item, onDelete, onRetry, onViewChunks }: VaultItemCardProps) {
   const status = item.extraction_status as ExtractionStatus;
   const showRetryButton = status === 'failed' && onRetry;
   const showChunkCount = status === 'success' && item.chunk_count !== null;
+  const showViewChunks = status === 'success' && item.chunk_count !== null && item.chunk_count > 0 && onViewChunks;
 
   return (
     <div className="flex items-center justify-between p-4 bg-surface border border-ink-faint rounded-lg shadow-sm hover:shadow-md hover:border-ink-subtle transition-all duration-200">
@@ -75,6 +77,16 @@ export function VaultItemCard({ item, onDelete, onRetry }: VaultItemCardProps) {
 
       {/* Right side: Action buttons */}
       <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+        {showViewChunks && (
+          <button
+            type="button"
+            onClick={() => onViewChunks(item)}
+            className="p-2 rounded-md text-quill hover:bg-quill-lighter focus:outline-none focus:ring-2 focus:ring-quill"
+            aria-label="View chunks"
+          >
+            <Eye className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
         {showRetryButton && (
           <button
             type="button"
