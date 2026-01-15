@@ -10,6 +10,7 @@ import type {
 } from '@/lib/supabase/types';
 import type { ChatMessage } from '@/contexts/ChatContext';
 import type { DiffChange } from '@/lib/ai/diff-generator';
+import type { Paper, SearchResult } from '@/lib/citations/types';
 
 // Counter for generating unique test data
 let counter = 0;
@@ -305,4 +306,119 @@ export function createMockOperationHistory(
       status: 'completed',
     })
   );
+}
+
+// ============================================
+// Citation / Semantic Scholar Factories
+// ============================================
+
+/**
+ * Create a mock Paper from Semantic Scholar API
+ */
+export function createMockPaper(overrides: Partial<Paper> = {}): Paper {
+  counter++;
+  return {
+    paperId: `paper-${counter}-${Math.random().toString(36).slice(2)}`,
+    title: `Test Paper ${counter}: A Study on Testing`,
+    authors: [
+      { name: `Author ${counter}`, authorId: `author-${counter}` },
+      { name: `Co-Author ${counter}`, authorId: `coauthor-${counter}` },
+    ],
+    year: 2024,
+    publicationDate: '2024-01-15',
+    journal: {
+      name: 'Journal of Testing',
+      volume: '42',
+      pages: '1-20',
+    },
+    venue: 'Test Conference',
+    externalIds: {
+      DOI: `10.1000/test.${counter}`,
+      PubMed: `${30000000 + counter}`,
+      ArXiv: `2401.${String(counter).padStart(5, '0')}`,
+      CorpusId: 100000 + counter,
+    },
+    abstract: `This is the abstract for test paper ${counter}. It describes important research findings.`,
+    url: `https://www.semanticscholar.org/paper/${counter}`,
+    citationCount: counter * 10,
+    influentialCitationCount: counter,
+    isOpenAccess: true,
+    openAccessPdf: { url: `https://arxiv.org/pdf/2401.${String(counter).padStart(5, '0')}.pdf` },
+    fieldsOfStudy: ['Computer Science', 'Testing'],
+    ...overrides,
+  };
+}
+
+/**
+ * Create a mock Citation database record from a Paper
+ */
+export function createMockCitation(
+  projectId: string,
+  paper?: Partial<Paper>,
+  overrides: Partial<CitationInsert> = {}
+): CitationInsert {
+  const mockPaper = paper ? createMockPaper(paper) : createMockPaper();
+  return {
+    project_id: projectId,
+    title: mockPaper.title,
+    authors: mockPaper.authors.map((a) => a.name).join(', '),
+    year: mockPaper.year,
+    journal: mockPaper.journal?.name,
+    doi: mockPaper.externalIds?.DOI,
+    url: mockPaper.url,
+    abstract: mockPaper.abstract,
+    source: 'semantic_scholar',
+    verified: false,
+    ...overrides,
+  };
+}
+
+/**
+ * Pre-built mock papers for common test scenarios
+ */
+export const mockPapers: Paper[] = [
+  createMockPaper({
+    paperId: 'paper-ml-001',
+    title: 'Deep Learning Fundamentals: A Comprehensive Review',
+    authors: [
+      { name: 'John Smith', authorId: 'js-001' },
+      { name: 'Jane Doe', authorId: 'jd-001' },
+    ],
+    year: 2023,
+    citationCount: 500,
+    fieldsOfStudy: ['Computer Science', 'Machine Learning'],
+  }),
+  createMockPaper({
+    paperId: 'paper-nlp-002',
+    title: 'Transformers in Natural Language Processing',
+    authors: [{ name: 'Alice Chen', authorId: 'ac-001' }],
+    year: 2024,
+    citationCount: 150,
+    fieldsOfStudy: ['Computer Science', 'NLP'],
+  }),
+  createMockPaper({
+    paperId: 'paper-cv-003',
+    title: 'Computer Vision with Convolutional Networks',
+    authors: [
+      { name: 'Bob Wilson', authorId: 'bw-001' },
+      { name: 'Carol Lee', authorId: 'cl-001' },
+    ],
+    year: 2022,
+    citationCount: 1200,
+    fieldsOfStudy: ['Computer Science', 'Computer Vision'],
+  }),
+];
+
+/**
+ * Create a mock Semantic Scholar search response
+ */
+export function createMockSearchResponse(
+  papers: Paper[] = mockPapers,
+  options: { total?: number; offset?: number } = {}
+): SearchResult {
+  return {
+    total: options.total ?? papers.length,
+    offset: options.offset ?? 0,
+    data: papers,
+  };
 }

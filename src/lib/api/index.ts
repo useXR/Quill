@@ -17,3 +17,14 @@ export type { ChatMessage, PaginatedResult } from './chat';
 // AI operations helpers
 export { createAIOperation, updateAIOperationStatus, getRecentOperations, getOperationById } from './ai-operations';
 export type { AIOperation, CreateAIOperationInput } from './ai-operations';
+
+// Citations helpers
+export {
+  getCitations,
+  getCitation,
+  createCitation,
+  createCitationFromPaper,
+  updateCitation,
+  deleteCitation,
+  isDuplicateCitation,
+} from './citations';
