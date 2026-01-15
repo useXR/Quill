@@ -36,3 +36,14 @@ export type SearchResult = {
   offset: number;
   data: Paper[];
 };
+
+export class SemanticScholarError extends Error {
+  constructor(
+    public code: 'RATE_LIMITED' | 'NOT_FOUND' | 'BAD_REQUEST' | 'SERVICE_ERROR' | 'NETWORK_ERROR',
+    message: string,
+    public retryAfter?: number
+  ) {
+    super(message);
+    this.name = 'SemanticScholarError';
+  }
+}
