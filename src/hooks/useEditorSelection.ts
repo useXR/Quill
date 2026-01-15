@@ -22,7 +22,7 @@ export function useEditorSelection(editor: Editor | null): SelectionState | null
     }
 
     // Get the selection tracker storage (use bracket notation for TypeScript compatibility)
-    const storage = (editor.storage as Record<string, unknown>)['selectionTracker'] as
+    const storage = (editor.storage as unknown as Record<string, unknown>)['selectionTracker'] as
       | SelectionTrackerStorage
       | undefined;
 

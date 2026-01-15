@@ -9,3 +9,11 @@ export { CreateProjectSchema, UpdateProjectSchema } from './schemas';
 export type { CreateProjectInput, UpdateProjectInput } from './schemas';
 export { CreateDocumentSchema, UpdateDocumentSchema } from './schemas';
 export type { CreateDocumentInput, UpdateDocumentInput } from './schemas';
+
+// Chat history helpers
+export { getChatHistory, saveChatMessage, clearChatHistory } from './chat';
+export type { ChatMessage, PaginatedResult } from './chat';
+
+// AI operations helpers
+export { createAIOperation, updateAIOperationStatus, getRecentOperations, getOperationById } from './ai-operations';
+export type { AIOperation, CreateAIOperationInput } from './ai-operations';

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getProject, getDocument, ApiError } from '@/lib/api';
-import { DocumentEditor } from '@/components/editor/DocumentEditor';
+import { DocumentPageClient } from './DocumentPageClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,8 +86,8 @@ export default async function DocumentPage({ params }: DocumentPageProps) {
           </ol>
         </nav>
 
-        {/* Document Editor */}
-        <DocumentEditor documentId={docId} initialDocument={document} enableAI={true} />
+        {/* Document Editor with Chat and Diff integration */}
+        <DocumentPageClient documentId={docId} projectId={projectId} document={document} />
       </div>
     </div>
   );

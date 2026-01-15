@@ -8,6 +8,8 @@ import type {
   AIOperationInsert,
   AuditLogInsert,
 } from '@/lib/supabase/types';
+import type { ChatMessage } from '@/contexts/ChatContext';
+import type { DiffChange } from '@/lib/ai/diff-generator';
 
 // Counter for generating unique test data
 let counter = 0;
@@ -148,4 +150,159 @@ export function createTestAuditLog(userId: string, overrides: Partial<AuditLogIn
     resource_type: 'test',
     ...overrides,
   };
+}
+
+// ============================================
+// Chat UI Factories (for component testing)
+// ============================================
+
+/**
+ * Create mock ChatMessage for UI testing (ChatContext type)
+ */
+export function createMockChatMessage(overrides: Partial<ChatMessage> = {}): ChatMessage {
+  counter++;
+  return {
+    id: `msg-${counter}-${Math.random().toString(36).slice(2)}`,
+    role: 'user',
+    content: `Test message content ${counter}`,
+    createdAt: new Date(),
+    status: 'sent',
+    mode: 'discussion',
+    ...overrides,
+  };
+}
+
+/**
+ * Create mock streaming message for testing streaming behavior
+ */
+export function createMockStreamingMessage(overrides: Partial<ChatMessage> = {}): ChatMessage {
+  return createMockChatMessage({
+    role: 'assistant',
+    content: '',
+    status: 'streaming',
+    ...overrides,
+  });
+}
+
+// ============================================
+// Diff Factories
+// ============================================
+
+/**
+ * Create a mock diff change
+ */
+export function createMockDiffChange(overrides: Partial<DiffChange> = {}): DiffChange {
+  counter++;
+  return {
+    type: 'add',
+    value: `New content line ${counter}\n`,
+    lineNumber: counter,
+    ...overrides,
+  };
+}
+
+/**
+ * Mock diff set for testing diff panel
+ */
+export const mockDiffChanges: DiffChange[] = [
+  { type: 'unchanged', value: 'Line 1: Original content\n', lineNumber: 1 },
+  { type: 'remove', value: 'Line 2: Old text to remove\n', lineNumber: 2 },
+  { type: 'add', value: 'Line 2: New replacement text\n', lineNumber: 2 },
+  { type: 'unchanged', value: 'Line 3: More original content\n', lineNumber: 3 },
+];
+
+/**
+ * Create a realistic diff set for global edit testing
+ */
+export function createMockGlobalEditDiff(): DiffChange[] {
+  return [
+    { type: 'unchanged', value: '# Introduction\n\n', lineNumber: 1 },
+    { type: 'remove', value: 'This paragraph has lowercase headings.\n\n', lineNumber: 3 },
+    { type: 'add', value: 'This Paragraph Has Title Case Headings.\n\n', lineNumber: 3 },
+    { type: 'unchanged', value: '## methodology\n\n', lineNumber: 5 },
+    { type: 'remove', value: '## methodology\n\n', lineNumber: 5 },
+    { type: 'add', value: '## Methodology\n\n', lineNumber: 5 },
+    { type: 'unchanged', value: 'Content describing methods.\n', lineNumber: 7 },
+  ];
+}
+
+// ============================================
+// Chat History Factories
+// ============================================
+
+/**
+ * Create a mock chat history with alternating user/assistant messages
+ */
+export function createMockChatHistory(messageCount = 3): ChatMessage[] {
+  return Array.from({ length: messageCount }, (_, i) =>
+    createMockChatMessage({
+      id: `msg-history-${i}`,
+      role: i % 2 === 0 ? 'user' : 'assistant',
+      content: i % 2 === 0 ? `User question ${Math.floor(i / 2) + 1}` : `Assistant response ${Math.floor(i / 2) + 1}`,
+      createdAt: new Date(Date.now() - (messageCount - i) * 60000), // Older messages first
+    })
+  );
+}
+
+/**
+ * Create a conversation with a global edit flow
+ */
+export function createMockGlobalEditConversation(): ChatMessage[] {
+  return [
+    createMockChatMessage({
+      id: 'msg-user-request',
+      role: 'user',
+      content: 'Change all headings to title case',
+      mode: 'global_edit',
+    }),
+    createMockChatMessage({
+      id: 'msg-assistant-response',
+      role: 'assistant',
+      content: 'I have updated all headings to title case. Please review the changes.',
+      mode: 'global_edit',
+    }),
+  ];
+}
+
+// ============================================
+// AI Operation Factories (Extended)
+// ============================================
+
+/**
+ * Create a mock AI operation with full details
+ */
+export function createMockAIOperation(
+  documentId: string,
+  userId: string,
+  overrides: Partial<AIOperationInsert & { id: string }> = {}
+): AIOperationInsert & { id: string } {
+  counter++;
+  return {
+    id: `op-${counter}-${Math.random().toString(36).slice(2)}`,
+    document_id: documentId,
+    user_id: userId,
+    operation_type: 'global_edit',
+    input_summary: `Global edit request ${counter}`,
+    output_content: `Modified content from operation ${counter}`,
+    status: 'completed',
+    ...overrides,
+  };
+}
+
+/**
+ * Create a mock AI operation history for undo testing
+ */
+export function createMockOperationHistory(
+  documentId: string,
+  userId: string,
+  operationCount = 3
+): Array<AIOperationInsert & { id: string }> {
+  return Array.from({ length: operationCount }, (_, i) =>
+    createMockAIOperation(documentId, userId, {
+      id: `op-history-${i}`,
+      input_summary: `Operation ${i + 1} input`,
+      output_content: `Content after operation ${i + 1}`,
+      status: 'completed',
+    })
+  );
 }

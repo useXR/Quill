@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createLogger } from '@/lib/logger';
 import { ApiError, ErrorCodes } from './errors';
+import { extractTextFromTipTap } from '@/lib/editor/extract-text';
 import type { Document } from '@/lib/supabase/types';
 import type { CreateDocumentInput, UpdateDocumentInput } from './schemas/document';
 
@@ -154,8 +155,11 @@ export async function updateDocument(id: string, input: UpdateDocumentInput): Pr
 
   if (input.content !== undefined) {
     updateData.content = input.content;
+    // Auto-extract plain text for AI chat context
+    updateData.content_text = extractTextFromTipTap(input.content);
   }
 
+  // Allow explicit content_text override if provided
   if (input.content_text !== undefined) {
     updateData.content_text = input.content_text;
   }
