@@ -22,11 +22,18 @@ interface ChatState {
 }
 
 type ChatAction =
+  | { type: 'ADD_MESSAGE'; message: ChatMessage }
+  | { type: 'UPDATE_MESSAGE'; id: string; content: string }
+  | { type: 'SET_MESSAGE_STATUS'; id: string; status: ChatMessage['status'] }
+  | { type: 'APPEND_TO_STREAMING'; id: string; chunk: string }
+  | { type: 'SET_LOADING'; isLoading: boolean }
   | { type: 'TOGGLE_SIDEBAR' }
   | { type: 'OPEN_SIDEBAR' }
   | { type: 'CLOSE_SIDEBAR' }
-  | { type: 'ADD_MESSAGE'; message: ChatMessage }
-  | { type: 'APPEND_TO_STREAMING'; id: string; chunk: string };
+  | { type: 'SET_DOCUMENT'; documentId: string; projectId: string }
+  | { type: 'CLEAR_MESSAGES' }
+  | { type: 'SET_ERROR'; error: string | null }
+  | { type: 'LOAD_MESSAGES'; messages: ChatMessage[] };
 
 const initialState: ChatState = {
   messages: [],
@@ -56,6 +63,33 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return {
         ...state,
         messages: state.messages.map((m) => (m.id === action.id ? { ...m, content: m.content + action.chunk } : m)),
+      };
+    case 'SET_MESSAGE_STATUS':
+      return {
+        ...state,
+        messages: state.messages.map((m) => (m.id === action.id ? { ...m, status: action.status } : m)),
+        streamingMessageId:
+          action.status !== 'streaming' && state.streamingMessageId === action.id ? null : state.streamingMessageId,
+      };
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.isLoading };
+    case 'SET_DOCUMENT':
+      return {
+        ...state,
+        documentId: action.documentId,
+        projectId: action.projectId,
+        messages: [],
+      };
+    case 'CLEAR_MESSAGES':
+      return { ...state, messages: [] };
+    case 'SET_ERROR':
+      return { ...state, error: action.error };
+    case 'LOAD_MESSAGES':
+      return { ...state, messages: action.messages };
+    case 'UPDATE_MESSAGE':
+      return {
+        ...state,
+        messages: state.messages.map((m) => (m.id === action.id ? { ...m, content: action.content } : m)),
       };
     default:
       return state;

@@ -104,4 +104,67 @@ describe('ChatContext', () => {
 
     expect(result.current.state.messages[0].content).toBe('Hello World');
   });
+
+  it('should update message status', () => {
+    const { result } = renderHook(() => useChat(), { wrapper: ChatProvider });
+
+    act(() => {
+      result.current.dispatch({
+        type: 'ADD_MESSAGE',
+        message: { id: 'msg-1', role: 'assistant', content: '', createdAt: new Date(), status: 'streaming' },
+      });
+    });
+
+    act(() => {
+      result.current.dispatch({ type: 'SET_MESSAGE_STATUS', id: 'msg-1', status: 'sent' });
+    });
+
+    expect(result.current.state.messages[0].status).toBe('sent');
+    expect(result.current.state.streamingMessageId).toBeNull();
+  });
+
+  it('should set loading state', () => {
+    const { result } = renderHook(() => useChat(), { wrapper: ChatProvider });
+
+    act(() => {
+      result.current.dispatch({ type: 'SET_LOADING', isLoading: true });
+    });
+
+    expect(result.current.state.isLoading).toBe(true);
+  });
+
+  it('should set document and clear messages', () => {
+    const { result } = renderHook(() => useChat(), { wrapper: ChatProvider });
+
+    act(() => {
+      result.current.dispatch({
+        type: 'ADD_MESSAGE',
+        message: { id: 'msg-1', role: 'user', content: 'test', createdAt: new Date(), status: 'sent' },
+      });
+    });
+
+    act(() => {
+      result.current.dispatch({ type: 'SET_DOCUMENT', documentId: 'doc-1', projectId: 'proj-1' });
+    });
+
+    expect(result.current.state.documentId).toBe('doc-1');
+    expect(result.current.state.projectId).toBe('proj-1');
+    expect(result.current.state.messages).toEqual([]);
+  });
+
+  it('should set and clear error', () => {
+    const { result } = renderHook(() => useChat(), { wrapper: ChatProvider });
+
+    act(() => {
+      result.current.dispatch({ type: 'SET_ERROR', error: 'Something failed' });
+    });
+
+    expect(result.current.state.error).toBe('Something failed');
+
+    act(() => {
+      result.current.dispatch({ type: 'SET_ERROR', error: null });
+    });
+
+    expect(result.current.state.error).toBeNull();
+  });
 });
