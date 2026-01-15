@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { ChatProvider, useChat } from '../ChatContext';
+import { ChatProvider, useChat, ChatMessage } from '../ChatContext';
 
 describe('ChatContext', () => {
   it('should provide initial state with empty messages', () => {
@@ -31,5 +31,46 @@ describe('ChatContext', () => {
     });
 
     expect(result.current.state.isOpen).toBe(false);
+  });
+
+  it('should add message to state', () => {
+    const { result } = renderHook(() => useChat(), {
+      wrapper: ChatProvider,
+    });
+
+    const message: ChatMessage = {
+      id: 'msg-1',
+      role: 'user',
+      content: 'Hello',
+      createdAt: new Date(),
+      status: 'sent',
+    };
+
+    act(() => {
+      result.current.dispatch({ type: 'ADD_MESSAGE', message });
+    });
+
+    expect(result.current.state.messages).toHaveLength(1);
+    expect(result.current.state.messages[0].content).toBe('Hello');
+  });
+
+  it('should set streamingMessageId when adding streaming message', () => {
+    const { result } = renderHook(() => useChat(), {
+      wrapper: ChatProvider,
+    });
+
+    const message: ChatMessage = {
+      id: 'msg-streaming',
+      role: 'assistant',
+      content: '',
+      createdAt: new Date(),
+      status: 'streaming',
+    };
+
+    act(() => {
+      result.current.dispatch({ type: 'ADD_MESSAGE', message });
+    });
+
+    expect(result.current.state.streamingMessageId).toBe('msg-streaming');
   });
 });

@@ -21,7 +21,11 @@ interface ChatState {
   error: string | null;
 }
 
-type ChatAction = { type: 'TOGGLE_SIDEBAR' } | { type: 'OPEN_SIDEBAR' } | { type: 'CLOSE_SIDEBAR' };
+type ChatAction =
+  | { type: 'TOGGLE_SIDEBAR' }
+  | { type: 'OPEN_SIDEBAR' }
+  | { type: 'CLOSE_SIDEBAR' }
+  | { type: 'ADD_MESSAGE'; message: ChatMessage };
 
 const initialState: ChatState = {
   messages: [],
@@ -41,6 +45,12 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return { ...state, isOpen: true };
     case 'CLOSE_SIDEBAR':
       return { ...state, isOpen: false };
+    case 'ADD_MESSAGE':
+      return {
+        ...state,
+        messages: [...state.messages, action.message],
+        streamingMessageId: action.message.status === 'streaming' ? action.message.id : state.streamingMessageId,
+      };
     default:
       return state;
   }
