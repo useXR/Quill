@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectChatMode } from '../intent-detection';
+import { detectChatMode, isDestructiveEdit } from '../intent-detection';
 
 describe('detectChatMode', () => {
   it('should return discussion mode for general questions', () => {
@@ -60,5 +60,23 @@ describe('research mode', () => {
   it('should detect research for literature review requests', () => {
     const result = detectChatMode('Help me with the literature review on this topic');
     expect(result.mode).toBe('research');
+  });
+});
+
+describe('isDestructiveEdit', () => {
+  it('should return true for delete all', () => {
+    expect(isDestructiveEdit('Delete all paragraphs about methodology')).toBe(true);
+  });
+
+  it('should return true for remove everything', () => {
+    expect(isDestructiveEdit('Remove everything after the introduction')).toBe(true);
+  });
+
+  it('should return true for rewrite entire document', () => {
+    expect(isDestructiveEdit('Rewrite the entire document')).toBe(true);
+  });
+
+  it('should return false for non-destructive edits', () => {
+    expect(isDestructiveEdit('Change the word "good" to "excellent"')).toBe(false);
   });
 });

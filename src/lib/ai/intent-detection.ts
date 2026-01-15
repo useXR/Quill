@@ -73,3 +73,15 @@ export function detectChatMode(message: string): ModeDetectionResult {
 
   return { mode: 'discussion', confidence: 'high', matchedPatterns: [] };
 }
+
+export function isDestructiveEdit(message: string): boolean {
+  const destructivePatterns = [
+    /\bdelete\s+(all|every|the\s+entire)/i,
+    /\bremove\s+(all|every|everything|the\s+entire)/i,
+    /\brewrite\s+(the\s+)?(entire|whole)/i,
+    /\breplace\s+(all|everything)/i,
+    /\bclear\s+(all|the\s+)/i,
+  ];
+
+  return destructivePatterns.some((p) => p.test(message));
+}
