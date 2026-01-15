@@ -357,6 +357,7 @@ export type Database = {
           content: string
           created_at: string
           embedding: string | null
+          heading_context: string | null
           id: string
           vault_item_id: string
         }
@@ -365,6 +366,7 @@ export type Database = {
           content: string
           created_at?: string
           embedding?: string | null
+          heading_context?: string | null
           id?: string
           vault_item_id: string
         }
@@ -373,6 +375,7 @@ export type Database = {
           content?: string
           created_at?: string
           embedding?: string | null
+          heading_context?: string | null
           id?: string
           vault_item_id?: string
         }
@@ -497,6 +500,7 @@ export type Database = {
               chunk_index: number
               content: string
               filename: string
+              heading_context: string
               similarity: number
               vault_item_id: string
             }[]
@@ -512,6 +516,7 @@ export type Database = {
           chunk_index: number
           content: string
           filename: string
+          heading_context: string
           match_rank: number
           vault_item_id: string
         }[]
