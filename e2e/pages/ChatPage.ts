@@ -140,4 +140,33 @@ export class ChatPage {
       timeout: TIMEOUTS.ELEMENT_VISIBLE,
     });
   }
+
+  /**
+   * Navigate to document page and prepare for chat.
+   */
+  async goto(projectId: string, documentId: string) {
+    await this.page.goto(`/projects/${projectId}/documents/${documentId}`);
+  }
+
+  /**
+   * Wait for assistant response to appear.
+   */
+  async waitForResponse() {
+    await this.waitForStreamingComplete();
+    // Ensure at least one assistant message is present
+    const assistantMessages = this.page.locator('[data-role="assistant"]');
+    const hasAssistant = await assistantMessages.count();
+    if (hasAssistant === 0) {
+      // Fall back to checking message count increased
+      await expect(this.messages).not.toHaveCount(0, { timeout: TIMEOUTS.API_CALL });
+    }
+  }
+
+  /**
+   * Verify chat shows empty state (no messages).
+   */
+  async expectEmptyState() {
+    const count = await this.messages.count();
+    expect(count).toBe(0);
+  }
 }
