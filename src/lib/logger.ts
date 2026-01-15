@@ -22,3 +22,8 @@ export function createLogger(context: Record<string, unknown>) {
 export function vaultLogger(context: { userId?: string; itemId?: string; projectId?: string }) {
   return logger.child({ module: 'vault', ...context });
 }
+
+// Typed logger for export operations
+export function exportLogger(context: { userId?: string; documentId?: string; format?: string }) {
+  return logger.child({ module: 'export', ...context });
+}

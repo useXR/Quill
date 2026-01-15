@@ -12,7 +12,9 @@ export type AuditAction =
   | 'vault:extraction_failed'
   | 'ai:chat'
   | 'ai:global-edit'
-  | 'ai:operation-status';
+  | 'ai:operation-status'
+  | 'export:docx'
+  | 'export:pdf';
 
 export interface AuditLogInput {
   action: AuditAction;
