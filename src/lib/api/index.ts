@@ -19,4 +19,12 @@ export { createAIOperation, updateAIOperationStatus, getRecentOperations, getOpe
 export type { AIOperation, CreateAIOperationInput } from './ai-operations';
 
 // Citations helpers
-export { getCitations } from './citations';
+export {
+  getCitations,
+  getCitation,
+  createCitation,
+  createCitationFromPaper,
+  updateCitation,
+  deleteCitation,
+  isDuplicateCitation,
+} from './citations';
