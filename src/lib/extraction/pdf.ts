@@ -58,6 +58,14 @@ const USE_PYMUPDF = process.env.FEATURE_PYMUPDF_EXTRACTION === 'true';
 const PYTHON_SCRIPT = process.env.PDF_EXTRACT_SCRIPT || join(process.cwd(), 'scripts', 'extract_pdf.py');
 
 /**
+ * Path to Python executable.
+ * Uses venv Python by default if it exists, otherwise falls back to system python3.
+ * Can be overridden with PYTHON_PATH env var.
+ */
+const PYTHON_VENV = join(process.cwd(), 'scripts', 'venv', 'bin', 'python3');
+const PYTHON_PATH = process.env.PYTHON_PATH || PYTHON_VENV;
+
+/**
  * Default timeout for Python subprocess (2 minutes).
  */
 const DEFAULT_TIMEOUT_MS = 120000;
@@ -221,7 +229,8 @@ async function runPythonExtraction(pdfPath: string, timeout: number): Promise<Pd
     };
 
     try {
-      proc = spawn('python3', [PYTHON_SCRIPT, pdfPath]);
+      log.info({ pythonPath: PYTHON_PATH, script: PYTHON_SCRIPT }, 'Spawning Python extraction');
+      proc = spawn(PYTHON_PATH, [PYTHON_SCRIPT, pdfPath]);
     } catch (err) {
       resolveOnce({
         text: '',
