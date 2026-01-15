@@ -185,7 +185,14 @@ def extract_pdf(pdf_path: str) -> dict:
         log_stderr("info", "Starting PDF extraction", path=str(path))
 
         # Extract to markdown using pymupdf4llm
-        markdown = pymupdf4llm.to_markdown(str(path))
+        # Suppress stdout during extraction (pymupdf4llm prints progress bars)
+        import io
+        old_stdout = sys.stdout
+        sys.stdout = io.StringIO()
+        try:
+            markdown = pymupdf4llm.to_markdown(str(path))
+        finally:
+            sys.stdout = old_stdout
 
         # Get page count
         doc = pymupdf.open(str(path))
