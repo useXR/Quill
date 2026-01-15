@@ -37,8 +37,6 @@ export async function POST(request: NextRequest) {
   const streamId = crypto.randomUUID();
   const encoder = new TextEncoder();
 
-  console.log('[AI Generate] Starting stream for prompt:', prompt.substring(0, 100) + '...');
-
   const stream = new ReadableStream({
     async start(controller) {
       const claudeStream = new ClaudeStream();
@@ -66,31 +64,25 @@ export async function POST(request: NextRequest) {
       };
 
       request.signal.addEventListener('abort', () => {
-        console.log('[AI Generate] Request aborted');
         claudeStream.cancel();
         safeClose();
       });
 
-      console.log('[AI Generate] Calling claudeStream.stream()');
       await claudeStream.stream(prompt, {
         onChunk: (chunk: StreamChunk) => {
-          console.log('[AI Generate] Received chunk:', chunk.sequence, chunk.content?.substring(0, 50));
           const data = JSON.stringify(chunk);
           safeEnqueue(encoder.encode(`data: ${data}\n\n`));
         },
         onComplete: () => {
-          console.log('[AI Generate] Stream complete');
           safeEnqueue(encoder.encode('data: [DONE]\n\n'));
           safeClose();
         },
         onError: (error) => {
-          console.log('[AI Generate] Stream error:', error);
           const errorData = JSON.stringify({ error });
           safeEnqueue(encoder.encode(`data: ${errorData}\n\n`));
           safeClose();
         },
       });
-      console.log('[AI Generate] claudeStream.stream() returned');
     },
   });
 

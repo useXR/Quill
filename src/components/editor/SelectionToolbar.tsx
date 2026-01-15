@@ -26,27 +26,48 @@ const AI_ACTIONS: AIAction[] = [
     label: 'Refine',
     description: 'Improve clarity and flow',
     prompt: (text) =>
-      `Refine the following text to improve its clarity, flow, and readability while preserving the original meaning:\n\n${text}`,
+      `Rewrite the following text to improve its clarity, flow, and readability. Output ONLY the refined text with no explanations, commentary, or markdown formatting. Preserve the original meaning and approximate length.
+
+TEXT TO REFINE:
+${text}
+
+REFINED VERSION:`,
   },
   {
     id: 'extend',
     label: 'Extend',
     description: 'Expand on this text',
     prompt: (text) =>
-      `Expand on the following text with more detail and depth while maintaining the same style and tone:\n\n${text}`,
+      `Expand the following text by adding more detail, examples, and depth. Make it approximately 2-3x longer while maintaining the same style and tone. Output ONLY the expanded text with no explanations, commentary, or markdown formatting.
+
+TEXT TO EXPAND:
+${text}
+
+EXPANDED VERSION:`,
   },
   {
     id: 'summarize',
     label: 'Summarize',
     description: 'Create a shorter version',
-    prompt: (text) => `Summarize the following text in a concise manner while preserving the key points:\n\n${text}`,
+    prompt: (text) =>
+      `Summarize the following text to approximately 1/3 of its original length while preserving the key points. Output ONLY the summary with no explanations, commentary, or markdown formatting.
+
+TEXT TO SUMMARIZE:
+${text}
+
+SUMMARY:`,
   },
   {
     id: 'simplify',
     label: 'Simplify',
     description: 'Make it easier to understand',
     prompt: (text) =>
-      `Simplify the following text to make it easier to understand while preserving the essential meaning:\n\n${text}`,
+      `Rewrite the following text using simpler words and shorter sentences to make it easier to understand. Preserve the meaning and approximate length. Output ONLY the simplified text with no explanations, commentary, or markdown formatting.
+
+TEXT TO SIMPLIFY:
+${text}
+
+SIMPLIFIED VERSION:`,
   },
 ];
 

@@ -89,20 +89,25 @@ export class ClaudeStream {
           '--disable-slash-commands', // Skip skill/command loading
           '--tools',
           '', // Disable all tools - we just need text generation
+          '--no-session-persistence', // Don't save session to disk
+          '--dangerously-skip-permissions', // Skip permission prompts
         ];
         if (sanitizedContext) {
           args.push('--context', sanitizedContext);
         }
 
-        console.log('[ClaudeStream] Spawning claude with args:', args.slice(0, 3).join(' '), '...');
-
         // Pass full environment to ensure PATH includes nvm, homebrew, etc.
+        // Use stdio: 'pipe' and close stdin immediately to prevent waiting for input
         this.process = spawn('claude', args, {
           shell: false,
           env: process.env as NodeJS.ProcessEnv,
+          stdio: ['pipe', 'pipe', 'pipe'],
         });
 
-        console.log('[ClaudeStream] Process spawned, pid:', this.process.pid);
+        // Close stdin immediately - we're not sending any input
+        if (this.process.stdin) {
+          this.process.stdin.end();
+        }
 
         let errorOutput = '';
 
@@ -128,7 +133,6 @@ export class ClaudeStream {
           if (this.cancelled) return;
 
           const dataStr = data.toString();
-          console.log('[ClaudeStream] stdout data received, length:', dataStr.length);
           this.buffer += dataStr;
           const lines = this.buffer.split('\n');
           this.buffer = lines.pop() || '';
@@ -171,13 +175,10 @@ export class ClaudeStream {
         });
 
         this.process.stderr!.on('data', (data: Buffer) => {
-          const errStr = data.toString();
-          console.log('[ClaudeStream] stderr:', errStr);
-          errorOutput += errStr;
+          errorOutput += data.toString();
         });
 
         this.process.on('close', (code: number | null) => {
-          console.log('[ClaudeStream] Process closed with code:', code);
           if (this.cancelled) {
             resolve();
             return;
