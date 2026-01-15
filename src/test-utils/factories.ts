@@ -368,7 +368,6 @@ export function createMockCitation(
     url: mockPaper.url,
     abstract: mockPaper.abstract,
     source: 'semantic_scholar',
-    semantic_scholar_id: mockPaper.paperId,
     verified: false,
     ...overrides,
   };
