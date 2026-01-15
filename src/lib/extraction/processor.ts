@@ -1,14 +1,12 @@
 import { createClient } from '@/lib/supabase/server';
 import { getVaultItem, updateVaultItemStatus } from '@/lib/api/vault';
-import { extractPdfText } from '@/lib/extraction/pdf';
+import { extractPdfText, type PdfExtractionResult, type ExtractionResult } from '@/lib/extraction/pdf';
 import { extractDocxText } from '@/lib/extraction/docx';
 import { extractTextContent } from '@/lib/extraction/text';
-import { chunkText } from '@/lib/extraction/chunker';
+import { chunkText, chunkTextWithSections, type Chunk } from '@/lib/extraction/chunker';
 import { getEmbeddings } from '@/lib/extraction/embeddings';
 import { vaultLogger } from '@/lib/logger';
 import { VAULT_STORAGE_BUCKET } from '@/lib/vault/constants';
-import type { ExtractionResult } from './pdf';
-import type { Chunk } from './chunker';
 
 /**
  * Minimum text length to consider extraction successful.
@@ -48,13 +46,18 @@ async function downloadFile(storagePath: string): Promise<Buffer> {
 }
 
 /**
+ * Result that may include sections (for PDFs) or just basic extraction.
+ */
+type ExtractResult = PdfExtractionResult | ExtractionResult;
+
+/**
  * Selects the appropriate extractor based on file type.
  *
  * @param fileType - The type of file (pdf, docx, txt)
  * @param buffer - The file contents as a Buffer
- * @returns ExtractionResult from the appropriate extractor
+ * @returns ExtractResult from the appropriate extractor
  */
-async function extractByType(fileType: string, buffer: Buffer): Promise<ExtractionResult> {
+async function extractByType(fileType: string, buffer: Buffer): Promise<ExtractResult> {
   switch (fileType.toLowerCase()) {
     case 'pdf':
       return extractPdfText(buffer);
@@ -76,7 +79,7 @@ async function extractByType(fileType: string, buffer: Buffer): Promise<Extracti
  * Inserts chunks with embeddings into the vault_chunks table.
  *
  * @param vaultItemId - The ID of the vault item
- * @param chunks - Array of chunks with content and index
+ * @param chunks - Array of chunks with content, index, and heading_context
  * @param embeddings - Array of embedding vectors
  */
 async function insertChunks(vaultItemId: string, chunks: Chunk[], embeddings: number[][]): Promise<void> {
@@ -86,6 +89,7 @@ async function insertChunks(vaultItemId: string, chunks: Chunk[], embeddings: nu
     vault_item_id: vaultItemId,
     content: chunk.content,
     chunk_index: chunk.index,
+    heading_context: chunk.heading_context,
     embedding: JSON.stringify(embeddings[i]),
   }));
 
@@ -173,7 +177,20 @@ export async function processExtraction(vaultItemId: string): Promise<ProcessExt
     // Step 4: Update status to 'chunking' and create chunks
     await updateVaultItemStatus(vaultItemId, 'chunking');
 
-    const chunks = chunkText(text);
+    let chunks: Chunk[];
+
+    // Use section-aware chunking for PDFs with sections
+    // The 'sections' property only exists on PdfExtractionResult, not basic ExtractionResult
+    if (
+      'sections' in extractionResult &&
+      Array.isArray(extractionResult.sections) &&
+      extractionResult.sections.length > 0
+    ) {
+      // Note: 'text' parameter is only used as fallback if sections are empty
+      chunks = chunkTextWithSections(text, extractionResult.sections);
+    } else {
+      chunks = chunkText(text);
+    }
 
     // Check for no chunks
     if (chunks.length === 0) {

@@ -26,6 +26,7 @@ export interface SearchResult {
   vaultItemId: string;
   filename: string;
   chunkIndex: number;
+  headingContext: string | null;
 }
 
 export interface UploadResult {

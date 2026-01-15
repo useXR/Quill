@@ -1,76 +1,267 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { ExtractionResult } from '../pdf';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { EventEmitter } from 'events';
 
-// Use vi.hoisted to create mock functions that can be used in vi.mock
-const { mockPdfParse, mockLoggerWarn, mockLoggerError, mockLoggerInfo } = vi.hoisted(() => ({
-  mockPdfParse: vi.fn(),
-  mockLoggerWarn: vi.fn(),
-  mockLoggerError: vi.fn(),
-  mockLoggerInfo: vi.fn(),
-}));
+// Use vi.hoisted to define mocks before they're used in vi.mock (which is hoisted)
+const mocks = vi.hoisted(() => {
+  return {
+    spawn: vi.fn(),
+    mockPdfParse: vi.fn(),
+  };
+});
 
-// Mock pdf-parse module
+// Mock child_process - provide our own minimal mock with default export
+vi.mock('child_process', () => {
+  const mockModule = {
+    spawn: mocks.spawn,
+    ChildProcess: class {},
+  };
+  return {
+    ...mockModule,
+    default: mockModule,
+  };
+});
+
+// Mock pdf-parse for fallback tests
 vi.mock('pdf-parse', () => ({
-  default: mockPdfParse,
+  default: mocks.mockPdfParse,
 }));
 
-// Mock the logger
-vi.mock('@/lib/logger', () => ({
-  vaultLogger: () => ({
-    warn: mockLoggerWarn,
-    error: mockLoggerError,
-    info: mockLoggerInfo,
-  }),
-}));
+// Helper to create a mock process with proper async event emission
+function createMockProcess(stdout: string, stderr: string, exitCode: number) {
+  const proc = new EventEmitter() as EventEmitter & {
+    stdout: EventEmitter;
+    stderr: EventEmitter;
+    kill: () => void;
+  };
+  proc.stdout = new EventEmitter();
+  proc.stderr = new EventEmitter();
+  proc.kill = vi.fn();
 
-// Import the function under test after mocks are set up
-import { extractPdfText } from '../pdf';
-
-describe('PDF extraction', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  // Emit events asynchronously (like real spawn)
+  setImmediate(() => {
+    if (stdout) proc.stdout.emit('data', stdout);
+    if (stderr) proc.stderr.emit('data', stderr);
+    proc.emit('close', exitCode);
   });
 
-  describe('extractPdfText', () => {
-    it('extracts text from valid PDF buffer (returns text, success: true, pageCount)', async () => {
-      const expectedText = 'Hello, this is PDF content.';
-      const expectedPageCount = 3;
+  return proc;
+}
 
-      mockPdfParse.mockResolvedValueOnce({
-        text: expectedText,
-        numpages: expectedPageCount,
+describe('PDF extraction with pymupdf4llm', () => {
+  const originalEnv = process.env.FEATURE_PYMUPDF_EXTRACTION;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.resetModules();
+    // Enable the pymupdf4llm feature for these tests
+    process.env.FEATURE_PYMUPDF_EXTRACTION = 'true';
+    // Set up pdf-parse mock implementation for fallback tests
+    mocks.mockPdfParse.mockImplementation(async (buffer: Buffer) => {
+      if (buffer.length === 0) {
+        throw new Error('Empty buffer');
+      }
+      return { text: 'Fallback extracted text', numpages: 1 };
+    });
+  });
+
+  afterEach(() => {
+    // Restore original env
+    if (originalEnv === undefined) {
+      delete process.env.FEATURE_PYMUPDF_EXTRACTION;
+    } else {
+      process.env.FEATURE_PYMUPDF_EXTRACTION = originalEnv;
+    }
+  });
+
+  it('extracts text and sections from valid PDF', async () => {
+    const mockOutput = JSON.stringify({
+      success: true,
+      markdown: '# Introduction\n\nThis is the intro.\n\n## Methods\n\nThis is methods.',
+      sections: [
+        {
+          level: 1,
+          title: 'Introduction',
+          heading_context: 'Introduction',
+          content: 'This is the intro.',
+          start_line: 0,
+        },
+        {
+          level: 2,
+          title: 'Methods',
+          heading_context: 'Introduction > Methods',
+          content: 'This is methods.',
+          start_line: 4,
+        },
+      ],
+      page_count: 5,
+      error: null,
+    });
+
+    mocks.spawn.mockImplementation(() => createMockProcess(mockOutput, '', 0) as any);
+
+    // Dynamic import after setting env var
+    const { extractPdfText } = await import('../pdf');
+    const result = await extractPdfText(Buffer.from('pdf content'));
+
+    expect(result.success).toBe(true);
+    expect(result.markdown).toContain('# Introduction');
+    expect(result.sections).toHaveLength(2);
+    expect(result.sections[0].heading_context).toBe('Introduction');
+    expect(result.pageCount).toBeDefined();
+    expect(result.pageCount).toBe(5);
+  });
+
+  it('handles Python script errors gracefully', async () => {
+    mocks.spawn.mockImplementation(() => createMockProcess('', 'Python error', 1) as any);
+
+    const { extractPdfText } = await import('../pdf');
+    const result = await extractPdfText(Buffer.from('pdf content'), { useFallback: false });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  it('handles empty buffer', async () => {
+    const { extractPdfText } = await import('../pdf');
+    const result = await extractPdfText(Buffer.alloc(0));
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Empty buffer');
+  });
+
+  it('preserves heading context in sections', async () => {
+    const mockOutput = JSON.stringify({
+      success: true,
+      markdown: '# Methods\n\n## Participants\n\nContent here.',
+      sections: [
+        { level: 1, title: 'Methods', heading_context: 'Methods', content: '', start_line: 0 },
+        {
+          level: 2,
+          title: 'Participants',
+          heading_context: 'Methods > Participants',
+          content: 'Content here.',
+          start_line: 2,
+        },
+      ],
+      page_count: 1,
+      error: null,
+    });
+
+    mocks.spawn.mockImplementation(() => createMockProcess(mockOutput, '', 0) as any);
+
+    const { extractPdfText } = await import('../pdf');
+    const result = await extractPdfText(Buffer.from('pdf'));
+
+    expect(result.sections[1].heading_context).toBe('Methods > Participants');
+  });
+
+  it('handles PDF with no extractable text (image-only)', async () => {
+    const mockOutput = JSON.stringify({
+      success: true,
+      markdown: '',
+      sections: [],
+      page_count: 5,
+      error: null,
+    });
+
+    mocks.spawn.mockImplementation(() => createMockProcess(mockOutput, '', 0) as any);
+
+    const { extractPdfText } = await import('../pdf');
+    const result = await extractPdfText(Buffer.from('pdf'));
+
+    expect(result.success).toBe(true);
+    expect(result.markdown).toBe('');
+    expect(result.sections).toHaveLength(0);
+    expect(result.pageCount).toBe(5);
+  });
+
+  it('handles invalid JSON output from Python', async () => {
+    mocks.spawn.mockImplementation(() => createMockProcess('not valid json {{{', '', 0) as any);
+
+    const { extractPdfText } = await import('../pdf');
+    const result = await extractPdfText(Buffer.from('pdf'), { useFallback: false });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('parse');
+  });
+
+  it('handles truncated JSON output from Python', async () => {
+    mocks.spawn.mockImplementation(() => createMockProcess('{"success": true, "markdown": "...', '', 0) as any);
+
+    const { extractPdfText } = await import('../pdf');
+    const result = await extractPdfText(Buffer.from('pdf'), { useFallback: false });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  it('handles spawn error (Python not found)', async () => {
+    mocks.spawn.mockImplementation(() => {
+      const proc = new EventEmitter() as any;
+      proc.stdout = new EventEmitter();
+      proc.stderr = new EventEmitter();
+      proc.kill = vi.fn();
+
+      setImmediate(() => {
+        proc.emit('error', new Error('spawn python3 ENOENT'));
       });
 
-      const result: ExtractionResult = await extractPdfText(Buffer.from('fake pdf data'));
-
-      expect(result.success).toBe(true);
-      expect(result.text).toBe(expectedText);
-      expect(result.pageCount).toBe(expectedPageCount);
-      expect(result.error).toBeUndefined();
-      expect(mockPdfParse).toHaveBeenCalledTimes(1);
+      return proc;
     });
 
-    it('handles corrupted PDF gracefully (success: false, error message)', async () => {
-      mockPdfParse.mockRejectedValueOnce(new Error('Invalid PDF structure'));
+    const { extractPdfText } = await import('../pdf');
+    const result = await extractPdfText(Buffer.from('pdf'), { useFallback: false });
 
-      const result: ExtractionResult = await extractPdfText(Buffer.from('corrupted data'));
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('python');
+  });
 
-      expect(result.success).toBe(false);
-      expect(result.text).toBe('');
-      expect(result.error).toContain('Invalid PDF structure');
-      expect(result.pageCount).toBeUndefined();
-      expect(mockLoggerError).toHaveBeenCalled();
+  it('falls back to pdf-parse when Python fails and fallback enabled', async () => {
+    mocks.spawn.mockImplementation(() => createMockProcess('', 'Python crashed', 1) as any);
+
+    const { extractPdfText } = await import('../pdf');
+    const result = await extractPdfText(Buffer.from('valid pdf content'), { useFallback: true });
+
+    // Should succeed via pdf-parse fallback
+    expect(result.success).toBe(true);
+    expect(result.text).toBe('Fallback extracted text');
+    // Verify fallback result shape
+    expect(result.sections).toHaveLength(0); // Fallback has no section awareness
+    expect(result.markdown).toBe('Fallback extracted text'); // markdown equals text for fallback
+    // Verify mockPdfParse was called
+    expect(mocks.mockPdfParse).toHaveBeenCalled();
+  });
+});
+
+describe('Legacy PDF extraction (pdf-parse)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.resetModules();
+    // Disable pymupdf feature for legacy tests
+    delete process.env.FEATURE_PYMUPDF_EXTRACTION;
+    // Set up pdf-parse mock implementation
+    mocks.mockPdfParse.mockImplementation(async (buffer: Buffer) => {
+      if (buffer.length === 0) {
+        throw new Error('Empty buffer');
+      }
+      return { text: 'Fallback extracted text', numpages: 1 };
     });
+  });
 
-    it('handles empty buffer (success: false)', async () => {
-      const result: ExtractionResult = await extractPdfText(Buffer.alloc(0));
+  it('extracts text from valid PDF buffer', async () => {
+    const { extractPdfTextLegacy } = await import('../pdf');
+    const result = await extractPdfTextLegacy(Buffer.from('mock pdf'));
 
-      expect(result.success).toBe(false);
-      expect(result.text).toBe('');
-      expect(result.error).toBeDefined();
-      expect(mockLoggerWarn).toHaveBeenCalled();
-      // pdf-parse should not be called for empty buffer
-      expect(mockPdfParse).not.toHaveBeenCalled();
-    });
+    expect(result.success).toBe(true);
+    expect(result.text).toBe('Fallback extracted text');
+    expect(mocks.mockPdfParse).toHaveBeenCalled();
+  });
+
+  it('handles empty buffer', async () => {
+    const { extractPdfTextLegacy } = await import('../pdf');
+    const result = await extractPdfTextLegacy(Buffer.alloc(0));
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Empty buffer');
   });
 });

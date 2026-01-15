@@ -1,13 +1,19 @@
-// Text extractors
-export { extractPdfText, type ExtractionResult } from './pdf';
+export {
+  extractPdfText,
+  extractPdfTextLegacy,
+  type PdfExtractionResult,
+  type ExtractionResult,
+  type PdfExtractionOptions,
+} from './pdf';
 export { extractDocxText } from './docx';
 export { extractTextContent } from './text';
-
-// Chunking
-export { chunkText, estimateChunkCount, type Chunk, type ChunkConfig } from './chunker';
-
-// Embeddings
+export {
+  chunkText,
+  chunkTextWithSections,
+  estimateChunkCount,
+  type Chunk,
+  type Section,
+  type ChunkConfig,
+} from './chunker';
 export { getEmbedding, getEmbeddings } from './embeddings';
-
-// Processor (full extraction pipeline)
 export { processExtraction, type ProcessExtractionResult } from './processor';

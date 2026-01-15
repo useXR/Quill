@@ -52,3 +52,4 @@ supabase/.temp
 
 # Worktrees
 .worktrees/
+scripts/venv/

@@ -23,12 +23,29 @@ vi.mock('@/lib/logger', () => ({
   })),
 }));
 
+// Helper to create chainable query builder mock
+function createQueryBuilderMock(resolveValue: { data: unknown; error: unknown }) {
+  const mock = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockResolvedValue(resolveValue),
+  };
+  // Make the final method in chain resolve the value
+  mock.eq.mockImplementation(() => ({
+    ...mock,
+    limit: vi.fn().mockResolvedValue(resolveValue),
+    then: (resolve: (value: typeof resolveValue) => void) => Promise.resolve(resolveValue).then(resolve),
+  }));
+  return mock;
+}
+
 // Type for mocked Supabase client with chainable methods
 type MockSupabaseClient = {
   auth: {
     getUser: ReturnType<typeof vi.fn>;
   };
   rpc: ReturnType<typeof vi.fn>;
+  from: ReturnType<typeof vi.fn>;
 };
 
 function createMockSupabaseClient(overrides: Partial<MockSupabaseClient> = {}): MockSupabaseClient {
@@ -40,6 +57,7 @@ function createMockSupabaseClient(overrides: Partial<MockSupabaseClient> = {}): 
       }),
     },
     rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
+    from: vi.fn().mockImplementation(() => createQueryBuilderMock({ data: [], error: null })),
   };
   return { ...defaultMock, ...overrides };
 }
@@ -65,6 +83,7 @@ describe('searchVault', () => {
         vault_item_id: 'vault-item-1',
         filename: 'research-paper.pdf',
         chunk_index: 0,
+        heading_context: 'Chapter 1 > Introduction',
       },
       {
         content: 'Another chunk about deep learning techniques.',
@@ -72,6 +91,7 @@ describe('searchVault', () => {
         vault_item_id: 'vault-item-1',
         filename: 'research-paper.pdf',
         chunk_index: 1,
+        heading_context: null,
       },
     ];
 
@@ -94,7 +114,7 @@ describe('searchVault', () => {
     expect(getEmbedding).toHaveBeenCalledWith('machine learning');
     expect(mockClient.rpc).toHaveBeenCalledWith('search_vault_chunks', {
       query_embedding: JSON.stringify(mockEmbedding),
-      match_threshold: 0.7, // Default threshold
+      match_threshold: 0.5, // Default threshold (lowered from 0.7)
       match_count: 10, // Default limit
       p_project_id: 'project-123',
       p_user_id: 'test-user-id',
@@ -108,6 +128,7 @@ describe('searchVault', () => {
       vaultItemId: 'vault-item-1',
       filename: 'research-paper.pdf',
       chunkIndex: 0,
+      headingContext: 'Chapter 1 > Introduction',
     });
     expect(results[1]).toEqual<SearchResult>({
       content: 'Another chunk about deep learning techniques.',
@@ -115,6 +136,7 @@ describe('searchVault', () => {
       vaultItemId: 'vault-item-1',
       filename: 'research-paper.pdf',
       chunkIndex: 1,
+      headingContext: null,
     });
   });
 

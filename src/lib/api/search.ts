@@ -33,6 +33,7 @@ interface SearchVaultChunksRow {
   vault_item_id: string;
   filename: string;
   chunk_index: number;
+  heading_context: string | null;
 }
 
 /**
@@ -45,6 +46,7 @@ function transformToSearchResult(row: SearchVaultChunksRow): SearchResult {
     vaultItemId: row.vault_item_id,
     filename: row.filename,
     chunkIndex: row.chunk_index,
+    headingContext: row.heading_context,
   };
 }
 
@@ -172,7 +174,7 @@ export async function searchVault(
     log.info(
       {
         debugError: debugError?.message,
-        debugResults: debugData?.map((r: SearchVaultChunksRow) => ({
+        debugResults: debugData?.map((r: { similarity: number; filename: string; content: string }) => ({
           similarity: r.similarity,
           filename: r.filename,
           contentPreview: r.content?.substring(0, 100),
@@ -204,6 +206,7 @@ interface SearchVaultChunksKeywordRow {
   filename: string;
   chunk_index: number;
   match_rank: number;
+  heading_context: string | null;
 }
 
 /**
@@ -257,6 +260,7 @@ export async function searchVaultKeyword(
     vaultItemId: row.vault_item_id,
     filename: row.filename,
     chunkIndex: row.chunk_index,
+    headingContext: row.heading_context,
   }));
 
   log.info({ resultCount: results.length }, 'Keyword search completed');
@@ -341,6 +345,7 @@ export async function searchVaultHybrid(
       vaultItemId: r.vaultItemId,
       filename: r.filename,
       chunkIndex: r.chunkIndex,
+      headingContext: r.headingContext,
       similarity: r.semanticScore * SEMANTIC_WEIGHT + r.keywordScore * KEYWORD_WEIGHT,
     }))
     .sort((a, b) => b.similarity - a.similarity)
