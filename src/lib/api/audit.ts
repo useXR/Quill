@@ -9,7 +9,10 @@ export type AuditAction =
   | 'vault:delete'
   | 'vault:restore'
   | 'vault:extraction_complete'
-  | 'vault:extraction_failed';
+  | 'vault:extraction_failed'
+  | 'ai:chat'
+  | 'ai:global-edit'
+  | 'ai:operation-status';
 
 export interface AuditLogInput {
   action: AuditAction;
@@ -20,11 +23,39 @@ export interface AuditLogInput {
 }
 
 /**
- * Creates an audit log entry in the audit_logs table.
+ * Simplified audit log creation with action and details.
+ * Extracts resourceType from action prefix (e.g., 'ai:chat' -> 'ai').
+ */
+export async function createAuditLog(action: AuditAction, details: Record<string, unknown>): Promise<void>;
+/**
+ * Full audit log creation with explicit input object.
+ */
+export async function createAuditLog(input: AuditLogInput): Promise<void>;
+export async function createAuditLog(
+  actionOrInput: AuditAction | AuditLogInput,
+  details?: Record<string, unknown>
+): Promise<void> {
+  // Handle overloaded signatures
+  const input: AuditLogInput =
+    typeof actionOrInput === 'string'
+      ? {
+          action: actionOrInput,
+          resourceType: actionOrInput.split(':')[0],
+          userId: (details?.userId as string) ?? undefined,
+          resourceId: (details?.documentId as string) ?? (details?.operationId as string) ?? undefined,
+          changes: details as Json,
+        }
+      : actionOrInput;
+
+  return createAuditLogInternal(input);
+}
+
+/**
+ * Internal implementation for creating an audit log entry in the audit_logs table.
  * Uses admin client (service role) to bypass RLS - audit logs should not
  * be insertable by regular users to prevent tampering with the audit trail.
  */
-export async function createAuditLog(input: AuditLogInput): Promise<void> {
+async function createAuditLogInternal(input: AuditLogInput): Promise<void> {
   try {
     const supabase = createAdminClient();
 
