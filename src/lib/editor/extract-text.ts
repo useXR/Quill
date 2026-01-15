@@ -11,7 +11,7 @@ interface TipTapNode {
 
 /**
  * Recursively extracts plain text from a TipTap JSON document.
- * Preserves paragraph breaks as newlines.
+ * Preserves paragraph breaks as double newlines for standard plain text formatting.
  */
 export function extractTextFromTipTap(content: unknown): string {
   if (!content || typeof content !== 'object') {
@@ -25,15 +25,23 @@ export function extractTextFromTipTap(content: unknown): string {
     return node.text;
   }
 
+  // Handle hard breaks (line breaks within a paragraph)
+  if (node.type === 'hardBreak') {
+    return '\n';
+  }
+
   // If this node has children, recursively extract text
   if (Array.isArray(node.content)) {
-    const texts = node.content.map((child) => extractTextFromTipTap(child));
-
-    // Add newlines between block-level elements
-    if (node.type === 'doc' || node.type === 'paragraph' || node.type === 'heading') {
-      return texts.join('') + (node.type !== 'doc' ? '\n' : '');
+    // For doc nodes, join paragraphs with double newlines
+    if (node.type === 'doc') {
+      return node.content
+        .map((child) => extractTextFromTipTap(child))
+        .filter((text) => text.length > 0)
+        .join('\n\n');
     }
 
+    // For paragraphs and headings, just concatenate children
+    const texts = node.content.map((child) => extractTextFromTipTap(child));
     return texts.join('');
   }
 

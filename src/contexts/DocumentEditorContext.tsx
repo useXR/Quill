@@ -14,6 +14,7 @@ interface DiffState {
 
 interface DocumentEditorContextValue {
   editorRef: React.MutableRefObject<Editor | null>;
+  setEditor: (editor: Editor | null) => void;
   documentId: string;
   projectId: string;
   diffState: DiffState;
@@ -53,6 +54,10 @@ export function DocumentEditorProvider({
     editorRef.current?.setEditable(true);
   }, []);
 
+  const setEditor = useCallback((editor: Editor | null) => {
+    editorRef.current = editor;
+  }, []);
+
   const applyContent = useCallback((content: string) => {
     if (!editorRef.current) return;
 
@@ -87,7 +92,7 @@ export function DocumentEditorProvider({
 
   return (
     <DocumentEditorContext
-      value={{ editorRef, documentId, projectId, diffState, showDiff, hideDiff, applyContent, getContent }}
+      value={{ editorRef, setEditor, documentId, projectId, diffState, showDiff, hideDiff, applyContent, getContent }}
     >
       {children}
     </DocumentEditorContext>

@@ -7,7 +7,7 @@
  */
 
 import { chatWithTools, ChatWithToolsResult } from './tools';
-import { chatWithCli, ChatWithCliResult } from './cli-tools';
+import { editWithCli, FileEditResult } from './cli-file-edit';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger({ module: 'chat-handler' });
@@ -93,44 +93,34 @@ async function chatWithApi(options: ChatOptions): Promise<ChatResult> {
 }
 
 /**
- * Chat using Claude Code CLI with structured output
+ * Chat using Claude Code CLI with built-in file editing tools.
+ *
+ * This approach writes the document to a temp file, lets Claude edit it
+ * using its native Edit tool, then reads the result back.
  */
 async function chatWithCliBackend(options: ChatOptions): Promise<ChatResult> {
   const { userMessage, documentContent, documentTitle, onTextChunk, onToolCall, onToolResult } = options;
 
-  // CLI doesn't support streaming, so we'll send the full response at once
-  const result: ChatWithCliResult = await chatWithCli({
+  // Notify that we're using file-based editing
+  onToolCall?.('file_edit', { document: documentTitle });
+
+  const result: FileEditResult = await editWithCli({
     userMessage,
     documentContent,
     documentTitle,
+    onOutput: onTextChunk,
   });
 
-  // Emit tool calls if there were edits
-  if (result.edits && result.edits.length > 0) {
-    for (const edit of result.edits) {
-      onToolCall?.(`${edit.action}_text`, edit);
-    }
-
-    if (result.executionResult) {
-      for (const edit of result.edits) {
-        onToolResult?.(`${edit.action}_text`, {
-          success: result.executionResult.errors.length === 0,
-          message:
-            result.executionResult.errors.length > 0
-              ? result.executionResult.errors.join(', ')
-              : `${edit.action} completed`,
-        });
-      }
-    }
-  }
-
-  // Send the response text
-  onTextChunk?.(result.response);
+  // Notify completion
+  onToolResult?.('file_edit', {
+    success: true,
+    message: result.wasModified ? 'Document updated' : 'No changes made',
+  });
 
   return {
     response: result.response,
-    modifiedContent: result.executionResult?.newContent,
-    wasModified: result.executionResult ? result.executionResult.editsApplied > 0 : false,
+    modifiedContent: result.wasModified ? result.modifiedContent : undefined,
+    wasModified: result.wasModified,
     backend: 'cli',
   };
 }

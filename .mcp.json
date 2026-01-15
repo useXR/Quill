@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "quill-document-tools": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["tsx", "./src/lib/ai/mcp-server/document-tools-server.ts"],
+      "env": {}
+    }
+  }
+}

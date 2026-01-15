@@ -7,6 +7,7 @@ import { createAuditLog } from '@/lib/api/audit';
 import { createLogger } from '@/lib/logger';
 import { AI } from '@/lib/constants/ai';
 import { chat, getChatBackend } from '@/lib/ai/chat-handler';
+import { extractTextFromTipTap } from '@/lib/editor/extract-text';
 import { z } from 'zod';
 
 export const runtime = 'nodejs';
@@ -91,19 +92,20 @@ export async function POST(request: NextRequest) {
   // Save user message
   await saveChatMessage({ projectId, documentId, role: 'user', content: sanitizedContent });
 
-  // Fetch document content
+  // Fetch document content - extract fresh text from JSON to ensure correct formatting
   let documentContent = '';
   let documentTitle = 'Untitled';
   try {
     const { data: document, error: docError } = await supabase
       .from('documents')
-      .select('title, content_text')
+      .select('title, content')
       .eq('id', documentId)
       .single();
 
     if (!docError && document) {
       documentTitle = document.title || 'Untitled';
-      documentContent = document.content_text || '';
+      // Extract text freshly from TipTap JSON for proper formatting
+      documentContent = extractTextFromTipTap(document.content);
     }
   } catch (error) {
     logger.warn({ error, documentId, operationId }, 'Failed to fetch document');

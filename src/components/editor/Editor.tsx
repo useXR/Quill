@@ -8,6 +8,7 @@ import { WordCount } from './WordCount';
 import { SelectionToolbar } from './SelectionToolbar';
 import { useWordCount } from '@/hooks/useWordCount';
 import { useEditorSelection } from '@/hooks/useEditorSelection';
+import { useDocumentEditorSafe } from '@/contexts/DocumentEditorContext';
 import { EDITOR } from '@/lib/constants';
 
 export interface WordCountData {
@@ -96,6 +97,19 @@ export function Editor({
       },
     },
   });
+
+  // Wire up editor to context for AI chat integration
+  const documentEditorContext = useDocumentEditorSafe();
+  useEffect(() => {
+    if (documentEditorContext && editor) {
+      documentEditorContext.setEditor(editor);
+    }
+    return () => {
+      if (documentEditorContext) {
+        documentEditorContext.setEditor(null);
+      }
+    };
+  }, [editor, documentEditorContext]);
 
   useEffect(() => {
     // Only update word count from initial content if it's a string (HTML)
