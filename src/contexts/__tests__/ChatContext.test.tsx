@@ -73,4 +73,35 @@ describe('ChatContext', () => {
 
     expect(result.current.state.streamingMessageId).toBe('msg-streaming');
   });
+
+  it('should append content to streaming message', () => {
+    const { result } = renderHook(() => useChat(), {
+      wrapper: ChatProvider,
+    });
+
+    // Add initial streaming message
+    act(() => {
+      result.current.dispatch({
+        type: 'ADD_MESSAGE',
+        message: {
+          id: 'msg-1',
+          role: 'assistant',
+          content: 'Hello',
+          createdAt: new Date(),
+          status: 'streaming',
+        },
+      });
+    });
+
+    // Append to it
+    act(() => {
+      result.current.dispatch({
+        type: 'APPEND_TO_STREAMING',
+        id: 'msg-1',
+        chunk: ' World',
+      });
+    });
+
+    expect(result.current.state.messages[0].content).toBe('Hello World');
+  });
 });

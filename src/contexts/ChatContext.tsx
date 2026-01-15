@@ -25,7 +25,8 @@ type ChatAction =
   | { type: 'TOGGLE_SIDEBAR' }
   | { type: 'OPEN_SIDEBAR' }
   | { type: 'CLOSE_SIDEBAR' }
-  | { type: 'ADD_MESSAGE'; message: ChatMessage };
+  | { type: 'ADD_MESSAGE'; message: ChatMessage }
+  | { type: 'APPEND_TO_STREAMING'; id: string; chunk: string };
 
 const initialState: ChatState = {
   messages: [],
@@ -50,6 +51,11 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...state,
         messages: [...state.messages, action.message],
         streamingMessageId: action.message.status === 'streaming' ? action.message.id : state.streamingMessageId,
+      };
+    case 'APPEND_TO_STREAMING':
+      return {
+        ...state,
+        messages: state.messages.map((m) => (m.id === action.id ? { ...m, content: m.content + action.chunk } : m)),
       };
     default:
       return state;
