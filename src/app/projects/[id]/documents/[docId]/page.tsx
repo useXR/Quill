@@ -87,7 +87,7 @@ export default async function DocumentPage({ params }: DocumentPageProps) {
         </nav>
 
         {/* Document Editor */}
-        <DocumentEditor documentId={docId} initialDocument={document} />
+        <DocumentEditor documentId={docId} initialDocument={document} enableAI={true} />
       </div>
     </div>
   );

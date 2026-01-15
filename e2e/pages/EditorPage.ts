@@ -44,6 +44,17 @@ export class EditorPage {
   readonly titleSavingIndicator: Locator;
   readonly titleError: Locator;
 
+  // AI Selection Toolbar
+  readonly selectionToolbar: Locator;
+  readonly refineButton: Locator;
+  readonly extendButton: Locator;
+  readonly summarizeButton: Locator;
+  readonly simplifyButton: Locator;
+  readonly acceptButton: Locator;
+  readonly rejectButton: Locator;
+  readonly aiLoadingStatus: Locator;
+  readonly aiErrorAlert: Locator;
+
   constructor(page: Page) {
     this.page = page;
 
@@ -82,6 +93,17 @@ export class EditorPage {
     this.titleEditButton = page.getByRole('button', { name: /edit title/i });
     this.titleSavingIndicator = page.getByTestId('editable-title').getByText(/saving/i);
     this.titleError = page.getByTestId('editable-title').getByRole('alert');
+
+    // AI Selection Toolbar
+    this.selectionToolbar = page.locator('[role="toolbar"][aria-label="Text formatting actions"]');
+    this.refineButton = page.getByRole('button', { name: /refine/i });
+    this.extendButton = page.getByRole('button', { name: /extend/i });
+    this.summarizeButton = page.getByRole('button', { name: /summarize/i });
+    this.simplifyButton = page.getByRole('button', { name: /simplify/i });
+    this.acceptButton = page.getByRole('button', { name: /accept/i });
+    this.rejectButton = page.getByRole('button', { name: /reject/i });
+    this.aiLoadingStatus = this.selectionToolbar.getByRole('status');
+    this.aiErrorAlert = this.selectionToolbar.getByRole('alert');
   }
 
   /**
@@ -375,5 +397,97 @@ export class EditorPage {
    */
   async expectTitleError() {
     await expect(this.titleError).toBeVisible({ timeout: TIMEOUTS.API_CALL });
+  }
+
+  // ======================
+  // AI Selection Methods
+  // ======================
+
+  /**
+   * Select text by range (word-based selection).
+   * Selects text by clicking at start position, then shift-clicking at end.
+   */
+  async selectText(fromWord: number, toWord: number) {
+    await this.editor.click();
+    // Triple-click to select all, then use keyboard to navigate
+    await this.page.keyboard.press('Control+Home');
+    // Move to start word
+    for (let i = 0; i < fromWord; i++) {
+      await this.page.keyboard.press('Control+Right');
+    }
+    // Select to end word
+    for (let i = fromWord; i < toWord; i++) {
+      await this.page.keyboard.press('Control+Shift+Right');
+    }
+  }
+
+  /**
+   * Wait for AI selection toolbar to be visible.
+   */
+  async waitForSelectionToolbar() {
+    await expect(this.selectionToolbar).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+  }
+
+  /**
+   * Check if selection toolbar is visible.
+   */
+  async isSelectionToolbarVisible(): Promise<boolean> {
+    return await this.selectionToolbar.isVisible().catch(() => false);
+  }
+
+  /**
+   * Click an AI action button.
+   */
+  async clickAIAction(action: 'refine' | 'extend' | 'summarize' | 'simplify') {
+    const buttons = {
+      refine: this.refineButton,
+      extend: this.extendButton,
+      summarize: this.summarizeButton,
+      simplify: this.simplifyButton,
+    };
+    await buttons[action].click();
+  }
+
+  /**
+   * Accept AI suggestion.
+   */
+  async acceptAISuggestion() {
+    await this.acceptButton.click();
+  }
+
+  /**
+   * Reject AI suggestion.
+   */
+  async rejectAISuggestion() {
+    await this.rejectButton.click();
+  }
+
+  /**
+   * Wait for AI operation to complete (shows accept/reject buttons).
+   */
+  async waitForAIComplete() {
+    await expect(this.acceptButton).toBeVisible({ timeout: TIMEOUTS.API_CALL });
+    await expect(this.rejectButton).toBeVisible({ timeout: TIMEOUTS.API_CALL });
+  }
+
+  /**
+   * Expect AI loading state.
+   */
+  async expectAILoading() {
+    await expect(this.aiLoadingStatus).toBeVisible();
+  }
+
+  /**
+   * Expect AI error state.
+   */
+  async expectAIError() {
+    await expect(this.aiErrorAlert).toBeVisible({ timeout: TIMEOUTS.API_CALL });
+  }
+
+  /**
+   * Dismiss AI toolbar by pressing Escape.
+   */
+  async dismissAIToolbar() {
+    await this.page.keyboard.press('Escape');
   }
 }
