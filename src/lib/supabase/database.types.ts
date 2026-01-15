@@ -199,43 +199,70 @@ export type Database = {
         Row: {
           abstract: string | null
           authors: string | null
+          citation_count: number | null
           created_at: string
+          deleted_at: string | null
           doi: string | null
+          external_ids: Json | null
           id: string
           journal: string | null
+          notes: string | null
+          pages: string | null
+          paper_id: string | null
           project_id: string
+          publication_date: string | null
           source: string | null
           title: string
           url: string | null
+          venue: string | null
           verified: boolean | null
+          volume: string | null
           year: number | null
         }
         Insert: {
           abstract?: string | null
           authors?: string | null
+          citation_count?: number | null
           created_at?: string
+          deleted_at?: string | null
           doi?: string | null
+          external_ids?: Json | null
           id?: string
           journal?: string | null
+          notes?: string | null
+          pages?: string | null
+          paper_id?: string | null
           project_id: string
+          publication_date?: string | null
           source?: string | null
           title: string
           url?: string | null
+          venue?: string | null
           verified?: boolean | null
+          volume?: string | null
           year?: number | null
         }
         Update: {
           abstract?: string | null
           authors?: string | null
+          citation_count?: number | null
           created_at?: string
+          deleted_at?: string | null
           doi?: string | null
+          external_ids?: Json | null
           id?: string
           journal?: string | null
+          notes?: string | null
+          pages?: string | null
+          paper_id?: string | null
           project_id?: string
+          publication_date?: string | null
           source?: string | null
           title?: string
           url?: string | null
+          venue?: string | null
           verified?: boolean | null
+          volume?: string | null
           year?: number | null
         }
         Relationships: [
@@ -244,6 +271,48 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_citations: {
+        Row: {
+          citation_id: string
+          citation_number: number | null
+          created_at: string
+          document_id: string
+          id: string
+          position: Json | null
+        }
+        Insert: {
+          citation_id: string
+          citation_number?: number | null
+          created_at?: string
+          document_id: string
+          id?: string
+          position?: Json | null
+        }
+        Update: {
+          citation_id?: string
+          citation_number?: number | null
+          created_at?: string
+          document_id?: string
+          id?: string
+          position?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_citations_citation_id_fkey"
+            columns: ["citation_id"]
+            isOneToOne: false
+            referencedRelation: "citations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_citations_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
             referencedColumns: ["id"]
           },
         ]
@@ -472,7 +541,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      cleanup_expired_citations: {
+        Args: { grace_period_days?: number }
+        Returns: number
+      }
+      cleanup_old_records: { Args: never; Returns: undefined }
       cleanup_soft_deleted_vault_items: { Args: never; Returns: number }
+      get_next_citation_number: {
+        Args: { p_document_id: string }
+        Returns: number
+      }
       search_vault_chunks:
         | {
             Args: {
