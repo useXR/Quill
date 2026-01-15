@@ -21,7 +21,7 @@ interface ChatState {
   error: string | null;
 }
 
-type ChatAction = { type: 'NOOP' };
+type ChatAction = { type: 'TOGGLE_SIDEBAR' } | { type: 'OPEN_SIDEBAR' } | { type: 'CLOSE_SIDEBAR' };
 
 const initialState: ChatState = {
   messages: [],
@@ -34,7 +34,16 @@ const initialState: ChatState = {
 };
 
 function chatReducer(state: ChatState, action: ChatAction): ChatState {
-  return state;
+  switch (action.type) {
+    case 'TOGGLE_SIDEBAR':
+      return { ...state, isOpen: !state.isOpen };
+    case 'OPEN_SIDEBAR':
+      return { ...state, isOpen: true };
+    case 'CLOSE_SIDEBAR':
+      return { ...state, isOpen: false };
+    default:
+      return state;
+  }
 }
 
 const ChatContext = createContext<{
