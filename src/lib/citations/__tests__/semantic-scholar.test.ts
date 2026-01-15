@@ -91,8 +91,9 @@ describe('searchPapers', () => {
       await searchPapers('machine learning & AI');
 
       const fetchUrl = mockFetch.mock.calls[0][0] as string;
-      expect(fetchUrl).toContain(encodeURIComponent('machine learning & AI'));
-      expect(fetchUrl).not.toContain('machine learning & AI');
+      // URLSearchParams encodes & as %26 and spaces as + (application/x-www-form-urlencoded)
+      expect(fetchUrl).toContain('%26'); // & is encoded
+      expect(fetchUrl).not.toContain('&AI'); // Raw & should not appear
     });
 
     it('uses correct API endpoint and fields', async () => {
