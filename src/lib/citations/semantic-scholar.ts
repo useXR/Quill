@@ -77,6 +77,22 @@ function handleResponseError(response: Response): never {
 }
 
 /**
+ * Get headers for Semantic Scholar API requests
+ */
+function getApiHeaders(): HeadersInit {
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  const apiKey = process.env.SEMANTIC_SCHOLAR_API_KEY;
+  if (apiKey) {
+    headers['x-api-key'] = apiKey;
+  }
+
+  return headers;
+}
+
+/**
  * Search for papers using the Semantic Scholar API
  */
 export async function searchPapers(query: string, options: SearchOptions = {}): Promise<Paper[]> {
@@ -96,7 +112,9 @@ export async function searchPapers(query: string, options: SearchOptions = {}): 
   citationLogger.info({ query, limit, offset }, 'Searching for papers');
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: getApiHeaders(),
+    });
 
     if (!response.ok) {
       citationLogger.error({ status: response.status }, 'Search request failed');
@@ -154,7 +172,9 @@ export async function getPaper(paperId: string): Promise<Paper> {
   citationLogger.info({ paperId }, 'Fetching paper details');
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: getApiHeaders(),
+    });
 
     if (!response.ok) {
       citationLogger.error({ paperId, status: response.status }, 'Paper fetch failed');
