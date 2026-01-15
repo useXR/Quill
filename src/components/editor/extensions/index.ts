@@ -7,6 +7,7 @@ import TextAlign from '@tiptap/extension-text-align';
 import Image from '@tiptap/extension-image';
 import Highlight from '@tiptap/extension-highlight';
 import { SelectionTracker } from './selection-tracker';
+import { Citation } from './citation';
 
 export interface ExtensionConfig {
   placeholder?: string;
@@ -44,9 +45,14 @@ export function createExtensions(config: ExtensionConfig = {}) {
       multicolor: true,
     }),
     SelectionTracker,
+    Citation,
   ];
 }
 
 // Re-export selection tracker utilities
 export { SelectionTracker } from './selection-tracker';
 export type { SelectionState, SelectionListener, SelectionTrackerStorage } from './selection-tracker';
+
+// Re-export citation extension and types
+export { Citation } from './citation';
+export type { CitationAttributes } from './citation';
