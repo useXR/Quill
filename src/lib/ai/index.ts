@@ -18,8 +18,16 @@ export function createAIProvider(): AIProvider {
 }
 
 // Re-export streaming for direct use
-export { ClaudeStream } from './streaming';
+export { ClaudeStream, streamClaude } from './streaming';
 export type { StreamChunk, StreamCallbacks } from './streaming';
+
+// Re-export intent detection
+export { detectChatMode, isDestructiveEdit } from './intent-detection';
+export type { ChatMode, ModeDetectionResult } from './intent-detection';
+
+// Re-export diff utilities
+export { generateDiff, getDiffStats, applyDiffChanges } from './diff-generator';
+export type { DiffChange } from './diff-generator';
 
 // Re-export other utilities
 export { invokeClaude, cancelClaude, validateClaudeCLI } from './claude-cli';
