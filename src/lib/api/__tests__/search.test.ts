@@ -29,7 +29,33 @@ type MockSupabaseClient = {
     getUser: ReturnType<typeof vi.fn>;
   };
   rpc: ReturnType<typeof vi.fn>;
+  from: ReturnType<typeof vi.fn>;
 };
+
+// Helper to create chainable query builder mock
+function createChainableMock(resolvedValue: { data: unknown; error: unknown }) {
+  const chainable = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockResolvedValue(resolvedValue),
+    // Terminal method - returns the actual promise
+    then: (resolve: (value: typeof resolvedValue) => void) => resolve(resolvedValue),
+  };
+  // Override eq to also be terminal when it's the last call
+  chainable.eq = vi.fn().mockReturnValue({
+    ...chainable,
+    then: (resolve: (value: typeof resolvedValue) => void) => resolve(resolvedValue),
+  });
+  chainable.select = vi.fn().mockReturnValue({
+    ...chainable,
+    eq: vi.fn().mockReturnValue({
+      ...chainable,
+      then: (resolve: (value: typeof resolvedValue) => void) => resolve(resolvedValue),
+      limit: vi.fn().mockResolvedValue(resolvedValue),
+    }),
+  });
+  return chainable;
+}
 
 function createMockSupabaseClient(overrides: Partial<MockSupabaseClient> = {}): MockSupabaseClient {
   const defaultMock: MockSupabaseClient = {
@@ -40,6 +66,7 @@ function createMockSupabaseClient(overrides: Partial<MockSupabaseClient> = {}): 
       }),
     },
     rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
+    from: vi.fn().mockReturnValue(createChainableMock({ data: [], error: null })),
   };
   return { ...defaultMock, ...overrides };
 }
@@ -94,7 +121,7 @@ describe('searchVault', () => {
     expect(getEmbedding).toHaveBeenCalledWith('machine learning');
     expect(mockClient.rpc).toHaveBeenCalledWith('search_vault_chunks', {
       query_embedding: JSON.stringify(mockEmbedding),
-      match_threshold: 0.7, // Default threshold
+      match_threshold: 0.5, // Default threshold from VAULT_SEARCH_THRESHOLD env var
       match_count: 10, // Default limit
       p_project_id: 'project-123',
       p_user_id: 'test-user-id',
