@@ -6,19 +6,18 @@ import { Trash2, BookMarked } from 'lucide-react';
 interface Citation {
   id: string;
   title: string;
-  authors?: string;
-  year?: number;
-  journal?: string;
-  doi?: string;
+  authors?: string | null;
+  year?: number | null;
+  journal?: string | null;
+  doi?: string | null;
 }
 
 interface CitationListProps {
-  initialCitations: Citation[];
+  citations: Citation[];
   onDelete: (id: string) => Promise<void>;
 }
 
-export function CitationList({ initialCitations, onDelete }: CitationListProps) {
-  const [citations, setCitations] = useState<Citation[]>(initialCitations);
+export function CitationList({ citations, onDelete }: CitationListProps) {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -26,22 +25,13 @@ export function CitationList({ initialCitations, onDelete }: CitationListProps) 
     if (!deleteTarget) return;
     setIsDeleting(true);
 
-    const deletedCitation = citations.find((c) => c.id === deleteTarget);
-    const originalIndex = citations.findIndex((c) => c.id === deleteTarget);
-
-    setCitations((prev) => prev.filter((c) => c.id !== deleteTarget));
-    setDeleteTarget(null);
-
     try {
       await onDelete(deleteTarget);
     } catch (error) {
-      setCitations((prev) => {
-        const newCitations = [...prev];
-        newCitations.splice(originalIndex, 0, deletedCitation!);
-        return newCitations;
-      });
+      console.error('Failed to delete citation:', error);
     } finally {
       setIsDeleting(false);
+      setDeleteTarget(null);
     }
   }
 
