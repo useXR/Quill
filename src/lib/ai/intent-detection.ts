@@ -13,6 +13,7 @@ interface Pattern {
 }
 
 const EDIT_PATTERNS: Pattern[] = [
+  // Bulk change patterns (high confidence)
   { pattern: /\b(change|modify|update|edit)\s+(?:all|every|each)/i, weight: 3, description: 'bulk change' },
   { pattern: /\bthroughout\b/i, weight: 2, description: 'throughout' },
   { pattern: /\beverywhere\b/i, weight: 2, description: 'everywhere' },
@@ -22,6 +23,18 @@ const EDIT_PATTERNS: Pattern[] = [
   { pattern: /\bdelete\s+(?:all|every)/i, weight: 3, description: 'delete all' },
   { pattern: /\brewrite\s+(the\s+)?(entire|whole|document)/i, weight: 3, description: 'rewrite document' },
   { pattern: /\bfix\s+(all|every)\s+/i, weight: 2, description: 'fix all' },
+  // Direct edit requests (medium confidence)
+  { pattern: /\b(change|replace)\s+["']?.+["']?\s+(to|with)\s+["']?.+["']?/i, weight: 2, description: 'change X to Y' },
+  {
+    pattern: /\b(make|update)\s+(it|this|the\s+document)\s+(more|less)\s+\w+/i,
+    weight: 2,
+    description: 'make it more X',
+  },
+  { pattern: /\b(revise|reword|rephrase|improve)\b/i, weight: 2, description: 'revise' },
+  { pattern: /\bedit\s+(the\s+)?(document|text|content)\b/i, weight: 2, description: 'edit document' },
+  { pattern: /\bupdate\s+(the\s+)?(document|text|content)\b/i, weight: 2, description: 'update document' },
+  { pattern: /\b(shorten|lengthen|expand|condense)\b/i, weight: 2, description: 'length change' },
+  { pattern: /\bmake\s+(this|it)\s+\w+er\b/i, weight: 2, description: 'make it Xer' },
 ];
 
 const RESEARCH_PATTERNS: Pattern[] = [
