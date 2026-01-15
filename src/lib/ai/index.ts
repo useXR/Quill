@@ -34,6 +34,7 @@ export { invokeClaude, cancelClaude, validateClaudeCLI } from './claude-cli';
 export { categorizeError } from './errors';
 export { sanitizePrompt, sanitizeContext, SanitizationError } from './sanitize';
 export { formatContextForPrompt, buildPromptWithContext, estimateTokens } from './context-builder';
+export type { AIContext } from './context-builder';
 
 // Re-export types
-export type { AIProvider, ClaudeRequest, ClaudeResponse, ClaudeError, CLIStatus, AIContext } from './types';
+export type { AIProvider, ClaudeRequest, ClaudeResponse, ClaudeError, CLIStatus } from './types';
