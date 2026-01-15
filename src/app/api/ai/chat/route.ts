@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { streamClaude } from '@/lib/ai/streaming';
 import { saveChatMessage } from '@/lib/api/chat';
 import { rateLimit } from '@/lib/rate-limit';
-import { sanitizePrompt } from '@/lib/ai/sanitize';
+import { sanitizePrompt, sanitizeContext } from '@/lib/ai/sanitize';
 import { createAuditLog } from '@/lib/api/audit';
 import { createLogger } from '@/lib/logger';
 import { AI } from '@/lib/constants/ai';
@@ -91,14 +91,36 @@ export async function POST(request: NextRequest) {
 
   await saveChatMessage({ projectId, documentId, role: 'user', content: sanitizedContent });
 
-  let systemPrompt = 'You are a helpful AI assistant for academic grant writing.';
+  // Fetch document content to provide context to the AI
+  let documentContext = '';
+  try {
+    const { data: document, error: docError } = await supabase
+      .from('documents')
+      .select('title, content_text')
+      .eq('id', documentId)
+      .single();
+
+    if (!docError && document) {
+      const title = document.title || 'Untitled';
+      const content = document.content_text || '';
+      if (content) {
+        documentContext = `\n\n## Current Document: "${title}"\n\n${sanitizeContext(content)}`;
+      }
+    }
+  } catch (error) {
+    logger.warn({ error, documentId, operationId }, 'Failed to fetch document context');
+    // Continue without document context rather than failing
+  }
+
+  let systemPrompt =
+    "You are a helpful AI assistant for academic grant writing. You have access to the user's current document and can answer questions about it, suggest improvements, and help with editing.";
   if (mode === 'global_edit') {
     systemPrompt += ' The user wants to make changes to their document.';
   } else if (mode === 'research') {
     systemPrompt += ' Help find relevant research and citations.';
   }
 
-  const fullPrompt = `${systemPrompt}\n\nUser: ${sanitizedContent}`;
+  const fullPrompt = `${systemPrompt}${documentContext}\n\nUser: ${sanitizedContent}`;
   const encoder = new TextEncoder();
   let fullResponse = '';
 
