@@ -45,7 +45,12 @@ export function CitationSearch({ onAdd, addedPaperIds = new Set() }: CitationSea
       });
 
       if (!response.ok) {
-        throw new Error('Search failed');
+        const data = await response.json().catch(() => ({}));
+        if (response.status === 429) {
+          const retryAfter = data.retryAfter || 60;
+          throw new Error(`Too many requests. Please wait ${retryAfter} seconds and try again.`);
+        }
+        throw new Error(data.error || 'Search failed');
       }
 
       const data = await response.json();
