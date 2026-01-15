@@ -6,8 +6,7 @@ import { sanitizePrompt } from '@/lib/ai/sanitize';
 import { createAuditLog } from '@/lib/api/audit';
 import { createLogger } from '@/lib/logger';
 import { AI } from '@/lib/constants/ai';
-import { chatWithTools } from '@/lib/ai/tools';
-import { extractTextFromTipTap } from '@/lib/editor/extract-text';
+import { chat, getChatBackend } from '@/lib/ai/chat-handler';
 import { z } from 'zod';
 
 export const runtime = 'nodejs';
@@ -86,7 +85,8 @@ export async function POST(request: NextRequest) {
     operationId,
   });
 
-  logger.info({ userId: user.id, documentId, projectId, operationId }, 'Starting AI chat with tools');
+  const backend = getChatBackend();
+  logger.info({ userId: user.id, documentId, projectId, operationId, backend }, 'Starting AI chat');
 
   // Save user message
   await saveChatMessage({ projectId, documentId, role: 'user', content: sanitizedContent });
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
       };
 
       try {
-        const result = await chatWithTools({
+        const result = await chat({
           userMessage: sanitizedContent,
           documentContent,
           documentTitle,
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
 
         // If document was modified, update it in the database
         if (result.wasModified && result.modifiedContent) {
-          logger.info({ documentId, operationId, toolCalls: result.toolCalls.length }, 'Document modified by AI tools');
+          logger.info({ documentId, operationId, backend: result.backend }, 'Document modified by AI');
 
           // Update the document content_text
           const { error: updateError } = await supabase
