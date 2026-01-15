@@ -39,3 +39,22 @@ export function getDiffStats(changes: DiffChange[]): {
     unchanged: changes.filter((c) => c.type === 'unchanged').length,
   };
 }
+
+export function applyDiffChanges(original: string, changes: DiffChange[], acceptedIndexes: number[]): string {
+  const result: string[] = [];
+
+  for (let i = 0; i < changes.length; i++) {
+    const change = changes[i];
+    const isAccepted = acceptedIndexes.includes(i);
+
+    if (change.type === 'unchanged') {
+      result.push(change.value);
+    } else if (change.type === 'add' && isAccepted) {
+      result.push(change.value);
+    } else if (change.type === 'remove' && !isAccepted) {
+      result.push(change.value);
+    }
+  }
+
+  return result.join('');
+}

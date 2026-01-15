@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateDiff, getDiffStats } from '../diff-generator';
+import { generateDiff, getDiffStats, applyDiffChanges } from '../diff-generator';
 
 describe('generateDiff', () => {
   it('should detect added lines', () => {
@@ -46,5 +46,30 @@ describe('getDiffStats', () => {
     expect(stats.additions).toBe(1);
     expect(stats.deletions).toBe(1);
     expect(stats.unchanged).toBe(1);
+  });
+});
+
+describe('applyDiffChanges', () => {
+  it('should apply all accepted changes', () => {
+    const original = 'Line 1\nLine 2';
+    const modified = 'Line 1\nNew Line\nLine 2';
+    const diff = generateDiff(original, modified);
+
+    // Accept all changes (indexes of non-unchanged items)
+    const acceptedIndexes = diff.map((d, i) => (d.type !== 'unchanged' ? i : -1)).filter((i) => i !== -1);
+
+    const result = applyDiffChanges(original, diff, acceptedIndexes);
+
+    expect(result).toBe(modified);
+  });
+
+  it('should keep original when no changes accepted', () => {
+    const original = 'Line 1\nLine 2';
+    const modified = 'Line 1\nNew Line\nLine 2';
+    const diff = generateDiff(original, modified);
+
+    const result = applyDiffChanges(original, diff, []);
+
+    expect(result).toBe(original);
   });
 });
