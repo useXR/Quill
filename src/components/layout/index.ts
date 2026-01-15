@@ -11,5 +11,6 @@ export { AppShell } from './AppShell';
 export type { AppShellProps } from './AppShell';
 export { AppProviders } from './AppProviders';
 export type { AppProvidersProps } from './AppProviders';
-export { ToastContainer } from './ToastContainer';
+// ToastContainer is now in ui/Toast.tsx - re-export for backward compatibility
+export { ToastContainer } from '@/components/ui/Toast';
 export { CommandPalette } from './CommandPalette';

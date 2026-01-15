@@ -38,6 +38,9 @@ export const TIMEOUTS = {
 
   // Export
   EXPORT_DOWNLOAD: 30000, // Export download (PDF/DOCX generation)
+
+  // Toast Notifications
+  TOAST_AUTO_DISMISS: 7000, // Toast auto-dismiss wait (5s + 2s buffer)
 } as const;
 
 // Pre-built wait options for common patterns
@@ -48,3 +51,4 @@ export const PAGE_LOAD_WAIT = { timeout: TIMEOUTS.PAGE_LOAD };
 export const HYDRATION_WAIT = { timeout: TIMEOUTS.HYDRATION };
 export const AUTOSAVE_WAIT_OPT = { timeout: TIMEOUTS.AUTOSAVE_WAIT };
 export const EXPORT_WAIT = { timeout: TIMEOUTS.EXPORT_DOWNLOAD };
+export const TOAST_AUTO_DISMISS_WAIT = { timeout: TIMEOUTS.TOAST_AUTO_DISMISS };

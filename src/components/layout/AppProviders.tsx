@@ -2,7 +2,7 @@
 
 import { type ReactNode } from 'react';
 import { AppShell } from './AppShell';
-import { ToastContainer } from './ToastContainer';
+import { ToastContainer } from '@/components/ui/Toast';
 import { CommandPalette } from './CommandPalette';
 
 export interface AppProvidersProps {

@@ -1,10 +1,9 @@
 'use client';
 
 /**
- * Stub component for ToastContainer.
- * Will be implemented in Task 6.5.
+ * @deprecated This stub is superseded by src/components/ui/Toast.tsx
+ * Import from '@/components/ui/Toast' or '@/components/ui' instead.
+ *
+ * This file remains for reference only.
  */
-export function ToastContainer() {
-  // Stub - returns null until implemented
-  return null;
-}
+export { ToastContainer } from '@/components/ui/Toast';
