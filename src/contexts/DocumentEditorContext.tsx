@@ -73,3 +73,11 @@ export function useDocumentEditor() {
   if (!context) throw new Error('useDocumentEditor must be used within DocumentEditorProvider');
   return context;
 }
+
+/**
+ * Safe version of useDocumentEditor that returns null when not in provider.
+ * Useful for hooks that want optional integration with the editor context.
+ */
+export function useDocumentEditorSafe() {
+  return useContext(DocumentEditorContext);
+}

@@ -3,12 +3,18 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { useChat } from '@/contexts/ChatContext';
 import { detectChatMode } from '@/lib/ai/intent-detection';
+import { DiffChange } from '@/lib/ai/diff-generator';
+import { useDocumentEditorSafe } from '@/contexts/DocumentEditorContext';
 
 /**
  * Type for SSE stream events from the chat API.
  * Best Practice: Type external data explicitly
  */
-type StreamEvent = { type: 'content'; content: string } | { type: 'done' } | { type: 'error'; message: string };
+type StreamEvent =
+  | { type: 'content'; content: string }
+  | { type: 'done' }
+  | { type: 'done'; operationId: string; modifiedContent: string; diff: DiffChange[] }
+  | { type: 'error'; message: string };
 
 /**
  * Return type for the useStreamingChat hook.
@@ -44,6 +50,9 @@ export interface UseStreamingChatReturn {
 export function useStreamingChat(): UseStreamingChatReturn {
   const { state, dispatch } = useChat();
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Get document editor context if available (safe version returns null if not in provider)
+  const documentEditor = useDocumentEditorSafe();
 
   // Cleanup on unmount (Best Practice: Manage resources with useRef + cleanup)
   useEffect(() => {
@@ -101,15 +110,31 @@ export function useStreamingChat(): UseStreamingChatReturn {
       abortControllerRef.current = new AbortController();
 
       try {
-        const response = await fetch('/api/ai/chat', {
+        // Determine API endpoint based on mode
+        const isGlobalEdit = mode === 'global_edit' && documentEditor;
+        const apiUrl = isGlobalEdit ? '/api/ai/global-edit' : '/api/ai/chat';
+
+        // Get current content from editor for global edit
+        const currentContent = isGlobalEdit ? documentEditor.getContent() : undefined;
+
+        const response = await fetch(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            content,
-            documentId: state.documentId,
-            projectId: state.projectId,
-            mode,
-          }),
+          body: JSON.stringify(
+            isGlobalEdit
+              ? {
+                  instruction: content,
+                  documentId: state.documentId,
+                  projectId: state.projectId,
+                  currentContent,
+                }
+              : {
+                  content,
+                  documentId: state.documentId,
+                  projectId: state.projectId,
+                  mode,
+                }
+          ),
           signal: abortControllerRef.current.signal,
         });
 
@@ -144,6 +169,16 @@ export function useStreamingChat(): UseStreamingChatReturn {
                     id: assistantMessageId,
                     status: 'sent',
                   });
+
+                  // Handle global edit completion - show diff panel
+                  if ('operationId' in data && data.diff && documentEditor) {
+                    documentEditor.showDiff({
+                      originalContent: currentContent || '',
+                      modifiedContent: data.modifiedContent,
+                      changes: data.diff,
+                      operationId: data.operationId,
+                    });
+                  }
                 } else if (data.type === 'error') {
                   dispatch({
                     type: 'SET_MESSAGE_STATUS',
@@ -174,7 +209,7 @@ export function useStreamingChat(): UseStreamingChatReturn {
         }
       }
     },
-    [state.documentId, state.projectId, dispatch]
+    [state.documentId, state.projectId, dispatch, documentEditor]
   );
 
   /**
