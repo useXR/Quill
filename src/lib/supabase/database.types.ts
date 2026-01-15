@@ -470,17 +470,49 @@ export type Database = {
         Returns: boolean
       }
       cleanup_soft_deleted_vault_items: { Args: never; Returns: number }
-      search_vault_chunks: {
+      search_vault_chunks:
+        | {
+            Args: {
+              match_count: number
+              match_threshold: number
+              p_project_id: string
+              query_embedding: string
+            }
+            Returns: {
+              content: string
+              filename: string
+              similarity: number
+              vault_item_id: string
+            }[]
+          }
+        | {
+            Args: {
+              match_count: number
+              match_threshold: number
+              p_project_id: string
+              p_user_id: string
+              query_embedding: string
+            }
+            Returns: {
+              chunk_index: number
+              content: string
+              filename: string
+              similarity: number
+              vault_item_id: string
+            }[]
+          }
+      search_vault_chunks_keyword: {
         Args: {
           match_count: number
-          match_threshold: number
           p_project_id: string
-          query_embedding: string
+          p_user_id: string
+          search_query: string
         }
         Returns: {
+          chunk_index: number
           content: string
           filename: string
-          similarity: number
+          match_rank: number
           vault_item_id: string
         }[]
       }

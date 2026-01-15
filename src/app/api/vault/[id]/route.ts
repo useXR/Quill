@@ -87,8 +87,8 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     // Verify access
     await verifyVaultItemAccess(id, user.id);
 
-    // Soft delete
-    await softDeleteVaultItem(id);
+    // Soft delete (pass userId since function uses admin client)
+    await softDeleteVaultItem(id, user.id);
 
     logger.info({ vaultItemId: id, userId: user.id }, 'Vault item deleted');
 

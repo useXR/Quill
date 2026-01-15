@@ -8,7 +8,7 @@ import { ArrowLeft, FileText, FolderArchive } from 'lucide-react';
 interface Document {
   id: string;
   title: string;
-  sort_order: number;
+  sort_order: number | null;
 }
 
 interface ProjectSidebarProps {
@@ -21,7 +21,10 @@ interface ProjectSidebarProps {
 export function ProjectSidebar({ projectId, projectTitle, documents, vaultItemCount }: ProjectSidebarProps) {
   const pathname = usePathname();
 
-  const sortedDocuments = useMemo(() => [...documents].sort((a, b) => a.sort_order - b.sort_order), [documents]);
+  const sortedDocuments = useMemo(
+    () => [...documents].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
+    [documents]
+  );
 
   const isDocumentsActive =
     pathname === `/projects/${projectId}` || pathname.startsWith(`/projects/${projectId}/documents`);

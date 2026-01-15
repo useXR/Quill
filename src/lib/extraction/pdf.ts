@@ -29,12 +29,12 @@ export async function extractPdfText(buffer: Buffer): Promise<ExtractionResult> 
   }
 
   try {
-    const data = await pdfParse(buffer);
+    const result = await pdfParse(buffer);
 
     return {
-      text: data.text,
+      text: result.text,
       success: true,
-      pageCount: data.numpages,
+      pageCount: result.numpages,
     };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown PDF parsing error';

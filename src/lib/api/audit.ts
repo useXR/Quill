@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
 import type { Json } from '@/lib/supabase/database.types';
 
@@ -21,11 +21,12 @@ export interface AuditLogInput {
 
 /**
  * Creates an audit log entry in the audit_logs table.
- * Used to track vault operations for compliance and debugging.
+ * Uses admin client (service role) to bypass RLS - audit logs should not
+ * be insertable by regular users to prevent tampering with the audit trail.
  */
 export async function createAuditLog(input: AuditLogInput): Promise<void> {
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     const { error } = await supabase.from('audit_logs').insert({
       action: input.action,

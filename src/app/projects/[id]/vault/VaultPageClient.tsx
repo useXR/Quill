@@ -1,12 +1,18 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { ErrorBoundary, FallbackProps } from 'react-error-boundary';
 import { AlertCircle, RefreshCw, X } from 'lucide-react';
 import { VaultUpload } from '@/components/vault/VaultUpload';
 import { VaultItemList } from '@/components/vault/VaultItemList';
 import { VaultSearch } from '@/components/vault/VaultSearch';
 import type { VaultItem } from '@/lib/vault/types';
+
+// Statuses that indicate extraction is in progress
+const PROCESSING_STATUSES = ['pending', 'downloading', 'extracting', 'chunking', 'embedding'];
+
+// Polling interval in milliseconds
+const POLL_INTERVAL = 2000;
 
 interface VaultPageClientProps {
   projectId: string;
@@ -37,6 +43,7 @@ function VaultErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
 function VaultPageContent({ projectId, initialItems }: VaultPageClientProps) {
   const [items, setItems] = useState<VaultItem[]>(initialItems);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const pollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const refreshItems = useCallback(async () => {
     const response = await fetch(`/api/vault?projectId=${projectId}`);
@@ -45,6 +52,24 @@ function VaultPageContent({ projectId, initialItems }: VaultPageClientProps) {
       setItems(data.items);
     }
   }, [projectId]);
+
+  // Check if any items are currently being processed
+  const hasProcessingItems = items.some((item) => PROCESSING_STATUSES.includes(item.extraction_status || ''));
+
+  // Poll for status updates when items are being processed
+  useEffect(() => {
+    if (hasProcessingItems) {
+      pollTimeoutRef.current = setTimeout(() => {
+        refreshItems();
+      }, POLL_INTERVAL);
+    }
+
+    return () => {
+      if (pollTimeoutRef.current) {
+        clearTimeout(pollTimeoutRef.current);
+      }
+    };
+  }, [hasProcessingItems, refreshItems, items]);
 
   const handleUpload = useCallback(() => {
     refreshItems();

@@ -4,7 +4,7 @@ import { ProjectSidebar } from './ProjectSidebar';
 interface Document {
   id: string;
   title: string;
-  sort_order: number;
+  sort_order: number | null;
 }
 
 interface ProjectLayoutProps {

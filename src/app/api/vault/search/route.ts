@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { createLogger } from '@/lib/logger';
 import { handleApiError, ApiError, ErrorCodes, formatZodError } from '@/lib/api';
-import { searchVault } from '@/lib/api/search';
+import { search, type SearchMode } from '@/lib/api/search';
 
 const logger = createLogger({ module: 'api-vault-search' });
 
@@ -15,6 +15,7 @@ const SearchRequestSchema = z.object({
   query: z.string().min(1, 'Query must be at least 1 character').max(1000, 'Query must be at most 1000 characters'),
   limit: z.number().int().min(1).max(100).optional(),
   threshold: z.number().min(0).max(1).optional(),
+  mode: z.enum(['semantic', 'keyword', 'hybrid']).optional(),
 });
 
 export type SearchRequest = z.infer<typeof SearchRequestSchema>;
@@ -41,16 +42,17 @@ async function verifyProjectOwnership(projectId: string, userId: string): Promis
 
 /**
  * POST /api/vault/search
- * Performs semantic search across vault chunks for a project.
+ * Performs search across vault chunks for a project.
  *
  * Request body:
  * - projectId: UUID of the project to search
  * - query: Search query text (1-1000 characters)
  * - limit?: Maximum number of results (1-100, default: 10)
- * - threshold?: Minimum similarity threshold (0-1, default: 0.7)
+ * - threshold?: Minimum similarity threshold for semantic search (0-1, default: 0.5)
+ * - mode?: Search mode - 'semantic', 'keyword', or 'hybrid' (default: 'hybrid')
  *
  * Returns:
- * - results: Array of SearchResult objects sorted by similarity
+ * - results: Array of SearchResult objects sorted by relevance
  */
 export async function POST(request: NextRequest) {
   try {
@@ -73,17 +75,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: formatZodError(validation.error), code: 'VALIDATION_ERROR' }, { status: 400 });
     }
 
-    const { projectId, query, limit, threshold } = validation.data;
+    const { projectId, query, limit, threshold, mode } = validation.data;
 
     // Verify project ownership
     await verifyProjectOwnership(projectId, user.id);
 
-    // Perform search
-    const results = await searchVault(projectId, query, limit, threshold);
+    // Perform search with specified mode (defaults to hybrid)
+    const results = await search(projectId, query, { mode: mode as SearchMode, limit, threshold });
 
-    logger.info({ projectId, userId: user.id, resultCount: results.length }, 'Semantic search completed');
+    logger.info(
+      { projectId, userId: user.id, mode: mode ?? 'hybrid', resultCount: results.length },
+      'Search completed'
+    );
 
-    return NextResponse.json({ results });
+    return NextResponse.json({ results, mode: mode ?? 'hybrid' });
   } catch (error) {
     return handleApiError(error, logger, 'Failed to perform search');
   }

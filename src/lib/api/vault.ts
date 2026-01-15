@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { vaultLogger } from '@/lib/logger';
 import { ApiError, ErrorCodes } from './errors';
 import { createAuditLog } from './audit';
@@ -163,7 +164,14 @@ export async function updateVaultItemStatus(
     updateData.chunk_count = additionalData.chunkCount;
   }
 
-  const { data, error } = await supabase.from('vault_items').update(updateData).eq('id', id).select().single();
+  // Explicitly filter by user_id to ensure RLS check passes
+  const { data, error } = await supabase
+    .from('vault_items')
+    .update(updateData)
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .select()
+    .single();
 
   if (error) {
     if (error.code === 'PGRST116') {
@@ -200,27 +208,22 @@ export async function updateVaultItemStatus(
 /**
  * Soft deletes a vault item by setting deleted_at timestamp.
  * Item will be permanently deleted after 7-day grace period.
+ *
+ * NOTE: Uses admin client to bypass RLS since access is verified at API layer.
  */
-export async function softDeleteVaultItem(id: string): Promise<VaultItem> {
-  const supabase = await createClient();
+export async function softDeleteVaultItem(id: string, userId: string): Promise<VaultItem> {
+  const adminClient = createAdminClient();
+  const log = vaultLogger({ userId, itemId: id });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new ApiError(401, ErrorCodes.UNAUTHORIZED, 'Unauthorized');
-  }
-
-  const log = vaultLogger({ userId: user.id, itemId: id });
-
-  const { data, error } = await supabase
+  // Use admin client since access is verified at API layer via verifyVaultItemAccess
+  const { data, error } = await adminClient
     .from('vault_items')
     .update({
       deleted_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
+    .eq('user_id', userId)
     .select()
     .single();
 
@@ -238,7 +241,7 @@ export async function softDeleteVaultItem(id: string): Promise<VaultItem> {
     action: 'vault:delete',
     resourceType: 'vault_item',
     resourceId: id,
-    userId: user.id,
+    userId,
     changes: { filename: data.filename },
   });
 
@@ -261,6 +264,7 @@ export async function restoreVaultItem(id: string): Promise<VaultItem> {
 
   const log = vaultLogger({ userId: user.id, itemId: id });
 
+  // Explicitly filter by user_id to ensure RLS check passes
   const { data, error } = await supabase
     .from('vault_items')
     .update({
@@ -268,6 +272,7 @@ export async function restoreVaultItem(id: string): Promise<VaultItem> {
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
+    .eq('user_id', user.id)
     .select()
     .single();
 

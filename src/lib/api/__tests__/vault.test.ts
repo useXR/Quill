@@ -8,6 +8,11 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(),
 }));
 
+// Mock the admin Supabase client
+vi.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: vi.fn(),
+}));
+
 // Mock the logger
 vi.mock('@/lib/logger', () => ({
   vaultLogger: vi.fn(() => ({
@@ -222,7 +227,7 @@ describe('Vault API', () => {
   });
 
   describe('softDeleteVaultItem', () => {
-    it('sets deleted_at timestamp', async () => {
+    it('sets deleted_at timestamp using admin client', async () => {
       const mockUpdatedItem: VaultItem = {
         id: 'vault-item-1',
         user_id: 'test-user-id',
@@ -241,22 +246,23 @@ describe('Vault API', () => {
         source_url: null,
       };
 
-      const { createClient } = await import('@/lib/supabase/server');
+      const { createAdminClient } = await import('@/lib/supabase/admin');
       const updateMock = vi.fn().mockReturnThis();
+      const eqMock = vi.fn().mockReturnThis();
       const fromMock = vi.fn().mockReturnValue({
         update: updateMock,
-        eq: vi.fn().mockReturnThis(),
+        eq: eqMock,
         select: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({
           data: mockUpdatedItem,
           error: null,
         }),
       });
-      mockClient.from = fromMock;
-      vi.mocked(createClient).mockResolvedValue(mockClient as unknown as SupabaseClient<Database>);
+      const adminClient = { from: fromMock };
+      vi.mocked(createAdminClient).mockReturnValue(adminClient as unknown as ReturnType<typeof createAdminClient>);
 
       const { softDeleteVaultItem } = await import('../vault');
-      const result = await softDeleteVaultItem('vault-item-1');
+      const result = await softDeleteVaultItem('vault-item-1', 'test-user-id');
 
       expect(result.deleted_at).not.toBeNull();
       expect(updateMock).toHaveBeenCalledWith(
