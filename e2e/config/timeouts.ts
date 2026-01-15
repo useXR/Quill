@@ -35,6 +35,9 @@ export const TIMEOUTS = {
   DOM_UPDATE: 100, // DOM update propagation
   POST_FILTER: 200, // Post-filter DOM updates
   SHORT: 2000, // Quick UI updates
+
+  // Export
+  EXPORT_DOWNLOAD: 30000, // Export download (PDF/DOCX generation)
 } as const;
 
 // Pre-built wait options for common patterns
@@ -44,3 +47,4 @@ export const TOAST_WAIT = { timeout: TIMEOUTS.TOAST };
 export const PAGE_LOAD_WAIT = { timeout: TIMEOUTS.PAGE_LOAD };
 export const HYDRATION_WAIT = { timeout: TIMEOUTS.HYDRATION };
 export const AUTOSAVE_WAIT_OPT = { timeout: TIMEOUTS.AUTOSAVE_WAIT };
+export const EXPORT_WAIT = { timeout: TIMEOUTS.EXPORT_DOWNLOAD };

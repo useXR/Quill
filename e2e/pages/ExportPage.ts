@@ -11,6 +11,12 @@ export interface DocxExportOptions {
   pageSize?: 'letter' | 'a4';
 }
 
+export interface PdfExportOptions {
+  documentId: string;
+  format?: 'letter' | 'a4';
+  includePageNumbers?: boolean;
+}
+
 export interface ExportResult {
   response: APIResponse;
   buffer: Buffer;
@@ -98,6 +104,86 @@ export class ExportPage {
     const result = await this.exportToDocx(options);
     await this.expectDocxExportSuccess(result);
     this.expectValidDocxFormat(result.buffer);
+    return result;
+  }
+
+  // ==================== PDF Export Methods ====================
+
+  /**
+   * Export a document to PDF format via API.
+   */
+  async exportToPdf(options: PdfExportOptions): Promise<ExportResult> {
+    const { documentId, format = 'letter', includePageNumbers = false } = options;
+
+    const response = await this.page.request.post('/api/export/pdf', {
+      data: {
+        documentId,
+        format,
+        includePageNumbers,
+      },
+      timeout: TIMEOUTS.EXPORT_DOWNLOAD,
+    });
+
+    const buffer = Buffer.from(await response.body());
+
+    // Extract filename from Content-Disposition header
+    const contentDisposition = response.headers()['content-disposition'] || '';
+    const filenameMatch = contentDisposition.match(/filename="?([^";\n]+)"?/);
+    const filename = filenameMatch ? filenameMatch[1] : 'document.pdf';
+
+    return {
+      response,
+      buffer,
+      filename,
+    };
+  }
+
+  /**
+   * Assert that PDF export was successful.
+   */
+  async expectPdfExportSuccess(result: ExportResult): Promise<void> {
+    expect(result.response.ok()).toBe(true);
+    expect(result.response.status()).toBe(200);
+
+    // Verify Content-Type header
+    const contentType = result.response.headers()['content-type'];
+    expect(contentType).toBe('application/pdf');
+
+    // Verify buffer is not empty
+    expect(result.buffer.length).toBeGreaterThan(0);
+
+    // Verify filename ends with .pdf
+    expect(result.filename.endsWith('.pdf')).toBe(true);
+  }
+
+  /**
+   * Assert that PDF export failed with expected error.
+   */
+  async expectPdfExportError(result: ExportResult, expectedStatus: number): Promise<void> {
+    expect(result.response.ok()).toBe(false);
+    expect(result.response.status()).toBe(expectedStatus);
+  }
+
+  /**
+   * Assert that the exported file is a valid PDF.
+   * PDF files start with the %PDF- signature.
+   */
+  expectValidPdfFormat(buffer: Buffer): void {
+    // PDF files start with %PDF- signature (0x25 0x50 0x44 0x46 0x2D)
+    expect(buffer[0]).toBe(0x25); // %
+    expect(buffer[1]).toBe(0x50); // P
+    expect(buffer[2]).toBe(0x44); // D
+    expect(buffer[3]).toBe(0x46); // F
+    expect(buffer[4]).toBe(0x2d); // -
+  }
+
+  /**
+   * Export document to PDF and verify success in one call.
+   */
+  async exportPdfAndVerify(options: PdfExportOptions): Promise<ExportResult> {
+    const result = await this.exportToPdf(options);
+    await this.expectPdfExportSuccess(result);
+    this.expectValidPdfFormat(result.buffer);
     return result;
   }
 }
