@@ -1,0 +1,116 @@
+/**
+ * Shared accessibility styles for Quill
+ * Focus-visible, touch-targets, screen-reader only, and reduced motion support
+ */
+
+/* Focus-visible styles for keyboard navigation */
+@layer utilities {
+  /* Focus ring styles using design system tokens */
+  .focus-ring {
+    outline: none;
+  }
+
+  .focus-ring:focus-visible {
+    outline: 2px solid var(--color-quill);
+    outline-offset: 2px;
+  }
+
+  /* Touch target minimum size (WCAG 2.5.8 - 44x44px) */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Screen reader only - visually hidden but accessible */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* Make sr-only content visible on focus (for skip links) */
+  .sr-only-focusable:focus,
+  .sr-only-focusable:focus-visible {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0.5rem 1rem;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+
+  /* Not sr-only - reverses sr-only */
+  .not-sr-only {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+  :root {
+    --color-ink-faint: #78716c;
+    --color-ink-subtle: #57534e;
+  }
+}
+
+/* Focus indicators for forced colors mode (Windows High Contrast) */
+@media (forced-colors: active) {
+  .focus-ring:focus-visible {
+    outline: 2px solid CanvasText;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  [role='button']:focus-visible {
+    outline: 2px solid CanvasText;
+  }
+}
+
+/* Interactive element focus styles */
+@layer base {
+  /* Default focus styles for interactive elements */
+  a:focus-visible,
+  button:focus-visible,
+  [role='button']:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:focus-visible:not([tabindex='-1']) {
+    outline: 2px solid var(--color-quill);
+    outline-offset: 2px;
+  }
+
+  /* Remove default outline on focus (using focus-visible instead) */
+  a:focus:not(:focus-visible),
+  button:focus:not(:focus-visible),
+  [role='button']:focus:not(:focus-visible) {
+    outline: none;
+  }
+}
