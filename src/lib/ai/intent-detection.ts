@@ -24,8 +24,27 @@ const EDIT_PATTERNS: Pattern[] = [
   { pattern: /\bfix\s+(all|every)\s+/i, weight: 2, description: 'fix all' },
 ];
 
+const RESEARCH_PATTERNS: Pattern[] = [
+  {
+    pattern: /\b(find|search\s+for|look\s+up)\s+.*(paper|study|article|research)/i,
+    weight: 3,
+    description: 'find papers',
+  },
+  { pattern: /\bcite|citation|reference\b/i, weight: 2, description: 'citation request' },
+  {
+    pattern: /\brecent\s+(papers?|studies?|research|findings?|publications?)\b/i,
+    weight: 3,
+    description: 'recent research',
+  },
+  { pattern: /\bsources?\s+(for|about|on)\b/i, weight: 2, description: 'sources for' },
+  { pattern: /\bliterature\s+(review|search|on)\b/i, weight: 3, description: 'literature review' },
+  { pattern: /\bpeer[- ]reviewed\b/i, weight: 2, description: 'peer reviewed' },
+  { pattern: /\b(doi|pmid|pubmed|arxiv)\b/i, weight: 3, description: 'database reference' },
+];
+
 export function detectChatMode(message: string): ModeDetectionResult {
   let editScore = 0;
+  let researchScore = 0;
   const matchedPatterns: string[] = [];
 
   for (const { pattern, weight, description } of EDIT_PATTERNS) {
@@ -35,10 +54,21 @@ export function detectChatMode(message: string): ModeDetectionResult {
     }
   }
 
-  const confidence: 'high' | 'medium' | 'low' = editScore >= 5 ? 'high' : editScore >= 3 ? 'medium' : 'low';
+  for (const { pattern, weight, description } of RESEARCH_PATTERNS) {
+    if (pattern.test(message)) {
+      researchScore += weight;
+      matchedPatterns.push(`research:${description}`);
+    }
+  }
 
-  if (editScore >= 2) {
+  const maxScore = Math.max(editScore, researchScore);
+  const confidence: 'high' | 'medium' | 'low' = maxScore >= 5 ? 'high' : maxScore >= 3 ? 'medium' : 'low';
+
+  if (editScore > researchScore && editScore >= 2) {
     return { mode: 'global_edit', confidence, matchedPatterns };
+  }
+  if (researchScore > editScore && researchScore >= 2) {
+    return { mode: 'research', confidence, matchedPatterns };
   }
 
   return { mode: 'discussion', confidence: 'high', matchedPatterns: [] };

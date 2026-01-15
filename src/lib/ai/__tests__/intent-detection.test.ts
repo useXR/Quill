@@ -40,3 +40,25 @@ describe('global_edit mode', () => {
     expect(result.confidence).toBe('high');
   });
 });
+
+describe('research mode', () => {
+  it('should detect research for "find papers" patterns', () => {
+    const result = detectChatMode('Find papers on machine learning');
+    expect(result.mode).toBe('research');
+  });
+
+  it('should detect research for citation requests', () => {
+    const result = detectChatMode('Can you cite sources for this claim?');
+    expect(result.mode).toBe('research');
+  });
+
+  it('should detect research for recent research queries', () => {
+    const result = detectChatMode('What are recent studies on climate change?');
+    expect(result.mode).toBe('research');
+  });
+
+  it('should detect research for literature review requests', () => {
+    const result = detectChatMode('Help me with the literature review on this topic');
+    expect(result.mode).toBe('research');
+  });
+});
