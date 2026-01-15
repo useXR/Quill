@@ -54,7 +54,33 @@ export function DocumentEditorProvider({
   }, []);
 
   const applyContent = useCallback((content: string) => {
-    editorRef.current?.commands.setContent(content);
+    if (!editorRef.current) return;
+
+    // Convert plain text to TipTap-compatible structure
+    // Each paragraph is separated by double newlines, single newlines are soft breaks
+    const paragraphs = content.split(/\n\n+/);
+    const doc = {
+      type: 'doc',
+      content: paragraphs.map((para) => ({
+        type: 'paragraph',
+        content: para
+          .split('\n')
+          .flatMap((line, idx, arr) => {
+            const nodes: Array<{ type: string; text?: string }> = [];
+            if (line) {
+              nodes.push({ type: 'text', text: line });
+            }
+            // Add hard break for single newlines within a paragraph (not at the end)
+            if (idx < arr.length - 1) {
+              nodes.push({ type: 'hardBreak' });
+            }
+            return nodes;
+          })
+          .filter((n) => n.type === 'hardBreak' || n.text),
+      })),
+    };
+
+    editorRef.current.commands.setContent(doc);
   }, []);
 
   const getContent = useCallback(() => editorRef.current?.getHTML() ?? '', []);

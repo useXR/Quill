@@ -14,7 +14,10 @@ type StreamEvent =
   | { type: 'content'; content: string }
   | { type: 'done' }
   | { type: 'done'; operationId: string; modifiedContent: string; diff: DiffChange[] }
-  | { type: 'error'; message: string };
+  | { type: 'error'; message: string }
+  | { type: 'tool_call'; tool: string; input: unknown }
+  | { type: 'tool_result'; tool: string; success: boolean; message: string }
+  | { type: 'document_updated'; content: string };
 
 /**
  * Return type for the useStreamingChat hook.
@@ -163,6 +166,25 @@ export function useStreamingChat(): UseStreamingChatReturn {
                     id: assistantMessageId,
                     chunk: data.content,
                   });
+                } else if (data.type === 'tool_call') {
+                  // Show tool activity in the chat
+                  dispatch({
+                    type: 'APPEND_TO_STREAMING',
+                    id: assistantMessageId,
+                    chunk: `\n*Using ${data.tool}...*\n`,
+                  });
+                } else if (data.type === 'tool_result') {
+                  // Show tool result in the chat
+                  dispatch({
+                    type: 'APPEND_TO_STREAMING',
+                    id: assistantMessageId,
+                    chunk: data.success ? `✓ ${data.message}\n` : `✗ ${data.message}\n`,
+                  });
+                } else if (data.type === 'document_updated') {
+                  // Document was modified - trigger editor refresh
+                  if (documentEditor) {
+                    documentEditor.applyContent(data.content);
+                  }
                 } else if (data.type === 'done') {
                   dispatch({
                     type: 'SET_MESSAGE_STATUS',

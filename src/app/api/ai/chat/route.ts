@@ -1,18 +1,18 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { streamClaude } from '@/lib/ai/streaming';
 import { saveChatMessage } from '@/lib/api/chat';
 import { rateLimit } from '@/lib/rate-limit';
-import { sanitizePrompt, sanitizeContext } from '@/lib/ai/sanitize';
+import { sanitizePrompt } from '@/lib/ai/sanitize';
 import { createAuditLog } from '@/lib/api/audit';
 import { createLogger } from '@/lib/logger';
 import { AI } from '@/lib/constants/ai';
+import { chatWithTools } from '@/lib/ai/tools';
+import { extractTextFromTipTap } from '@/lib/editor/extract-text';
 import { z } from 'zod';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Domain logger for AI chat operations (Best Practice: AI Domain Logger from Phase 3)
 const logger = createLogger({ domain: 'ai', route: 'chat' });
 
 // Rate limit: 20 AI chat requests per minute per user
@@ -64,9 +64,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { content, documentId, projectId, mode } = parsed.data;
+  const { content, documentId, projectId } = parsed.data;
 
-  // Sanitize user input before passing to CLI (Best Practice: CLI Input Sanitization)
+  // Sanitize user input
   let sanitizedContent: string;
   try {
     sanitizedContent = sanitizePrompt(content);
@@ -78,21 +78,22 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // Audit log the AI operation (Best Practice: AI Audit Events with ai: prefix)
+  // Audit log the AI operation
   await createAuditLog('ai:chat', {
     userId: user.id,
     documentId,
     projectId,
-    mode,
     operationId,
   });
 
-  logger.info({ userId: user.id, documentId, projectId, mode, operationId }, 'Starting AI chat stream');
+  logger.info({ userId: user.id, documentId, projectId, operationId }, 'Starting AI chat with tools');
 
+  // Save user message
   await saveChatMessage({ projectId, documentId, role: 'user', content: sanitizedContent });
 
-  // Fetch document content to provide context to the AI
-  let documentContext = '';
+  // Fetch document content
+  let documentContent = '';
+  let documentTitle = 'Untitled';
   try {
     const { data: document, error: docError } = await supabase
       .from('documents')
@@ -101,55 +102,89 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (!docError && document) {
-      const title = document.title || 'Untitled';
-      const content = document.content_text || '';
-      if (content) {
-        documentContext = `\n\n## Current Document: "${title}"\n\n${sanitizeContext(content)}`;
-      }
+      documentTitle = document.title || 'Untitled';
+      documentContent = document.content_text || '';
     }
   } catch (error) {
-    logger.warn({ error, documentId, operationId }, 'Failed to fetch document context');
-    // Continue without document context rather than failing
+    logger.warn({ error, documentId, operationId }, 'Failed to fetch document');
   }
 
-  let systemPrompt =
-    "You are a helpful AI assistant for academic grant writing. You have access to the user's current document and can answer questions about it, suggest improvements, and help with editing.";
-  if (mode === 'global_edit') {
-    systemPrompt += ' The user wants to make changes to their document.';
-  } else if (mode === 'research') {
-    systemPrompt += ' Help find relevant research and citations.';
-  }
-
-  const fullPrompt = `${systemPrompt}${documentContext}\n\nUser: ${sanitizedContent}`;
+  // Stream response with tool support
   const encoder = new TextEncoder();
-  let fullResponse = '';
 
   const stream = new ReadableStream({
     async start(controller) {
-      const cleanup = streamClaude(
-        fullPrompt,
-        (chunk) => {
-          fullResponse += chunk;
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'content', content: chunk })}\n\n`));
-        },
-        async () => {
-          await saveChatMessage({ projectId, documentId, role: 'assistant', content: fullResponse });
-          logger.info({ userId: user.id, documentId, operationId }, 'AI chat stream completed');
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
-          controller.close();
-        },
-        (error) => {
-          logger.error({ error, userId: user.id, operationId }, 'AI chat stream error');
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', message: error })}\n\n`));
-          controller.close();
+      const safeEnqueue = (data: Uint8Array) => {
+        try {
+          controller.enqueue(data);
+        } catch {
+          // Controller may be closed
         }
-      );
+      };
 
-      request.signal.addEventListener('abort', () => {
-        logger.info({ userId: user.id, operationId }, 'AI chat stream aborted by client');
-        cleanup();
+      try {
+        const result = await chatWithTools({
+          userMessage: sanitizedContent,
+          documentContent,
+          documentTitle,
+          onTextChunk: (text) => {
+            safeEnqueue(encoder.encode(`data: ${JSON.stringify({ type: 'content', content: text })}\n\n`));
+          },
+          onToolCall: (toolName, input) => {
+            safeEnqueue(encoder.encode(`data: ${JSON.stringify({ type: 'tool_call', tool: toolName, input })}\n\n`));
+          },
+          onToolResult: (toolName, toolResult) => {
+            safeEnqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ type: 'tool_result', tool: toolName, success: toolResult.success, message: toolResult.message })}\n\n`
+              )
+            );
+          },
+        });
+
+        // Save assistant response
+        await saveChatMessage({ projectId, documentId, role: 'assistant', content: result.response });
+
+        // If document was modified, update it in the database
+        if (result.wasModified && result.modifiedContent) {
+          logger.info({ documentId, operationId, toolCalls: result.toolCalls.length }, 'Document modified by AI tools');
+
+          // Update the document content_text
+          const { error: updateError } = await supabase
+            .from('documents')
+            .update({
+              content_text: result.modifiedContent,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', documentId);
+
+          if (updateError) {
+            logger.error({ error: updateError, documentId }, 'Failed to update document');
+          }
+
+          // Send document update event
+          safeEnqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({
+                type: 'document_updated',
+                content: result.modifiedContent,
+              })}\n\n`
+            )
+          );
+        }
+
+        logger.info({ userId: user.id, documentId, operationId }, 'AI chat completed');
+        safeEnqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
         controller.close();
-      });
+      } catch (error) {
+        logger.error({ error, userId: user.id, operationId }, 'AI chat error');
+        safeEnqueue(
+          encoder.encode(
+            `data: ${JSON.stringify({ type: 'error', message: error instanceof Error ? error.message : 'Unknown error' })}\n\n`
+          )
+        );
+        controller.close();
+      }
     },
   });
 
