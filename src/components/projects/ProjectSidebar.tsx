@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ArrowLeft, FileText, FolderArchive } from 'lucide-react';
+import { ArrowLeft, FileText, FolderArchive, BookOpen } from 'lucide-react';
 
 interface Document {
   id: string;
@@ -29,6 +29,7 @@ export function ProjectSidebar({ projectId, projectTitle, documents, vaultItemCo
   const isDocumentsActive =
     pathname === `/projects/${projectId}` || pathname.startsWith(`/projects/${projectId}/documents`);
   const isVaultActive = pathname.startsWith(`/projects/${projectId}/vault`);
+  const isCitationsActive = pathname.startsWith(`/projects/${projectId}/citations`);
 
   return (
     <nav
@@ -164,6 +165,27 @@ export function ProjectSidebar({ projectId, projectTitle, documents, vaultItemCo
               {vaultItemCount}
             </span>
           )}
+        </Link>
+
+        {/* Citations section */}
+        <Link
+          href={`/projects/${projectId}/citations`}
+          aria-current={isCitationsActive ? 'page' : undefined}
+          className={`
+            flex items-center gap-2
+            px-3 py-2 mt-2 rounded-[var(--radius-md)]
+            text-sm font-medium
+            transition-colors duration-150
+            ${
+              isCitationsActive
+                ? 'bg-[var(--color-quill-lighter)] text-[var(--color-quill-dark)]'
+                : 'text-[var(--color-ink-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-ink-primary)]'
+            }
+          `}
+          style={{ fontFamily: 'var(--font-ui)' }}
+        >
+          <BookOpen className="w-4 h-4" aria-hidden="true" />
+          Citations
         </Link>
       </div>
     </nav>
