@@ -172,6 +172,21 @@ Required behaviors:
 - Focus returns to trigger on close
 - Click outside closes popover
 
+### Z-Index Stacking
+
+Documents popover uses `z-50` to match other overlay components in the app:
+
+| Component         | z-index | Notes                              |
+| ----------------- | ------- | ---------------------------------- |
+| Header            | z-40    | Sticky top                         |
+| Sidebar           | (none)  | Normal stacking context            |
+| Documents popover | z-50    | Positioned absolute within sidebar |
+| MobileNav         | z-50    | Fixed overlay                      |
+| CommandPalette    | z-50    | Fixed centered                     |
+| Toast             | z-50    | Fixed bottom-right                 |
+
+The popover positions `absolute` relative to the sidebar, extending rightward. With `z-50`, it appears above the Header when needed.
+
 ## Accessibility Requirements
 
 ### Dynamic ARIA Labels
@@ -225,13 +240,23 @@ Don't rely solely on `title` attribute (not announced by all screen readers). Ad
 
 ## Edge Cases
 
-### SSR/Hydration
+### SSR/Hydration and Deep Links
 
-On initial server render, `projectData` is null. After hydration, context populates. This is acceptable because:
+On initial server render, `projectData` is null. After hydration, context populates. This causes a brief content flash (app-level → project-level) on direct navigation to bookmarked URLs like `/projects/123/documents/456`.
 
-1. The sidebar structure is the same (same DOM elements)
-2. Only content changes (project title, documents)
-3. No layout shift (sidebar width unchanged)
+**Mitigation:** Sidebar detects "loading" state when pathname indicates project context but data hasn't arrived yet:
+
+```tsx
+const pathname = usePathname();
+const isProjectRoute = pathname.match(/^\/projects\/[^/]+/);
+const isLoading = isProjectRoute && !projectData;
+
+if (isLoading) {
+  return <SidebarSkeleton />; // Show placeholder instead of app-level content
+}
+```
+
+This prevents the jarring flash of app-level navigation for bookmarked project links.
 
 ### Document CRUD Updates
 
@@ -265,12 +290,15 @@ Routes to verify:
 
 ### Modify
 
-- `src/components/layout/Sidebar.tsx` — add project-level rendering, accessibility updates
+- `src/components/layout/Sidebar.tsx` — add project-level rendering, accessibility updates, skeleton state
 - `src/components/layout/AppProviders.tsx` — wrap with LayoutProvider
 - `src/components/projects/ProjectLayout.tsx` — convert to thin client wrapper that syncs props to context
-- `src/app/projects/[id]/documents/[docId]/DocumentPageClient.tsx` — wrap with ProjectLayout to maintain sidebar context when viewing documents
+- `src/app/projects/[id]/documents/[docId]/page.tsx` — wrap with ProjectLayout (Server Component fetches data, passes to ProjectLayout)
 - `src/app/projects/[id]/vault/page.tsx` — ensure wrapped with ProjectLayout
 - `src/app/projects/[id]/citations/page.tsx` — ensure wrapped with ProjectLayout
+- `src/app/projects/[id]/edit/page.tsx` — wrap with ProjectLayout
+
+**Note:** All project route `page.tsx` files (Server Components) should wrap their content with `ProjectLayout`, passing the required props. This follows the Server/Client bridge pattern. Do not wrap Client Components directly—the wrapping happens at the page level.
 
 ### Delete
 
@@ -306,6 +334,8 @@ Routes to verify:
 - Navigate from projects list into a project → sidebar changes to project view
 - Navigate between projects → sidebar updates without flash
 - Navigate to document within project → sidebar stays in project view
+- Direct navigation to bookmarked project URL → sidebar shows skeleton, then project view (no app-level flash)
+- Rapid back/forward navigation → sidebar state remains consistent
 
 ## Styling
 
