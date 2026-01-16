@@ -1,5 +1,7 @@
-import { ReactNode } from 'react';
-import { ProjectSidebar } from './ProjectSidebar';
+'use client';
+
+import { useEffect, type ReactNode } from 'react';
+import { useLayoutContext } from '@/contexts/LayoutContext';
 
 interface Document {
   id: string;
@@ -15,16 +17,23 @@ interface ProjectLayoutProps {
   children: ReactNode;
 }
 
+/**
+ * Thin client wrapper that syncs project data to LayoutContext.
+ * Server pages pass project data as props, this component syncs to context.
+ * Sidebar reads from context to render project-level navigation.
+ */
 export function ProjectLayout({ projectId, projectTitle, documents, vaultItemCount, children }: ProjectLayoutProps) {
-  return (
-    <div data-testid="project-layout" className="flex min-h-screen bg-[var(--color-bg-primary)]">
-      <ProjectSidebar
-        projectId={projectId}
-        projectTitle={projectTitle}
-        documents={documents}
-        vaultItemCount={vaultItemCount}
-      />
-      <main className="flex-1 overflow-y-auto">{children}</main>
-    </div>
-  );
+  const { setProjectData } = useLayoutContext();
+
+  useEffect(() => {
+    setProjectData({ id: projectId, title: projectTitle, documents, vaultItemCount });
+
+    return () => {
+      // Only clear if we're still the active project (handles race conditions)
+      setProjectData((current) => (current?.id === projectId ? null : current));
+    };
+  }, [projectId, projectTitle, documents, vaultItemCount, setProjectData]);
+
+  // No longer renders sidebar - AppShell's Sidebar handles it via context
+  return <>{children}</>;
 }

@@ -1,71 +1,73 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@/test-utils/render';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import { ProjectLayout } from '../ProjectLayout';
 
-// Mock ProjectSidebar to isolate layout testing
-vi.mock('../ProjectSidebar', () => ({
-  ProjectSidebar: vi.fn(({ projectTitle }) => <nav data-testid="project-sidebar">{projectTitle}</nav>),
+// Mock the LayoutContext
+const mockSetProjectData = vi.fn();
+vi.mock('@/contexts/LayoutContext', () => ({
+  useLayoutContext: () => ({
+    projectData: null,
+    setProjectData: mockSetProjectData,
+  }),
 }));
 
-const defaultProps = {
-  projectId: 'project-1',
-  projectTitle: 'My Research Paper',
-  documents: [],
-  vaultItemCount: 5,
-};
-
 describe('ProjectLayout', () => {
-  it('renders sidebar and main content area', () => {
-    render(
-      <ProjectLayout {...defaultProps}>
-        <div data-testid="page-content">Page content</div>
-      </ProjectLayout>
-    );
-
-    expect(screen.getByTestId('project-sidebar')).toBeInTheDocument();
-    expect(screen.getByTestId('page-content')).toBeInTheDocument();
+  beforeEach(() => {
+    mockSetProjectData.mockClear();
   });
 
-  it('passes correct props to sidebar', async () => {
-    const { ProjectSidebar } = await import('../ProjectSidebar');
-    const mockedSidebar = vi.mocked(ProjectSidebar);
-
+  it('sets projectData on mount', () => {
     render(
-      <ProjectLayout {...defaultProps}>
+      <ProjectLayout
+        projectId="123"
+        projectTitle="Test Project"
+        documents={[{ id: 'd1', title: 'Doc 1', sort_order: 0 }]}
+        vaultItemCount={5}
+      >
         <div>Content</div>
       </ProjectLayout>
     );
 
-    expect(mockedSidebar).toHaveBeenCalledWith(
-      expect.objectContaining({
-        projectId: 'project-1',
-        projectTitle: 'My Research Paper',
-        vaultItemCount: 5,
-      }),
-      undefined
-    );
+    expect(mockSetProjectData).toHaveBeenCalledWith({
+      id: '123',
+      title: 'Test Project',
+      documents: [{ id: 'd1', title: 'Doc 1', sort_order: 0 }],
+      vaultItemCount: 5,
+    });
   });
 
-  it('renders with correct layout structure', () => {
-    render(
-      <ProjectLayout {...defaultProps}>
+  it('clears projectData on unmount using functional updater', () => {
+    const { unmount } = render(
+      <ProjectLayout projectId="123" projectTitle="Test Project" documents={[]} vaultItemCount={0}>
         <div>Content</div>
       </ProjectLayout>
     );
 
-    // Main container should use flexbox
-    const container = screen.getByTestId('project-layout');
-    expect(container).toHaveClass('flex');
+    mockSetProjectData.mockClear();
+    unmount();
+
+    // Should be called with a function (functional updater)
+    expect(mockSetProjectData).toHaveBeenCalledTimes(1);
+    const updaterFn = mockSetProjectData.mock.calls[0][0];
+    expect(typeof updaterFn).toBe('function');
+
+    // Function should clear only if projectId matches
+    expect(updaterFn({ id: '123', title: 'Test', documents: [], vaultItemCount: 0 })).toBeNull();
+    expect(updaterFn({ id: '456', title: 'Other', documents: [], vaultItemCount: 0 })).toEqual({
+      id: '456',
+      title: 'Other',
+      documents: [],
+      vaultItemCount: 0,
+    });
   });
 
-  it('main content area fills remaining width', () => {
+  it('renders children without additional wrapper', () => {
     render(
-      <ProjectLayout {...defaultProps}>
-        <div>Content</div>
+      <ProjectLayout projectId="123" projectTitle="Test Project" documents={[]} vaultItemCount={0}>
+        <div data-testid="child">Content</div>
       </ProjectLayout>
     );
 
-    const main = screen.getByRole('main');
-    expect(main).toHaveClass('flex-1');
+    expect(screen.getByTestId('child')).toBeInTheDocument();
   });
 });
