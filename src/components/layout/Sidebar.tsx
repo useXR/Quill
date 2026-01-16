@@ -1,9 +1,18 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FolderOpen, Archive, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  FolderOpen,
+  Archive,
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  ArrowLeft,
+  FileText,
+  FolderArchive,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useLayoutContext } from '@/contexts/LayoutContext';
 import { SidebarSkeleton } from './SidebarSkeleton';
@@ -71,14 +80,278 @@ function AppNavigation({ pathname, isCollapsed }: { pathname: string; isCollapse
 }
 
 /**
- * Project-level navigation component (placeholder).
- * Will be implemented in Task 6.
+ * Project-level navigation component.
+ * Shows back link, project title, documents list, vault, and citations.
  */
 function ProjectNavigation({ isCollapsed }: { isCollapsed: boolean }) {
-  // Placeholder - will be fully implemented in Task 6
+  const pathname = usePathname();
+  const { projectData } = useLayoutContext();
+  const [isDocumentsPopoverOpen, setIsDocumentsPopoverOpen] = useState(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  // Sort documents by sort_order
+  const sortedDocuments = useMemo(
+    () => [...(projectData?.documents ?? [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
+    [projectData?.documents]
+  );
+
+  // Active state detection
+  const projectId = projectData?.id;
+  const isDocumentsActive =
+    pathname === `/projects/${projectId}` || pathname.startsWith(`/projects/${projectId}/documents`);
+  const isVaultActive = pathname.startsWith(`/projects/${projectId}/vault`);
+  const isCitationsActive = pathname.startsWith(`/projects/${projectId}/citations`);
+
+  // Close popover on Escape or click outside
+  useEffect(() => {
+    if (!isDocumentsPopoverOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsDocumentsPopoverOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(e.target as Node) &&
+        triggerRef.current &&
+        !triggerRef.current.contains(e.target as Node)
+      ) {
+        setIsDocumentsPopoverOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDocumentsPopoverOpen]);
+
+  if (!projectData) return null;
+
   return (
-    <nav className="flex-1 py-4 px-2" role="navigation">
-      <div className={isCollapsed ? 'text-center' : ''}>{/* Project navigation will be added in Task 6 */}</div>
+    <nav className="flex-1 py-4 px-2 overflow-y-auto" role="navigation">
+      <div className="space-y-4">
+        {/* Back link */}
+        <Link
+          href="/projects"
+          className={`
+            flex items-center gap-2 min-h-[44px] px-3 rounded-lg
+            text-sm font-medium
+            text-ink-secondary hover:bg-surface-hover hover:text-ink-primary
+            transition-colors duration-150 motion-reduce:transition-none
+            focus:outline-none focus:ring-2 focus:ring-quill focus:ring-offset-2
+            ${isCollapsed ? 'justify-center' : ''}
+          `}
+          title={isCollapsed ? 'All Projects' : undefined}
+        >
+          <ArrowLeft className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+          {!isCollapsed && <span>All Projects</span>}
+        </Link>
+
+        {/* Project title */}
+        {!isCollapsed && (
+          <h2
+            className="
+              text-xs font-semibold uppercase tracking-wider
+              text-ink-secondary
+              px-3 mt-4
+            "
+          >
+            {projectData.title}
+          </h2>
+        )}
+
+        {/* Documents section */}
+        <div className="relative">
+          {isCollapsed ? (
+            <>
+              <button
+                ref={triggerRef}
+                type="button"
+                onClick={() => setIsDocumentsPopoverOpen(!isDocumentsPopoverOpen)}
+                aria-expanded={isDocumentsPopoverOpen}
+                aria-haspopup="true"
+                className={`
+                  flex items-center justify-center min-h-[44px] w-full px-3 rounded-lg
+                  text-sm font-medium
+                  transition-colors duration-150 motion-reduce:transition-none
+                  focus:outline-none focus:ring-2 focus:ring-quill focus:ring-offset-2
+                  ${
+                    isDocumentsActive
+                      ? 'bg-quill-light text-quill'
+                      : 'text-ink-secondary hover:bg-surface-hover hover:text-ink-primary'
+                  }
+                `}
+                title="Documents"
+              >
+                <FileText className="h-5 w-5" aria-hidden="true" />
+              </button>
+
+              {/* Documents popover */}
+              {isDocumentsPopoverOpen && (
+                <div
+                  ref={popoverRef}
+                  role="menu"
+                  className="
+                    absolute left-full top-0 ml-2 z-50
+                    w-56 bg-bg-primary border border-ink-faint/20 rounded-lg shadow-lg
+                    py-2
+                  "
+                >
+                  <Link
+                    href={`/projects/${projectId}`}
+                    role="menuitem"
+                    className="
+                      block px-4 py-2 text-sm font-medium
+                      text-ink-primary hover:bg-surface-hover
+                      transition-colors duration-150
+                    "
+                    onClick={() => setIsDocumentsPopoverOpen(false)}
+                  >
+                    Documents
+                  </Link>
+                  {sortedDocuments.length > 0 ? (
+                    <ul role="list" className="mt-1 border-t border-ink-faint/20 pt-1">
+                      {sortedDocuments.map((doc) => (
+                        <li key={doc.id}>
+                          <Link
+                            href={`/projects/${projectId}/documents/${doc.id}`}
+                            role="menuitem"
+                            className="
+                              block px-4 py-2 text-sm
+                              text-ink-secondary hover:text-ink-primary hover:bg-surface-hover
+                              transition-colors duration-150 truncate
+                            "
+                            title={doc.title}
+                            onClick={() => setIsDocumentsPopoverOpen(false)}
+                          >
+                            {doc.title}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="px-4 py-2 text-xs text-ink-secondary italic">No documents yet</p>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <Link
+                href={`/projects/${projectId}`}
+                aria-current={isDocumentsActive ? 'page' : undefined}
+                className={`
+                  flex items-center gap-2 min-h-[44px] px-3 rounded-lg
+                  text-sm font-medium
+                  transition-colors duration-150 motion-reduce:transition-none
+                  focus:outline-none focus:ring-2 focus:ring-quill focus:ring-offset-2
+                  ${
+                    isDocumentsActive
+                      ? 'bg-quill-light text-quill'
+                      : 'text-ink-secondary hover:bg-surface-hover hover:text-ink-primary'
+                  }
+                `}
+              >
+                <FileText className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+                <span>Documents</span>
+              </Link>
+
+              {/* Document list */}
+              {sortedDocuments.length > 0 ? (
+                <ul role="list" aria-label="Documents" className="mt-2 ml-4 space-y-1">
+                  {sortedDocuments.map((doc) => (
+                    <li key={doc.id}>
+                      <Link
+                        href={`/projects/${projectId}/documents/${doc.id}`}
+                        className="
+                          block px-3 py-2.5 rounded-md
+                          text-sm
+                          text-ink-secondary hover:text-ink-primary hover:bg-surface-hover
+                          transition-colors duration-150 motion-reduce:transition-none
+                          focus:outline-none focus:ring-2 focus:ring-quill focus:ring-offset-2
+                          truncate min-h-[44px] flex items-center
+                        "
+                        title={doc.title}
+                      >
+                        {doc.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 ml-4 px-3 text-xs text-ink-secondary italic">No documents yet</p>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Vault link */}
+        <Link
+          href={`/projects/${projectId}/vault`}
+          aria-current={isVaultActive ? 'page' : undefined}
+          className={`
+            flex items-center justify-between min-h-[44px] px-3 rounded-lg
+            text-sm font-medium
+            transition-colors duration-150 motion-reduce:transition-none
+            focus:outline-none focus:ring-2 focus:ring-quill focus:ring-offset-2
+            ${
+              isVaultActive
+                ? 'bg-quill-light text-quill'
+                : 'text-ink-secondary hover:bg-surface-hover hover:text-ink-primary'
+            }
+          `}
+          title={isCollapsed ? 'Vault' : undefined}
+        >
+          <span className={`flex items-center gap-2 ${isCollapsed ? 'justify-center w-full' : ''}`}>
+            <FolderArchive className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+            {!isCollapsed && <span>Vault</span>}
+          </span>
+          {!isCollapsed && projectData.vaultItemCount > 0 && (
+            <span
+              className="
+                px-2 py-0.5 rounded-full
+                text-xs font-medium
+                bg-ink-faint/20
+                text-ink-secondary
+              "
+              aria-label={`${projectData.vaultItemCount} items`}
+            >
+              {projectData.vaultItemCount}
+            </span>
+          )}
+        </Link>
+
+        {/* Citations link */}
+        <Link
+          href={`/projects/${projectId}/citations`}
+          aria-current={isCitationsActive ? 'page' : undefined}
+          className={`
+            flex items-center gap-2 min-h-[44px] px-3 rounded-lg
+            text-sm font-medium
+            transition-colors duration-150 motion-reduce:transition-none
+            focus:outline-none focus:ring-2 focus:ring-quill focus:ring-offset-2
+            ${
+              isCitationsActive
+                ? 'bg-quill-light text-quill'
+                : 'text-ink-secondary hover:bg-surface-hover hover:text-ink-primary'
+            }
+            ${isCollapsed ? 'justify-center' : ''}
+          `}
+          title={isCollapsed ? 'Citations' : undefined}
+        >
+          <BookOpen className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+          {!isCollapsed && <span>Citations</span>}
+        </Link>
+      </div>
     </nav>
   );
 }
