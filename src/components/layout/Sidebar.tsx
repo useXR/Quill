@@ -151,6 +151,7 @@ function ProjectNavigation({ isCollapsed }: { isCollapsed: boolean }) {
             ${isCollapsed ? 'justify-center' : ''}
           `}
           title={isCollapsed ? 'All Projects' : undefined}
+          data-testid="nav-back-to-projects"
         >
           <ArrowLeft className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
           {!isCollapsed && <span>All Projects</span>}
@@ -164,6 +165,7 @@ function ProjectNavigation({ isCollapsed }: { isCollapsed: boolean }) {
               text-ink-secondary
               px-3 mt-4
             "
+            data-testid="project-title"
           >
             {projectData.title}
           </h2>
@@ -260,6 +262,7 @@ function ProjectNavigation({ isCollapsed }: { isCollapsed: boolean }) {
                       : 'text-ink-secondary hover:bg-surface-hover hover:text-ink-primary'
                   }
                 `}
+                data-testid="nav-item-documents"
               >
                 <FileText className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
                 <span>Documents</span>
@@ -267,7 +270,7 @@ function ProjectNavigation({ isCollapsed }: { isCollapsed: boolean }) {
 
               {/* Document list */}
               {sortedDocuments.length > 0 ? (
-                <ul role="list" aria-label="Documents" className="mt-2 ml-4 space-y-1">
+                <ul role="list" aria-label="Documents" className="mt-2 ml-4 space-y-1" data-testid="document-list">
                   {sortedDocuments.map((doc) => (
                     <li key={doc.id}>
                       <Link
@@ -310,6 +313,7 @@ function ProjectNavigation({ isCollapsed }: { isCollapsed: boolean }) {
             }
           `}
           title={isCollapsed ? 'Vault' : undefined}
+          data-testid="nav-item-project-vault"
         >
           <span className={`flex items-center gap-2 ${isCollapsed ? 'justify-center w-full' : ''}`}>
             <FolderArchive className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
@@ -347,6 +351,7 @@ function ProjectNavigation({ isCollapsed }: { isCollapsed: boolean }) {
             ${isCollapsed ? 'justify-center' : ''}
           `}
           title={isCollapsed ? 'Citations' : undefined}
+          data-testid="nav-item-project-citations"
         >
           <BookOpen className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
           {!isCollapsed && <span>Citations</span>}
