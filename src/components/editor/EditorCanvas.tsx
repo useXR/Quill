@@ -34,10 +34,10 @@ export function EditorCanvas({ children }: EditorCanvasProps) {
     <div className="relative flex-1 flex flex-col overflow-hidden">
       {/* Scrolling container for canvas content */}
       <div className="flex-1 overflow-auto bg-[var(--color-canvas-bg)]">
-        <div className="min-h-full flex items-stretch justify-center py-8 px-4">
+        <div className="min-h-full flex items-start justify-center py-8 px-4">
           <div
             className="
-              w-full flex flex-col
+              w-full
               min-w-[var(--page-width-min)]
               max-w-[var(--page-width-max)]
             "
