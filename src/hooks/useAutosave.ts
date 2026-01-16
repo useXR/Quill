@@ -117,33 +117,37 @@ export function useAutosave({
       clearTimers();
 
       debounceTimerRef.current = setTimeout(() => {
-        if (isMountedRef.current && pendingContentRef.current !== null) {
-          performSave(pendingContentRef.current);
+        // Use performSaveRef.current to always get the latest performSave function
+        // This prevents stale closure issues when the user types while a save is in flight
+        if (isMountedRef.current && pendingContentRef.current !== null && performSaveRef.current) {
+          performSaveRef.current(pendingContentRef.current);
         }
       }, debounceMs);
     },
-    [debounceMs, clearTimers, performSave]
+    [debounceMs, clearTimers]
   );
 
   // Save immediately without debounce
   const saveNow = useCallback(async () => {
     clearTimers();
 
-    if (pendingContentRef.current === null) {
+    if (pendingContentRef.current === null || !performSaveRef.current) {
       return;
     }
 
-    await performSave(pendingContentRef.current);
-  }, [clearTimers, performSave]);
+    // Use performSaveRef.current for consistency with triggerSave
+    await performSaveRef.current(pendingContentRef.current);
+  }, [clearTimers]);
 
   // Handle window blur
   useEffect(() => {
     if (!saveOnBlur) return;
 
     const handleBlur = () => {
-      if (pendingContentRef.current !== null) {
+      // Use performSaveRef.current to always get the latest save function
+      if (pendingContentRef.current !== null && performSaveRef.current) {
         clearTimers();
-        performSave(pendingContentRef.current);
+        performSaveRef.current(pendingContentRef.current);
       }
     };
 
@@ -152,7 +156,7 @@ export function useAutosave({
     return () => {
       window.removeEventListener('blur', handleBlur);
     };
-  }, [saveOnBlur, clearTimers, performSave]);
+  }, [saveOnBlur, clearTimers]);
 
   // Cleanup on unmount
   useEffect(() => {

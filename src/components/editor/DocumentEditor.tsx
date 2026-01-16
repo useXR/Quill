@@ -91,9 +91,13 @@ export function DocumentEditor({
         const apiResponse = data as ApiResponse;
         // Handle version conflict
         if (response.status === 409 && apiResponse.code === 'CONFLICT') {
-          // Fetch the latest version to report the conflict
+          // Fetch the latest version to recover from conflict
           const latestResponse = await fetch(`/api/documents/${documentId}`);
           const latestDoc = (await latestResponse.json()) as Document;
+
+          // Update local version to server version so the next save attempt will succeed
+          // This allows the retry mechanism to work correctly
+          setVersion(latestDoc.version ?? 1);
 
           onConflict?.(latestDoc.version ?? 1, version);
           throw new Error('Version conflict: document was modified elsewhere');
