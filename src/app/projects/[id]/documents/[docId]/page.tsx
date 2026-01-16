@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { getProject, getDocument, ApiError } from '@/lib/api';
+import { getProject, getDocument, getDocuments, ApiError } from '@/lib/api';
+import { ProjectLayout } from '@/components/projects/ProjectLayout';
 import { DocumentPageClient } from './DocumentPageClient';
 
 export const dynamic = 'force-dynamic';
@@ -24,14 +25,31 @@ export default async function DocumentPage({ params }: DocumentPageProps) {
 
   let project;
   let document;
+  let documents;
 
   try {
-    [project, document] = await Promise.all([getProject(projectId), getDocument(docId)]);
+    [project, document, documents] = await Promise.all([
+      getProject(projectId),
+      getDocument(docId),
+      getDocuments(projectId),
+    ]);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
       notFound();
     }
     throw error;
+  }
+
+  // Get vault item count for sidebar (errors are non-fatal, default to 0)
+  const { count: vaultItemCount, error: vaultCountError } = await supabase
+    .from('vault_items')
+    .select('*', { count: 'exact', head: true })
+    .eq('project_id', projectId)
+    .eq('user_id', user.id)
+    .is('deleted_at', null);
+
+  if (vaultCountError) {
+    console.error('Failed to fetch vault item count:', vaultCountError);
   }
 
   // Verify document belongs to this project
@@ -40,7 +58,12 @@ export default async function DocumentPage({ params }: DocumentPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg-primary)]">
+    <ProjectLayout
+      projectId={projectId}
+      projectTitle={project.title}
+      documents={documents}
+      vaultItemCount={vaultItemCount || 0}
+    >
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}
         <nav className="flex mb-6" aria-label="Breadcrumb">
@@ -89,6 +112,6 @@ export default async function DocumentPage({ params }: DocumentPageProps) {
         {/* Document Editor with Chat and Diff integration */}
         <DocumentPageClient documentId={docId} projectId={projectId} document={document} />
       </div>
-    </div>
+    </ProjectLayout>
   );
 }

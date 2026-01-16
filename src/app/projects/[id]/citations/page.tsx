@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getCitations } from '@/lib/api/citations';
 import { BookMarked } from 'lucide-react';
+import { ProjectLayout } from '@/components/projects/ProjectLayout';
 import { CitationsClient } from './CitationsClient';
 
 interface CitationsPageProps {
@@ -33,6 +34,25 @@ export default async function CitationsPage({ params }: CitationsPageProps) {
     redirect('/projects');
   }
 
+  // Get documents for sidebar
+  const { data: documents } = await supabase
+    .from('documents')
+    .select('id, title, sort_order')
+    .eq('project_id', projectId)
+    .order('sort_order', { ascending: true });
+
+  // Get vault item count for sidebar (errors are non-fatal, default to 0)
+  const { count: vaultItemCount, error: vaultCountError } = await supabase
+    .from('vault_items')
+    .select('*', { count: 'exact', head: true })
+    .eq('project_id', projectId)
+    .eq('user_id', user.id)
+    .is('deleted_at', null);
+
+  if (vaultCountError) {
+    console.error('Failed to fetch vault item count:', vaultCountError);
+  }
+
   let citations: Awaited<ReturnType<typeof getCitations>> = [];
   try {
     citations = await getCitations(projectId);
@@ -42,19 +62,26 @@ export default async function CitationsPage({ params }: CitationsPageProps) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <header className="mb-8">
-        <div className="flex items-center gap-3">
-          <BookMarked className="h-8 w-8 text-quill" />
-          <div>
-            <h1 className="font-display text-2xl font-semibold text-ink-primary">Citations</h1>
-            <p className="font-ui text-sm text-ink-secondary mt-1">Manage citations for {project.title}</p>
+    <ProjectLayout
+      projectId={projectId}
+      projectTitle={project.title}
+      documents={documents || []}
+      vaultItemCount={vaultItemCount || 0}
+    >
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        <header className="mb-8">
+          <div className="flex items-center gap-3">
+            <BookMarked className="h-8 w-8 text-quill" />
+            <div>
+              <h1 className="font-display text-2xl font-semibold text-ink-primary">Citations</h1>
+              <p className="font-ui text-sm text-ink-secondary mt-1">Manage citations for {project.title}</p>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <CitationsClient projectId={projectId} initialCitations={citations} />
-    </div>
+        <CitationsClient projectId={projectId} initialCitations={citations} />
+      </div>
+    </ProjectLayout>
   );
 }
 

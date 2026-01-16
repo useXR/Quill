@@ -2,7 +2,8 @@ import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
-import { getProject, ApiError } from '@/lib/api';
+import { getProject, getDocuments, ApiError } from '@/lib/api';
+import { ProjectLayout } from '@/components/projects/ProjectLayout';
 import { EditProjectForm } from '@/components/projects/EditProjectForm';
 
 export const dynamic = 'force-dynamic';
@@ -24,8 +25,9 @@ export default async function EditProjectPage({ params }: EditProjectPageProps) 
   }
 
   let project;
+  let documents;
   try {
-    project = await getProject(id);
+    [project, documents] = await Promise.all([getProject(id), getDocuments(id)]);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
       notFound();
@@ -37,8 +39,25 @@ export default async function EditProjectPage({ params }: EditProjectPageProps) 
     notFound();
   }
 
+  // Get vault item count for sidebar (errors are non-fatal, default to 0)
+  const { count: vaultItemCount, error: vaultCountError } = await supabase
+    .from('vault_items')
+    .select('*', { count: 'exact', head: true })
+    .eq('project_id', id)
+    .eq('user_id', user.id)
+    .is('deleted_at', null);
+
+  if (vaultCountError) {
+    console.error('Failed to fetch vault item count:', vaultCountError);
+  }
+
   return (
-    <div className="min-h-screen bg-[var(--color-bg-primary)]">
+    <ProjectLayout
+      projectId={id}
+      projectTitle={project.title}
+      documents={documents}
+      vaultItemCount={vaultItemCount || 0}
+    >
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
         {/* Breadcrumb */}
         <nav className="flex mb-6" aria-label="Breadcrumb">
@@ -85,6 +104,6 @@ export default async function EditProjectPage({ params }: EditProjectPageProps) 
           <EditProjectForm project={project} />
         </div>
       </div>
-    </div>
+    </ProjectLayout>
   );
 }
