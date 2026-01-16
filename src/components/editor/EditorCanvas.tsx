@@ -3,6 +3,7 @@
 import { type ReactNode } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { useChat } from '@/contexts/ChatContext';
+import { PageEstimate } from './PageEstimate';
 
 interface EditorCanvasProps {
   children: ReactNode;
@@ -44,6 +45,11 @@ export function EditorCanvas({ children }: EditorCanvasProps) {
             {children}
           </div>
         </div>
+      </div>
+
+      {/* Page estimate - positioned above FAB */}
+      <div className="absolute right-6 bottom-20 z-40">
+        <PageEstimate />
       </div>
 
       {/* FAB - positioned OUTSIDE scroll container so it stays fixed when scrolling */}

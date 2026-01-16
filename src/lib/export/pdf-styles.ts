@@ -2,8 +2,8 @@
  * PDF Export Styles
  *
  * CSS styles for PDF document generation using Puppeteer.
- * Typography follows the design system:
- * - Body Font: Times New Roman, serif
+ * Typography matches the editor for accurate page count estimation:
+ * - Body Font: Libre Baskerville (same as editor)
  * - Font Size: 12pt body, 18pt/14pt/12pt heading hierarchy
  * - Line Height: 1.6
  * - Color: #000 for maximum print contrast
@@ -12,8 +12,10 @@
  */
 
 export const pdfStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
+
   body {
-    font-family: 'Times New Roman', serif;
+    font-family: 'Libre Baskerville', Georgia, serif;
     font-size: 12pt;
     line-height: 1.6;
     color: #000;
