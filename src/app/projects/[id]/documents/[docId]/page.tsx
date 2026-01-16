@@ -64,9 +64,12 @@ export default async function DocumentPage({ params }: DocumentPageProps) {
       documents={documents}
       vaultItemCount={vaultItemCount || 0}
     >
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Breadcrumb */}
-        <nav className="flex mb-6" aria-label="Breadcrumb">
+      <div className="flex flex-col h-full">
+        {/* Breadcrumb - sits above the canvas */}
+        <nav
+          className="flex px-4 py-3 bg-[var(--color-bg-primary)] border-b border-[var(--color-ink-faint)]"
+          aria-label="Breadcrumb"
+        >
           <ol className="flex items-center space-x-2">
             <li>
               <Link
@@ -109,8 +112,10 @@ export default async function DocumentPage({ params }: DocumentPageProps) {
           </ol>
         </nav>
 
-        {/* Document Editor with Chat and Diff integration */}
-        <DocumentPageClient documentId={docId} projectId={projectId} document={document} />
+        {/* Document Editor with Chat and Diff integration - fills remaining space */}
+        <div className="flex-1 min-h-0">
+          <DocumentPageClient documentId={docId} projectId={projectId} document={document} />
+        </div>
       </div>
     </ProjectLayout>
   );

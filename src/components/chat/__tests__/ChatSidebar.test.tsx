@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { ChatProvider } from '@/contexts/ChatContext';
+import { ChatProvider, useChat } from '@/contexts/ChatContext';
 import { ChatSidebar } from '../ChatSidebar';
+import { useEffect } from 'react';
 
 // Mock the useStreamingChat hook
 vi.mock('@/hooks/useStreamingChat', () => ({
@@ -21,6 +22,18 @@ global.fetch = mockFetch;
 // Mock scrollIntoView which is not available in jsdom
 Element.prototype.scrollIntoView = vi.fn();
 
+/**
+ * Helper component that opens the sidebar on mount.
+ * Used for tests that need to interact with the open sidebar.
+ */
+function OpenSidebarWrapper({ children }: { children: React.ReactNode }) {
+  const { dispatch } = useChat();
+  useEffect(() => {
+    dispatch({ type: 'OPEN_SIDEBAR' });
+  }, [dispatch]);
+  return <>{children}</>;
+}
+
 describe('ChatSidebar', () => {
   beforeEach(() => {
     mockFetch.mockReset();
@@ -35,27 +48,41 @@ describe('ChatSidebar', () => {
     return render(<ChatProvider>{ui}</ChatProvider>);
   };
 
-  describe('Toggle Behavior', () => {
-    it('should render toggle button when closed', () => {
+  /**
+   * Renders ChatSidebar with sidebar already open.
+   * The FAB toggle is now in EditorCanvas, so tests need sidebar pre-opened.
+   */
+  const renderWithOpenSidebar = () => {
+    return render(
+      <ChatProvider>
+        <OpenSidebarWrapper>
+          <ChatSidebar documentId="doc-1" projectId="proj-1" />
+        </OpenSidebarWrapper>
+      </ChatProvider>
+    );
+  };
+
+  describe('Sidebar State', () => {
+    it('should render collapsed state when sidebar is closed', () => {
       renderWithProvider(<ChatSidebar documentId="doc-1" projectId="proj-1" />);
-      expect(screen.getByTestId('chat-sidebar-toggle')).toBeInTheDocument();
+      // When closed, the wrapper has w-0 and aria-hidden="true"
+      const wrapper = screen.getByTestId('chat-sidebar-wrapper');
+      expect(wrapper).toHaveAttribute('aria-hidden', 'true');
       expect(screen.queryByTestId('chat-sidebar')).not.toBeInTheDocument();
     });
 
-    it('should open sidebar when toggle clicked', () => {
-      renderWithProvider(<ChatSidebar documentId="doc-1" projectId="proj-1" />);
-      fireEvent.click(screen.getByTestId('chat-sidebar-toggle'));
+    it('should render expanded state when sidebar is open', () => {
+      renderWithOpenSidebar();
+      const wrapper = screen.getByTestId('chat-sidebar-wrapper');
+      expect(wrapper).toHaveAttribute('aria-hidden', 'false');
       expect(screen.getByTestId('chat-sidebar')).toBeInTheDocument();
     });
 
     it('should close sidebar when close button clicked', () => {
-      renderWithProvider(<ChatSidebar documentId="doc-1" projectId="proj-1" />);
-
-      // Open sidebar
-      fireEvent.click(screen.getByTestId('chat-sidebar-toggle'));
+      renderWithOpenSidebar();
       expect(screen.getByTestId('chat-sidebar')).toBeInTheDocument();
 
-      // Close sidebar (toggle button is also in the header when open)
+      // Close sidebar via close button in header
       const closeButton = screen.getByLabelText('Close chat sidebar');
       fireEvent.click(closeButton);
       expect(screen.queryByTestId('chat-sidebar')).not.toBeInTheDocument();
@@ -64,37 +91,32 @@ describe('ChatSidebar', () => {
 
   describe('Empty State', () => {
     it('should show empty state when no messages', () => {
-      renderWithProvider(<ChatSidebar documentId="doc-1" projectId="proj-1" />);
-      fireEvent.click(screen.getByTestId('chat-sidebar-toggle'));
+      renderWithOpenSidebar();
       expect(screen.getByText(/Start a conversation/)).toBeInTheDocument();
     });
   });
 
   describe('Header', () => {
     it('should display Document Chat title', () => {
-      renderWithProvider(<ChatSidebar documentId="doc-1" projectId="proj-1" />);
-      fireEvent.click(screen.getByTestId('chat-sidebar-toggle'));
+      renderWithOpenSidebar();
       expect(screen.getByText('Document Chat')).toBeInTheDocument();
     });
 
     it('should have clear history button', () => {
-      renderWithProvider(<ChatSidebar documentId="doc-1" projectId="proj-1" />);
-      fireEvent.click(screen.getByTestId('chat-sidebar-toggle'));
+      renderWithOpenSidebar();
       expect(screen.getByTestId('chat-clear-history')).toBeInTheDocument();
     });
   });
 
   describe('Clear History', () => {
     it('should show confirm dialog when clear button clicked', () => {
-      renderWithProvider(<ChatSidebar documentId="doc-1" projectId="proj-1" />);
-      fireEvent.click(screen.getByTestId('chat-sidebar-toggle'));
+      renderWithOpenSidebar();
       fireEvent.click(screen.getByTestId('chat-clear-history'));
       expect(screen.getByText('Clear Chat History')).toBeInTheDocument();
     });
 
     it('should close dialog when cancelled', () => {
-      renderWithProvider(<ChatSidebar documentId="doc-1" projectId="proj-1" />);
-      fireEvent.click(screen.getByTestId('chat-sidebar-toggle'));
+      renderWithOpenSidebar();
       fireEvent.click(screen.getByTestId('chat-clear-history'));
 
       fireEvent.click(screen.getByTestId('confirm-cancel'));
@@ -102,8 +124,7 @@ describe('ChatSidebar', () => {
     });
 
     it('should call clear history API when confirmed', async () => {
-      renderWithProvider(<ChatSidebar documentId="doc-1" projectId="proj-1" />);
-      fireEvent.click(screen.getByTestId('chat-sidebar-toggle'));
+      renderWithOpenSidebar();
       fireEvent.click(screen.getByTestId('chat-clear-history'));
 
       fireEvent.click(screen.getByTestId('confirm-confirm'));
@@ -120,42 +141,37 @@ describe('ChatSidebar', () => {
 
   describe('Chat Input', () => {
     it('should render chat input when sidebar is open', () => {
-      renderWithProvider(<ChatSidebar documentId="doc-1" projectId="proj-1" />);
-      fireEvent.click(screen.getByTestId('chat-sidebar-toggle'));
+      renderWithOpenSidebar();
       expect(screen.getByTestId('chat-input')).toBeInTheDocument();
     });
 
     it('should render send button when sidebar is open', () => {
-      renderWithProvider(<ChatSidebar documentId="doc-1" projectId="proj-1" />);
-      fireEvent.click(screen.getByTestId('chat-sidebar-toggle'));
+      renderWithOpenSidebar();
       expect(screen.getByTestId('chat-send-button')).toBeInTheDocument();
     });
   });
 
   describe('Accessibility', () => {
-    it('should have accessible toggle button', () => {
+    it('should have proper aria-label on wrapper', () => {
       renderWithProvider(<ChatSidebar documentId="doc-1" projectId="proj-1" />);
-      const toggle = screen.getByTestId('chat-sidebar-toggle');
-      expect(toggle).toHaveAttribute('aria-label', 'Open chat sidebar');
+      const wrapper = screen.getByTestId('chat-sidebar-wrapper');
+      expect(wrapper).toHaveAttribute('aria-label', 'Document chat');
     });
 
     it('should have accessible close button when open', () => {
-      renderWithProvider(<ChatSidebar documentId="doc-1" projectId="proj-1" />);
-      fireEvent.click(screen.getByTestId('chat-sidebar-toggle'));
+      renderWithOpenSidebar();
       expect(screen.getByLabelText('Close chat sidebar')).toBeInTheDocument();
     });
 
     it('should have accessible clear history button', () => {
-      renderWithProvider(<ChatSidebar documentId="doc-1" projectId="proj-1" />);
-      fireEvent.click(screen.getByTestId('chat-sidebar-toggle'));
+      renderWithOpenSidebar();
       expect(screen.getByLabelText('Clear chat history')).toBeInTheDocument();
     });
   });
 
   describe('Loading States', () => {
     it('should render message list container', () => {
-      renderWithProvider(<ChatSidebar documentId="doc-1" projectId="proj-1" />);
-      fireEvent.click(screen.getByTestId('chat-sidebar-toggle'));
+      renderWithOpenSidebar();
       expect(screen.getByTestId('chat-message-list')).toBeInTheDocument();
     });
   });

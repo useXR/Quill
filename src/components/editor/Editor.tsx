@@ -166,7 +166,7 @@ export function Editor({
   return (
     <div
       data-testid="document-editor"
-      className="border border-[var(--color-ink-faint)] rounded-[var(--radius-xl)] bg-[var(--color-surface)] shadow-[var(--shadow-warm-md)] overflow-hidden"
+      className="bg-[var(--color-surface)] rounded-[var(--radius-xl)] shadow-[var(--shadow-warm-lg)] overflow-hidden"
     >
       {showToolbar && <Toolbar editor={editor} documentId={documentId} documentTitle={documentTitle} />}
       <div className="bg-[var(--color-editor-bg)] relative">

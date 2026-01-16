@@ -63,6 +63,12 @@
   --color-editor-highlight: #fef3c7;
   --color-editor-link: #7c3aed;
 
+  /* ===== CANVAS (Page-on-Canvas Layout) ===== */
+  --color-canvas-bg: #e8e6e3;
+  --page-width-min: 650px;
+  --page-width-max: 850px;
+  --page-margin-x: 64px;
+
   /* ===== OVERLAY ===== */
   --color-overlay: rgba(28, 25, 23, 0.5);
   --color-overlay-light: rgba(28, 25, 23, 0.2);
@@ -162,6 +168,8 @@
 
     --color-editor-bg: #1c1917;
     --color-editor-selection: #2e1065;
+
+    --color-canvas-bg: #292524;
   }
 }
 

@@ -191,13 +191,15 @@ describe('Editor', () => {
   });
 
   describe('Editor Container', () => {
-    it('should render within a bordered container', async () => {
+    it('should render within a styled container', async () => {
       render(<Editor />);
 
       await waitFor(() => {
-        const textbox = screen.getByRole('textbox');
-        const container = textbox.closest('.border');
+        // Editor is wrapped in a container with shadow and rounded corners
+        // (border was removed when page-on-canvas layout was added)
+        const container = screen.getByTestId('document-editor');
         expect(container).toBeInTheDocument();
+        expect(container).toHaveClass('rounded-[var(--radius-xl)]');
       });
     });
   });

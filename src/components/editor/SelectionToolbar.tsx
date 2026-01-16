@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useEffect, KeyboardEvent } from 'react';
+import { useCallback, useRef, useEffect, useLayoutEffect, useState, KeyboardEvent, CSSProperties } from 'react';
 import type { Editor } from '@tiptap/react';
 import { useAIStore } from '@/lib/stores/ai-store';
 import { useAIStream } from '@/hooks/useAIStream';
@@ -74,6 +74,7 @@ SIMPLIFIED VERSION:`,
 export function SelectionToolbar({ editor, selection, projectId, documentId }: SelectionToolbarProps) {
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const focusedIndexRef = useRef(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const store = useAIStore();
   const { startStream, cancel } = useAIStream({
@@ -189,6 +190,45 @@ export function SelectionToolbar({ editor, selection, projectId, documentId }: S
     focusedIndexRef.current = index;
   }, []);
 
+  // Position style state - updated via useLayoutEffect for DOM measurement
+  // This is a legitimate use case for setState in useLayoutEffect (measuring before paint)
+  const [positionStyle, setPositionStyle] = useState<CSSProperties>({ position: 'absolute' });
+
+  // Calculate position after mount when we can measure the parent element
+  // Using useLayoutEffect to measure before paint - this is the correct pattern for
+  // DOM measurement that needs to complete before the browser paints
+  useLayoutEffect(() => {
+    if (!selection?.rect) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- DOM measurement requires setState in useLayoutEffect
+      setPositionStyle({ position: 'absolute' });
+      return;
+    }
+
+    const editorElement = containerRef.current?.parentElement;
+    let newTop: number;
+    let newLeft: number;
+
+    if (!editorElement) {
+      // Fallback: use selection coordinates directly
+      newTop = selection.rect.top - 50;
+      newLeft = selection.rect.left;
+    } else {
+      // Get the positioned ancestor's bounding rect
+      // The toolbar is rendered inside a div with position: relative in Editor.tsx
+      const editorRect = editorElement.getBoundingClientRect();
+
+      // Convert viewport coords to element-relative coords
+      newTop = selection.rect.top - editorRect.top - 50;
+      newLeft = selection.rect.left - editorRect.left;
+    }
+
+    setPositionStyle({
+      position: 'absolute',
+      top: `${newTop}px`,
+      left: `${newLeft}px`,
+    });
+  }, [selection?.rect]);
+
   // Global escape key handler
   useEffect(() => {
     const handleGlobalKeyDown = (e: globalThis.KeyboardEvent) => {
@@ -206,21 +246,13 @@ export function SelectionToolbar({ editor, selection, projectId, documentId }: S
     return null;
   }
 
-  // Calculate position based on selection rect
-  const style = selection.rect
-    ? {
-        position: 'absolute' as const,
-        top: `${selection.rect.top - 50}px`,
-        left: `${selection.rect.left}px`,
-      }
-    : { position: 'absolute' as const };
-
   return (
     <div
+      ref={containerRef}
       role="toolbar"
       aria-label="Text formatting actions"
       aria-orientation="horizontal"
-      style={style}
+      style={positionStyle}
       className="flex items-center gap-1 rounded-lg bg-white p-2 shadow-lg border border-gray-200"
       onKeyDown={handleKeyDown}
     >
