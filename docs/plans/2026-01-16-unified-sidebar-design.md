@@ -37,15 +37,27 @@ Reads project data from a layout context when in project view.
 ### New LayoutContext
 
 ```typescript
-interface LayoutContextValue {
-  projectData: {
-    id: string;
-    title: string;
-    documents: { id: string; title: string; sort_order: number | null }[];
-    vaultItemCount: number;
-  } | null;
-  setProjectData: (data: ProjectData | null) => void;
+export interface ProjectData {
+  id: string;
+  title: string;
+  documents: { id: string; title: string; sort_order: number | null }[];
+  vaultItemCount: number;
 }
+
+interface LayoutContextValue {
+  projectData: ProjectData | null;
+  setProjectData: React.Dispatch<React.SetStateAction<ProjectData | null>>;
+}
+```
+
+**Implementation note:** The `setProjectData` uses React's `Dispatch<SetStateAction<T>>` type to support both direct values and functional updaters. The context must wrap the setter in `useCallback` to ensure referential stability:
+
+```typescript
+const [projectData, setProjectDataState] = useState<ProjectData | null>(null);
+const setProjectData = useCallback<React.Dispatch<React.SetStateAction<ProjectData | null>>>(
+  (action) => setProjectDataState(action),
+  []
+);
 ```
 
 ### Server/Client Bridge Pattern
@@ -76,12 +88,25 @@ export function ProjectLayout({ projectId, projectTitle, documents, vaultItemCou
 
 ### Data Flow
 
-1. `AppProviders` wraps with `LayoutProvider`
+1. `AppProviders` wraps `AppShell` with `LayoutProvider` (provider must be outside `AppShell` since `Sidebar` is inside it)
 2. Server page fetches project data, passes to `ProjectLayout` as props
 3. `ProjectLayout` (client) syncs props to context on mount
 4. `Sidebar` consumes context to read `projectData`
 5. `projectData === null` → app-level view
 6. `projectData !== null` → project-level view
+
+```tsx
+// src/components/layout/AppProviders.tsx
+export function AppProviders({ children }: AppProvidersProps) {
+  return (
+    <LayoutProvider>
+      <AppShell>{children}</AppShell>
+      <ToastContainer />
+      <CommandPalette />
+    </LayoutProvider>
+  );
+}
+```
 
 ### Navigation Race Condition Handling
 
@@ -142,9 +167,10 @@ Follow `UserMenu.tsx` pattern for accessibility:
 Required behaviors:
 
 - Escape key closes popover
-- Arrow keys navigate document list
+- Arrow keys navigate document list (use roving tabindex pattern)
 - Focus trapped within popover while open
 - Focus returns to trigger on close
+- Click outside closes popover
 
 ## Accessibility Requirements
 
@@ -219,6 +245,18 @@ When documents are created/deleted within a project:
 
 If project data fails to load, the page handles errors (existing pattern). Sidebar simply shows app-level view when `projectData` is null.
 
+### All Project Routes Must Use ProjectLayout
+
+**Critical:** Every route under `/projects/[id]/*` must wrap its content with `ProjectLayout` and pass the required props. If a route doesn't use `ProjectLayout`, navigating to that route will clear `projectData` (via unmount cleanup from the previous route), causing the sidebar to flash back to app-level view.
+
+Routes to verify:
+
+- `/projects/[id]/page.tsx` — already uses ProjectLayout ✓
+- `/projects/[id]/documents/[docId]/*` — needs ProjectLayout wrapper
+- `/projects/[id]/vault/page.tsx` — needs verification
+- `/projects/[id]/citations/page.tsx` — needs verification
+- `/projects/[id]/edit/page.tsx` — needs verification
+
 ## File Changes
 
 ### Create
@@ -230,6 +268,9 @@ If project data fails to load, the page handles errors (existing pattern). Sideb
 - `src/components/layout/Sidebar.tsx` — add project-level rendering, accessibility updates
 - `src/components/layout/AppProviders.tsx` — wrap with LayoutProvider
 - `src/components/projects/ProjectLayout.tsx` — convert to thin client wrapper that syncs props to context
+- `src/app/projects/[id]/documents/[docId]/DocumentPageClient.tsx` — wrap with ProjectLayout to maintain sidebar context when viewing documents
+- `src/app/projects/[id]/vault/page.tsx` — ensure wrapped with ProjectLayout
+- `src/app/projects/[id]/citations/page.tsx` — ensure wrapped with ProjectLayout
 
 ### Delete
 
@@ -238,10 +279,33 @@ If project data fails to load, the page handles errors (existing pattern). Sideb
 
 ### Test Updates
 
-- Update Sidebar tests for both app-level and project-level views
-- Add tests for collapsed popover accessibility
-- Add tests for focus management on context change
-- Update ProjectLayout tests for context integration
+**Sidebar tests:**
+
+- App-level view renders Projects, Vault, Citations links
+- Project-level view renders back link, project title, documents, Vault, Citations
+- Collapsed state shows icons only
+- Documents popover opens/closes correctly
+- Popover keyboard navigation (Escape, arrow keys)
+- Dynamic aria-label updates based on context
+- aria-live announces context changes
+
+**LayoutContext tests:**
+
+- Context provides projectData and setProjectData
+- Functional updater works correctly
+- setProjectData is referentially stable
+
+**ProjectLayout tests:**
+
+- Sets projectData on mount
+- Clears projectData on unmount (only if still active project)
+- Updates projectData when props change
+
+**Integration tests (E2E):**
+
+- Navigate from projects list into a project → sidebar changes to project view
+- Navigate between projects → sidebar updates without flash
+- Navigate to document within project → sidebar stays in project view
 
 ## Styling
 
