@@ -37,9 +37,10 @@ describe('Sidebar - App Level View', () => {
   it('renders app-level navigation when projectData is null', () => {
     render(<Sidebar />);
 
+    // App-level only shows Projects (Vault and Citations are project-scoped)
     expect(screen.getByTestId('nav-item-projects')).toBeInTheDocument();
-    expect(screen.getByTestId('nav-item-vault')).toBeInTheDocument();
-    expect(screen.getByTestId('nav-item-citations')).toBeInTheDocument();
+    expect(screen.queryByTestId('nav-item-vault')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('nav-item-citations')).not.toBeInTheDocument();
   });
 
   it('has correct aria-label for app-level view', () => {

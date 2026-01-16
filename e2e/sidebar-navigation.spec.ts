@@ -2,8 +2,8 @@
  * E2E Tests for Unified Sidebar Navigation.
  *
  * Tests the unified sidebar's context-aware behavior:
- * - App-level navigation (Projects, Vault, Citations) when on projects list
- * - Project-level navigation when inside a project
+ * - App-level navigation (Projects only) when on projects list
+ * - Project-level navigation (documents, vault, citations) when inside a project
  * - Transitions between app and project navigation modes
  *
  * Uses the Phase 0 E2E infrastructure with authenticated storage state.
@@ -123,28 +123,9 @@ test.describe('Unified Sidebar Navigation', () => {
       await appShell.goto('/projects');
       await appShell.waitForReady();
 
+      // App-level only shows Projects (Vault and Citations are project-scoped)
       await expect(appShell.sidebar).toHaveAttribute('aria-label', 'Main navigation');
       await expect(appShell.navProjectsLink).toBeVisible(VISIBILITY_WAIT);
-      await expect(appShell.navVaultLink).toBeVisible(VISIBILITY_WAIT);
-      await expect(appShell.navCitationsLink).toBeVisible(VISIBILITY_WAIT);
-    });
-
-    test('shows app-level navigation on global vault page', async ({ page }) => {
-      await appShell.goto('/vault');
-      await appShell.waitForReady();
-
-      await expect(appShell.sidebar).toHaveAttribute('aria-label', 'Main navigation');
-      await expect(appShell.navProjectsLink).toBeVisible(VISIBILITY_WAIT);
-      await expect(appShell.navVaultLink).toBeVisible(VISIBILITY_WAIT);
-      await expect(appShell.navCitationsLink).toBeVisible(VISIBILITY_WAIT);
-    });
-
-    test('shows app-level navigation on global citations page', async ({ page }) => {
-      await appShell.goto('/citations');
-      await appShell.waitForReady();
-
-      await expect(appShell.sidebar).toHaveAttribute('aria-label', 'Main navigation');
-      await expect(appShell.navCitationsLink).toBeVisible(VISIBILITY_WAIT);
     });
 
     test('highlights active navigation item on projects page', async ({ page }) => {
@@ -153,29 +134,6 @@ test.describe('Unified Sidebar Navigation', () => {
 
       const isProjectsActive = await appShell.isNavItemActive('projects');
       expect(isProjectsActive).toBe(true);
-
-      const isVaultActive = await appShell.isNavItemActive('vault');
-      expect(isVaultActive).toBe(false);
-    });
-
-    test('navigates between app-level sections', async ({ page }) => {
-      await appShell.goto('/projects');
-      await appShell.waitForReady();
-
-      // Navigate to vault
-      await appShell.navigateViaSidebar('vault');
-      await page.waitForLoadState('networkidle');
-      expect(page.url()).toContain('/vault');
-
-      // Navigate to citations
-      await appShell.navigateViaSidebar('citations');
-      await page.waitForLoadState('networkidle');
-      expect(page.url()).toContain('/citations');
-
-      // Navigate back to projects
-      await appShell.navigateViaSidebar('projects');
-      await page.waitForLoadState('networkidle');
-      expect(page.url()).toContain('/projects');
     });
   });
 

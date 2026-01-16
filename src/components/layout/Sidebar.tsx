@@ -23,11 +23,8 @@ export interface NavItem {
   label: string;
 }
 
-export const navItems: NavItem[] = [
-  { href: '/projects', icon: FolderOpen, label: 'Projects' },
-  { href: '/vault', icon: Archive, label: 'Vault' },
-  { href: '/citations', icon: BookOpen, label: 'Citations' },
-];
+// App-level navigation only shows Projects (Vault and Citations are project-scoped)
+export const navItems: NavItem[] = [{ href: '/projects', icon: FolderOpen, label: 'Projects' }];
 
 export interface SidebarProps {
   /** Whether sidebar is collapsed (icons only) */
