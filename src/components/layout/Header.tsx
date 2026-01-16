@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Menu } from 'lucide-react';
 import { UserMenu } from './UserMenu';
+import { ThemeToggle } from './ThemeToggle';
 
 export interface HeaderProps {
   /** Whether the mobile hamburger menu is visible */
@@ -49,8 +50,9 @@ export function Header({ isMobile = false, onMenuClick }: HeaderProps) {
         </Link>
       </div>
 
-      {/* Right side: user menu */}
-      <div className="flex items-center">
+      {/* Right side: theme toggle + user menu */}
+      <div className="flex items-center gap-1">
+        <ThemeToggle />
         <UserMenu />
       </div>
     </header>

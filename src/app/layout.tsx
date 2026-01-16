@@ -1,7 +1,18 @@
 import type { Metadata } from 'next';
 import { Libre_Baskerville, Source_Sans_3, JetBrains_Mono } from 'next/font/google';
 import { AuthProvider } from '@/contexts/auth';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import './globals.css';
+
+// Inline script to prevent flash of wrong theme
+const themeScript = `
+(function() {
+  const saved = localStorage.getItem('theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = saved === 'dark' || (saved !== 'light' && saved !== 'system' && prefersDark) || (saved === 'system' && prefersDark) ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+`;
 
 const libreBaskerville = Libre_Baskerville({
   subsets: ['latin'],
@@ -36,9 +47,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className={`${libreBaskerville.variable} ${sourceSans.variable} ${jetbrainsMono.variable} antialiased`}>
-        <AuthProvider>{children}</AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

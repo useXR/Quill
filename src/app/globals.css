@@ -111,10 +111,8 @@
     color-scheme: light;
   }
 
-  @media (prefers-color-scheme: dark) {
-    html {
-      color-scheme: dark;
-    }
+  html[data-theme='dark'] {
+    color-scheme: dark;
   }
 
   body {
@@ -127,50 +125,48 @@
 }
 
 /* Dark mode overrides */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg-primary: #1c1917;
-    --color-bg-secondary: #292524;
-    --color-bg-tertiary: #44403c;
+[data-theme='dark'] {
+  --color-bg-primary: #1c1917;
+  --color-bg-secondary: #292524;
+  --color-bg-tertiary: #44403c;
 
-    --color-surface: #292524;
-    --color-surface-muted: #1c1917;
-    --color-surface-hover: #44403c;
-    --color-surface-active: #57534e;
+  --color-surface: #292524;
+  --color-surface-muted: #1c1917;
+  --color-surface-hover: #44403c;
+  --color-surface-active: #57534e;
 
-    --color-ink-primary: #fafaf9;
-    --color-ink-secondary: #d6d3d1;
-    --color-ink-tertiary: #a8a29e;
-    --color-ink-subtle: #78716c;
-    --color-ink-faint: #44403c;
+  --color-ink-primary: #fafaf9;
+  --color-ink-secondary: #d6d3d1;
+  --color-ink-tertiary: #a8a29e;
+  --color-ink-subtle: #78716c;
+  --color-ink-faint: #44403c;
 
-    --color-quill: #a78bfa;
-    --color-quill-dark: #8b5cf6;
-    --color-quill-darker: #7c3aed;
-    --color-quill-light: #2e1065;
-    --color-quill-lighter: #1e1033;
+  --color-quill: #a78bfa;
+  --color-quill-dark: #8b5cf6;
+  --color-quill-darker: #7c3aed;
+  --color-quill-light: #2e1065;
+  --color-quill-lighter: #1e1033;
 
-    --color-success: #4ade80;
-    --color-success-light: #14532d;
-    --color-success-dark: #86efac;
+  --color-success: #4ade80;
+  --color-success-light: #14532d;
+  --color-success-dark: #86efac;
 
-    --color-warning: #fbbf24;
-    --color-warning-light: #78350f;
-    --color-warning-dark: #fcd34d;
+  --color-warning: #fbbf24;
+  --color-warning-light: #78350f;
+  --color-warning-dark: #fcd34d;
 
-    --color-error: #f87171;
-    --color-error-light: #7f1d1d;
-    --color-error-dark: #fca5a5;
+  --color-error: #f87171;
+  --color-error-light: #7f1d1d;
+  --color-error-dark: #fca5a5;
 
-    --color-info: #60a5fa;
-    --color-info-light: #1e3a8a;
-    --color-info-dark: #93c5fd;
+  --color-info: #60a5fa;
+  --color-info-light: #1e3a8a;
+  --color-info-dark: #93c5fd;
 
-    --color-editor-bg: #1c1917;
-    --color-editor-selection: #2e1065;
+  --color-editor-bg: #1c1917;
+  --color-editor-selection: #2e1065;
 
-    --color-canvas-bg: #292524;
-  }
+  --color-canvas-bg: #292524;
 }
 
 @utility text-balance {

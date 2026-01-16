@@ -3,6 +3,7 @@ export { UserMenu } from './UserMenu';
 export type { UserMenuProps } from './UserMenu';
 export { Header } from './Header';
 export type { HeaderProps } from './Header';
+export { ThemeToggle } from './ThemeToggle';
 export { Sidebar, navItems } from './Sidebar';
 export type { SidebarProps, NavItem } from './Sidebar';
 export { SidebarSkeleton } from './SidebarSkeleton';
