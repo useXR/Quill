@@ -40,3 +40,6 @@ global.IntersectionObserver = class IntersectionObserver {
     return [];
   }
 } as unknown as typeof IntersectionObserver;
+
+// Mock Element.scrollIntoView (not available in jsdom)
+Element.prototype.scrollIntoView = vi.fn();
