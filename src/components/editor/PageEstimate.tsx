@@ -3,32 +3,68 @@
 import { useState, useEffect, useRef } from 'react';
 import { FileText } from 'lucide-react';
 import { useDocumentEditorSafe } from '@/contexts/DocumentEditorContext';
-import { PAGE } from '@/lib/constants';
+
+// Estimated words per page for US Letter, 12pt Libre Baskerville, 1.6 line height, 1" margins
+// Based on ~60 chars/line, ~50 lines/page = ~3000 chars = ~500-550 words
+const WORDS_PER_PAGE = 500;
 
 /**
- * Displays an estimated page count based on editor content height.
- * Uses US Letter page dimensions with 1" margins to calculate.
+ * Displays an estimated page count based on word count.
+ * Uses typical US Letter page density for 12pt serif font.
  */
 export function PageEstimate() {
   const context = useDocumentEditorSafe();
   const [pageCount, setPageCount] = useState(1);
+  const [editorReady, setEditorReady] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pollRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Poll for editor availability since refs don't trigger re-renders
   useEffect(() => {
-    const editor = context?.editorRef.current;
+    if (!context) return;
+
+    const checkEditor = () => {
+      const editor = context.editorRef.current;
+      if (editor?.view?.dom) {
+        setEditorReady(true);
+        if (pollRef.current) {
+          clearInterval(pollRef.current);
+          pollRef.current = null;
+        }
+      }
+    };
+
+    // Check immediately
+    checkEditor();
+
+    // Poll every 100ms until editor is ready
+    if (!editorReady) {
+      pollRef.current = setInterval(checkEditor, 100);
+    }
+
+    return () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+      }
+    };
+  }, [context, editorReady]);
+
+  // Set up listeners once editor is ready
+  useEffect(() => {
+    if (!editorReady || !context) return;
+
+    const editor = context.editorRef.current;
     if (!editor) return;
 
     const calculatePageCount = () => {
-      const dom = editor.view?.dom;
-      if (!dom) return;
-
-      const contentHeight = dom.scrollHeight;
-      const estimated = Math.max(1, Math.ceil(contentHeight / PAGE.CONTENT_HEIGHT_PX));
+      const text = editor.getText();
+      const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
+      const estimated = Math.max(1, Math.ceil(wordCount / WORDS_PER_PAGE));
       setPageCount(estimated);
     };
 
-    // Calculate after a small delay to ensure DOM is ready
-    const initialTimeout = setTimeout(calculatePageCount, 100);
+    // Calculate initial page count
+    const initialTimeout = setTimeout(calculatePageCount, 50);
 
     // Listen for editor updates with debounce
     const handleUpdate = () => {
@@ -40,18 +76,14 @@ export function PageEstimate() {
 
     editor.on('update', handleUpdate);
 
-    // Also recalculate on window resize (affects content reflow)
-    window.addEventListener('resize', handleUpdate);
-
     return () => {
       clearTimeout(initialTimeout);
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
       editor.off('update', handleUpdate);
-      window.removeEventListener('resize', handleUpdate);
     };
-  }, [context?.editorRef]);
+  }, [editorReady, context]);
 
   // Don't render if no editor context
   if (!context) return null;
@@ -66,7 +98,7 @@ export function PageEstimate() {
         text-ink-secondary text-sm
         select-none
       "
-      title={`Estimated ${pageCount} page${pageCount !== 1 ? 's' : ''} when exported to PDF (US Letter, 1" margins)`}
+      title={`Estimated ${pageCount} page${pageCount !== 1 ? 's' : ''} when exported to PDF (US Letter, 1" margins, ~${WORDS_PER_PAGE} words/page)`}
       data-testid="page-estimate"
     >
       <FileText className="h-4 w-4" aria-hidden="true" />
