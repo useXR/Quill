@@ -422,3 +422,140 @@ export function createMockSearchResponse(
     data: papers,
   };
 }
+
+// ============================================
+// Export Factories
+// ============================================
+
+export interface ExportOptions {
+  documentId: string;
+  includeTitle?: boolean;
+  pageSize?: 'letter' | 'a4';
+  format?: 'letter' | 'a4';
+  includePageNumbers?: boolean;
+}
+
+export interface ExportResult {
+  success: boolean;
+  buffer?: Buffer;
+  filename?: string;
+  contentType?: string;
+  error?: string;
+}
+
+/**
+ * Create mock DOCX export options
+ */
+export function createMockDocxExportOptions(documentId: string, overrides: Partial<ExportOptions> = {}): ExportOptions {
+  return {
+    documentId,
+    includeTitle: true,
+    pageSize: 'letter',
+    ...overrides,
+  };
+}
+
+/**
+ * Create mock PDF export options
+ */
+export function createMockPdfExportOptions(documentId: string, overrides: Partial<ExportOptions> = {}): ExportOptions {
+  return {
+    documentId,
+    format: 'letter',
+    includePageNumbers: false,
+    ...overrides,
+  };
+}
+
+/**
+ * Create a mock successful export result
+ */
+export function createMockExportResult(format: 'docx' | 'pdf', overrides: Partial<ExportResult> = {}): ExportResult {
+  const contentTypes = {
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    pdf: 'application/pdf',
+  };
+
+  const extensions = {
+    docx: '.docx',
+    pdf: '.pdf',
+  };
+
+  counter++;
+  return {
+    success: true,
+    buffer: Buffer.from(`mock-${format}-content-${counter}`),
+    filename: `document-${counter}${extensions[format]}`,
+    contentType: contentTypes[format],
+    ...overrides,
+  };
+}
+
+/**
+ * Create a mock failed export result
+ */
+export function createMockExportError(
+  errorMessage: string = 'Export failed',
+  overrides: Partial<ExportResult> = {}
+): ExportResult {
+  return {
+    success: false,
+    error: errorMessage,
+    ...overrides,
+  };
+}
+
+/**
+ * Create mock document content for export testing
+ */
+export function createMockDocumentContent(options: { title?: string; paragraphs?: number } = {}): {
+  type: string;
+  content: Array<{ type: string; content?: Array<{ type: string; text: string }> }>;
+} {
+  const { title = 'Test Document', paragraphs = 3 } = options;
+  counter++;
+
+  const content: Array<{ type: string; content?: Array<{ type: string; text: string }> }> = [
+    {
+      type: 'heading',
+      content: [{ type: 'text', text: title }],
+    },
+  ];
+
+  for (let i = 1; i <= paragraphs; i++) {
+    content.push({
+      type: 'paragraph',
+      content: [{ type: 'text', text: `This is paragraph ${i} of the test document ${counter}.` }],
+    });
+  }
+
+  return {
+    type: 'doc',
+    content,
+  };
+}
+
+/**
+ * Create mock export metadata for tracking
+ */
+export function createMockExportMetadata(
+  documentId: string,
+  format: 'docx' | 'pdf',
+  overrides: Record<string, unknown> = {}
+): {
+  documentId: string;
+  format: string;
+  exportedAt: Date;
+  fileSize: number;
+  pageCount: number;
+} {
+  counter++;
+  return {
+    documentId,
+    format,
+    exportedAt: new Date(),
+    fileSize: 1024 * counter, // Mock file size
+    pageCount: Math.ceil(counter / 2), // Mock page count
+    ...overrides,
+  };
+}

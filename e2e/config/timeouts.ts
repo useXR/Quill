@@ -41,6 +41,9 @@ export const TIMEOUTS = {
 
   // Toast Notifications
   TOAST_AUTO_DISMISS: 7000, // Toast auto-dismiss wait (5s + 2s buffer)
+
+  // Command Palette
+  COMMAND_PALETTE: 3000, // Command palette open/close animations
 } as const;
 
 // Pre-built wait options for common patterns
@@ -52,3 +55,4 @@ export const HYDRATION_WAIT = { timeout: TIMEOUTS.HYDRATION };
 export const AUTOSAVE_WAIT_OPT = { timeout: TIMEOUTS.AUTOSAVE_WAIT };
 export const EXPORT_WAIT = { timeout: TIMEOUTS.EXPORT_DOWNLOAD };
 export const TOAST_AUTO_DISMISS_WAIT = { timeout: TIMEOUTS.TOAST_AUTO_DISMISS };
+export const COMMAND_PALETTE_WAIT = { timeout: TIMEOUTS.COMMAND_PALETTE };
