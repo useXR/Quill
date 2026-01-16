@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import type { Editor } from '@tiptap/react';
 import {
   Bold,
@@ -14,10 +15,17 @@ import {
   Highlighter,
   Undo,
   Redo,
+  Download,
+  FileText,
+  FileType,
+  ChevronDown,
 } from 'lucide-react';
+import { useToast } from '@/hooks/useToast';
 
 interface ToolbarProps {
   editor: Editor | null;
+  documentId?: string;
+  documentTitle?: string;
 }
 
 interface ToolbarButton {
@@ -32,7 +40,51 @@ function Divider() {
   return <div role="separator" className="w-px h-5 bg-[var(--color-ink-faint)] mx-1" aria-hidden="true" />;
 }
 
-export function Toolbar({ editor }: ToolbarProps) {
+export function Toolbar({ editor, documentId, documentTitle }: ToolbarProps) {
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const { addToast } = useToast();
+
+  const handleExport = async (format: 'docx' | 'pdf') => {
+    if (!documentId) {
+      addToast('Cannot export: document not saved', { type: 'error' });
+      return;
+    }
+
+    setIsExporting(true);
+    setExportMenuOpen(false);
+
+    try {
+      const response = await fetch(`/api/export/${format}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || `Export failed`);
+      }
+
+      // Download the file
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${documentTitle || 'document'}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      addToast(`Exported to ${format.toUpperCase()}`, { type: 'success' });
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : 'Export failed', { type: 'error' });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (!editor) return null;
 
   const formatButtons: ToolbarButton[] = [
@@ -176,6 +228,64 @@ export function Toolbar({ editor }: ToolbarProps) {
       <div className="flex items-center gap-0.5">{alignmentButtons.map(renderButton)}</div>
       <Divider />
       <div className="flex items-center gap-0.5">{historyButtons.map(renderButton)}</div>
+
+      {/* Spacer to push export to the right */}
+      <div className="flex-1" />
+
+      {/* Export Dropdown */}
+      {documentId && (
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setExportMenuOpen(!exportMenuOpen)}
+            disabled={isExporting}
+            aria-haspopup="true"
+            aria-expanded={exportMenuOpen}
+            className={`
+              flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)]
+              text-sm font-medium
+              transition-all duration-150
+              focus:outline-none focus:ring-2 focus:ring-[var(--color-quill)] focus:ring-offset-1
+              ${isExporting ? 'opacity-50 cursor-not-allowed' : ''}
+              text-[var(--color-ink-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-ink-primary)]
+            `}
+          >
+            <Download className="w-4 h-4" />
+            Export
+            <ChevronDown className="w-3 h-3" />
+          </button>
+
+          {exportMenuOpen && (
+            <>
+              {/* Backdrop to close menu */}
+              <div className="fixed inset-0 z-10" onClick={() => setExportMenuOpen(false)} />
+              <div
+                role="menu"
+                className="absolute right-0 mt-1 w-48 bg-[var(--color-surface)] rounded-[var(--radius-md)] shadow-lg border border-[var(--color-ink-faint)] z-20 py-1"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => handleExport('docx')}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left text-[var(--color-ink-primary)] hover:bg-[var(--color-surface-hover)]"
+                >
+                  <FileText className="w-4 h-4" />
+                  Export as Word (.docx)
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => handleExport('pdf')}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left text-[var(--color-ink-primary)] hover:bg-[var(--color-surface-hover)]"
+                >
+                  <FileType className="w-4 h-4" />
+                  Export as PDF
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

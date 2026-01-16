@@ -41,6 +41,8 @@ export interface EditorProps {
   projectId?: string;
   /** Document ID for AI context (required if enableAI is true) */
   documentId?: string;
+  /** Document title for export filename */
+  documentTitle?: string;
 }
 
 export function Editor({
@@ -58,6 +60,7 @@ export function Editor({
   enableAI = false,
   projectId,
   documentId,
+  documentTitle,
 }: EditorProps) {
   const {
     wordCount,
@@ -165,7 +168,7 @@ export function Editor({
       data-testid="document-editor"
       className="border border-[var(--color-ink-faint)] rounded-[var(--radius-xl)] bg-[var(--color-surface)] shadow-[var(--shadow-warm-md)] overflow-hidden"
     >
-      {showToolbar && <Toolbar editor={editor} />}
+      {showToolbar && <Toolbar editor={editor} documentId={documentId} documentTitle={documentTitle} />}
       <div className="bg-[var(--color-editor-bg)] relative">
         <EditorContent editor={editor} />
         {enableAI && projectId && documentId && (

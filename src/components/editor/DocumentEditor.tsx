@@ -195,6 +195,7 @@ export function DocumentEditor({
         enableAI={enableAI}
         projectId={document?.project_id}
         documentId={documentId}
+        documentTitle={document?.title}
       />
     </div>
   );
