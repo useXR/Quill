@@ -1,8 +1,10 @@
 # Editor Layout Redesign: Google Docs-Style Page Canvas
 
 **Date:** 2026-01-16
-**Status:** Approved
+**Status:** Approved (Revised)
 **Goal:** Transform the document editor from a bordered box to a floating page on a neutral canvas, with sidebars that push content rather than overlay.
+
+**Minimum supported viewport:** 1920x1080
 
 ---
 
@@ -39,7 +41,7 @@ The current editor layout places content in a bordered container within a cream 
 │  Left   │                                             │  Chat   │
 │ Sidebar │      Gray Canvas Background                 │ Sidebar │
 │  (256px │    ┌─────────────────────────┐              │  (384px │
-│   or    │    │   White Page (~750px)   │   ←centered  │   when  │
+│   or    │    │  White Page (650-850px) │   ←centered  │   when  │
 │  64px)  │    │   with shadow           │    in space  │  open)  │
 │         │    └─────────────────────────┘              │         │
 └─────────┴─────────────────────────────────────────────┴─────────┘
@@ -49,7 +51,7 @@ The current editor layout places content in a bordered container within a cream 
 
 - Page-like document feel (paper metaphor)
 - Sidebars push content, never obscure it
-- Optimal reading width enforced
+- Flexible reading width adapts to available space
 - Professional, focused writing environment
 
 ---
@@ -62,9 +64,11 @@ The current editor layout places content in a bordered container within a cream 
 
 - **Canvas background:** Warm neutral gray (`--color-canvas-bg: #e8e6e3`)
 - **Page surface:** White (`--color-surface`) with soft shadow
-- **Page width:** ~750px (optimal 65-75 character line length)
-- **Page margins:** 72px horizontal padding (mimics 1" print margins)
-- **Vertical spacing:** Page floats with breathing room above/below
+- **Page width:** Flexible range, `min-width: 650px`, `max-width: 850px`
+  - Expands to fill available space within range
+  - Grant proposals benefit from wider content for tables/lists
+- **Page margins:** 64px horizontal padding (comfortable reading margins)
+- **Vertical spacing:** Page floats with `py-8` breathing room above/below
 
 **Toolbar integration:**
 
@@ -72,24 +76,32 @@ The current editor layout places content in a bordered container within a cream 
 - Part of the "document" visual unit
 - Same white background as page content
 
+**Breadcrumb integration:**
+
+- Move breadcrumb into a compact header bar above the page
+- Shows: Project Name › Document Title
+- Keeps wayfinding without consuming vertical space in page
+
 ### 2. Sidebar Push Behavior
 
 **Layout structure:**
 
-- Main area becomes flex container: `[canvas-area] + [chat-sidebar?]`
+- Main content area becomes flex container: `[canvas-area] + [chat-sidebar?]`
 - Chat sidebar is conditional flex child, not fixed overlay
 - Canvas area is `flex-1`, fills remaining space
 
 **Transition behavior:**
 
-- Chat open/close: `transition-all duration-200`
-- Page automatically recenters via `margin: auto` within canvas
-- Smooth, non-jarring experience
+- Chat open/close: `transition-[width] duration-200 ease-out`
+  - Explicit width transition only (avoids layout thrashing from `transition-all`)
+- Include `motion-reduce:transition-none` for accessibility
+- Page automatically recenters via flexbox centering within canvas
 
 **FAB (Floating Action Button):**
 
 - When chat closed, FAB appears in bottom-right of canvas area
-- Not fixed to viewport—positioned within canvas bounds
+- Positioned with `absolute` relative to canvas container, not viewport
+- Maintains association with editing context
 
 ### 3. Width Calculations
 
@@ -99,69 +111,216 @@ The current editor layout places content in a bordered container within a cream 
 | Left sidebar (collapsed) | 64px                     |
 | Chat sidebar (open)      | 384px                    |
 | Chat sidebar (closed)    | 0px                      |
-| Page width               | 750px (fixed)            |
+| Page width               | 650-850px (flexible)     |
 | Canvas area              | Remaining viewport width |
 
 **Example at 1920px viewport, both sidebars open:**
 
 - Left: 256px, Chat: 384px, Canvas: 1280px
-- Page (750px) centers within 1280px canvas
+- Page expands to 850px max, centered with 215px margins each side
+
+**Example at 1920px viewport, chat closed:**
+
+- Left: 256px, Canvas: 1664px
+- Page at 850px, centered with 407px margins each side
+
+### 4. DiffPanel Behavior
+
+The DiffPanel remains a **fixed overlay modal** (`fixed inset-0`):
+
+- Does not participate in flex layout
+- Appears above all content when reviewing AI changes
+- Max-width of 896px provides clear visual hierarchy over 850px page
+- This is intentional—diff review is a modal operation
+
+### 5. SelectionToolbar Positioning
+
+The SelectionToolbar uses absolute positioning based on text selection coordinates. With the new layout:
+
+- Ensure EditorCanvas or page wrapper has `position: relative`
+- Selection coordinates remain valid within the positioned ancestor
+- Test thoroughly after layout changes
 
 ---
 
 ## Implementation Plan
 
+### Implementation Order
+
+The order matters due to dependencies:
+
+1. **globals.css** — Add design tokens first (other components depend on them)
+2. **ChatSidebar.tsx** — Restructure from conditional render to flex child
+3. **EditorCanvas.tsx** — Create new canvas wrapper component
+4. **Editor.tsx** — Remove border/shadow (depends on EditorCanvas existing)
+5. **DocumentPageClient.tsx** — Wire up new flex layout
+6. **page.tsx** — Relocate breadcrumb, remove old wrapper
+
 ### Components to Modify
 
-#### 1. `src/components/layout/AppShell.tsx`
+#### 1. `src/app/globals.css`
 
-- Subscribe to chat sidebar open/closed state
-- Pass state down or use context for layout awareness
+Add new design tokens:
 
-#### 2. New: `src/components/editor/EditorCanvas.tsx`
+```css
+@theme {
+  --color-canvas-bg: #e8e6e3;
+  --page-width-min: 650px;
+  --page-width-max: 850px;
+  --page-margin-x: 64px;
+}
+```
 
-Create wrapper component:
+#### 2. `src/components/chat/ChatSidebar.tsx`
+
+**Critical restructure required.** Current component uses early return for FAB:
 
 ```tsx
+// CURRENT (problematic)
+if (!state.isOpen) {
+  return <button className="fixed ...">FAB</button>;
+}
+return <div className="fixed ...">Panel</div>;
+```
+
+Must change to always render as flex child:
+
+```tsx
+// NEW STRUCTURE
+return (
+  <div
+    className={`
+      h-full border-l border-ink-faint
+      transition-[width] duration-200 ease-out
+      motion-reduce:transition-none
+      ${state.isOpen ? 'w-96' : 'w-0'}
+    `}
+  >
+    {state.isOpen ? <div className="w-96 h-full flex flex-col bg-surface">{/* Panel content */}</div> : null}
+  </div>
+);
+```
+
+FAB moves to EditorCanvas component (positioned relative to canvas).
+
+#### 3. New: `src/components/editor/EditorCanvas.tsx`
+
+```tsx
+import { ReactNode } from 'react';
+import { MessageSquare } from 'lucide-react';
+import { useChat } from '@/contexts/ChatContext';
+
 interface EditorCanvasProps {
   children: ReactNode;
 }
 
 export function EditorCanvas({ children }: EditorCanvasProps) {
+  const { state, dispatch } = useChat();
+
   return (
-    <div className="flex-1 bg-[var(--color-canvas-bg)] overflow-auto">
+    <div className="relative flex-1 bg-[var(--color-canvas-bg)] overflow-auto">
+      {/* Canvas area with centered page */}
       <div className="min-h-full flex items-start justify-center py-8 px-4">
-        <div className="w-[750px] max-w-full">{children}</div>
+        <div
+          className="
+            w-full
+            min-w-[var(--page-width-min)]
+            max-w-[var(--page-width-max)]
+          "
+        >
+          {children}
+        </div>
       </div>
+
+      {/* FAB - only when chat is closed */}
+      {!state.isOpen && (
+        <button
+          onClick={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
+          className="
+            absolute right-6 bottom-6
+            p-3 bg-quill text-white rounded-full shadow-lg
+            hover:bg-quill-dark hover:shadow-xl hover:scale-105
+            active:bg-quill-darker active:scale-95
+            transition-all duration-150
+            focus:outline-none focus:ring-2 focus:ring-quill focus:ring-offset-2
+          "
+          aria-label="Open chat sidebar"
+        >
+          <MessageSquare size={24} />
+        </button>
+      )}
     </div>
   );
 }
 ```
 
-#### 3. `src/app/projects/[id]/documents/[docId]/page.tsx`
+#### 4. `src/components/editor/Editor.tsx`
 
-- Remove `max-w-5xl mx-auto` wrapper
-- Remove or relocate breadcrumb (consider page header)
-- Wrap content in new layout structure
-
-#### 4. `src/app/projects/[id]/documents/[docId]/DocumentPageClient.tsx`
-
-- Restructure to flex layout
-- ChatSidebar becomes flex child
-- Wrap DocumentEditor in EditorCanvas
+Remove outer container styling (page wrapper now handles it):
 
 ```tsx
-export function DocumentPageClient({ ... }) {
+// REMOVE from Editor.tsx:
+// border border-[var(--color-ink-faint)]
+// rounded-[var(--radius-xl)]
+// shadow-[var(--shadow-warm-md)]
+
+// Page wrapper in EditorCanvas handles:
+// - White background
+// - Border radius
+// - Shadow
+// - Overflow hidden
+```
+
+Update the wrapper div to be the "page":
+
+```tsx
+<div
+  className="
+    bg-[var(--color-surface)]
+    rounded-[var(--radius-xl)]
+    shadow-[var(--shadow-warm-lg)]
+    overflow-hidden
+  "
+>
+  {showToolbar && <Toolbar ... />}
+  <div className="bg-[var(--color-editor-bg)] relative">
+    <EditorContent editor={editor} />
+    {/* SelectionToolbar */}
+  </div>
+  {showWordCount && <WordCount ... />}
+</div>
+```
+
+#### 5. `src/app/projects/[id]/documents/[docId]/DocumentPageClient.tsx`
+
+Restructure to flex layout:
+
+```tsx
+export function DocumentPageClient({ documentId, projectId, document }: Props) {
   return (
     <ChatProvider>
       <DiffProvider>
-        <DocumentEditorProvider ...>
+        <DocumentEditorProvider documentId={documentId} projectId={projectId}>
+          {/* Flex container for canvas + sidebar */}
           <div className="flex h-full">
             <EditorCanvas>
-              <DocumentEditor ... />
+              {/* Breadcrumb bar */}
+              <div className="mb-4 text-sm text-[var(--color-ink-tertiary)]">
+                <Link href={`/projects/${projectId}`} className="hover:text-[var(--color-ink-secondary)]">
+                  {/* Project title from context or prop */}
+                  Project Name
+                </Link>
+                <span className="mx-2">›</span>
+                <span className="text-[var(--color-ink-primary)]">{document.title}</span>
+              </div>
+
+              <DocumentEditor documentId={documentId} initialDocument={document} enableAI={true} />
             </EditorCanvas>
-            <ChatSidebar ... />
+
+            <ChatSidebar documentId={documentId} projectId={projectId} />
           </div>
+
+          {/* DiffPanel stays as overlay, outside flex */}
           <DiffPanelWrapper />
         </DocumentEditorProvider>
       </DiffProvider>
@@ -170,46 +329,57 @@ export function DocumentPageClient({ ... }) {
 }
 ```
 
-#### 5. `src/components/chat/ChatSidebar.tsx`
+#### 6. `src/app/projects/[id]/documents/[docId]/page.tsx`
 
-- Remove `fixed right-0 top-0 h-full` positioning
-- Become flex child: `h-full w-96` when open, `w-0` when closed
-- Adjust FAB positioning to be relative to canvas, not viewport
+- Remove `max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8` wrapper
+- Remove breadcrumb (moved to DocumentPageClient)
+- Pass project title to client component for breadcrumb
 
-#### 6. `src/components/editor/Editor.tsx`
-
-- Remove outer border and shadow (page wrapper handles this)
-- Page wrapper provides: white bg, shadow, border-radius
-- Internal padding becomes page margins
-
-#### 7. `src/app/globals.css`
-
-Add new design tokens:
-
-```css
-@theme {
-  --color-canvas-bg: #e8e6e3;
-  --page-width: 750px;
-  --page-margin-x: 72px;
-}
+```tsx
+return (
+  <ProjectLayout ...>
+    <DocumentPageClient
+      documentId={docId}
+      projectId={projectId}
+      document={document}
+      projectTitle={project.title}  // Add this prop
+    />
+  </ProjectLayout>
+);
 ```
 
-### Migration Notes
+---
 
-- Breadcrumb navigation: Consider moving to header area or removing (document title is already shown)
-- DiffPanelWrapper: May need adjustment for new layout
-- Mobile: Canvas approach degrades gracefully (page fills screen)
+## Accessibility Considerations
+
+1. **Focus management:**
+   - When chat opens: move focus to chat panel
+   - When chat closes: return focus to FAB trigger location
+   - Use `useEffect` to manage focus on `state.isOpen` change
+
+2. **Reduced motion:**
+   - All transitions include `motion-reduce:transition-none`
+   - Already established pattern in codebase
+
+3. **Landmarks:**
+   - EditorCanvas: `role="main"` or ensure within `<main>`
+   - ChatSidebar: `role="complementary"` with `aria-label="Document chat"`
+
+4. **Screen reader announcements:**
+   - Add `aria-live="polite"` region to announce layout changes
+   - "Chat panel opened" / "Chat panel closed"
 
 ---
 
 ## Testing Considerations
 
-1. **Responsive behavior:** Test at various viewport widths
+1. **Viewport:** Test at 1920x1080 and larger
 2. **Sidebar combinations:** Both open, one open, none open
 3. **Left sidebar collapse:** Verify page recenters correctly
-4. **Chat sidebar transition:** Smooth open/close animation
-5. **Mobile:** Verify graceful degradation
-6. **Accessibility:** Focus management, keyboard navigation still work
+4. **Chat sidebar transition:** Smooth open/close animation (no jank)
+5. **SelectionToolbar:** Verify positioning after layout changes
+6. **Focus management:** Tab navigation, focus on open/close
+7. **Keyboard:** Escape closes chat, focus returns appropriately
 
 ---
 
@@ -219,3 +389,4 @@ Add new design tokens:
 - Multiple page sizes (letter, A4, custom)
 - Print preview mode
 - Full-screen/zen mode
+- Persist chat open state across document navigation
