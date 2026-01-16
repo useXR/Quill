@@ -182,8 +182,8 @@ export function DocumentEditor({
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-2 h-full">
+      <div className="flex items-center justify-between flex-shrink-0">
         <EditableTitle title={document?.title || 'Untitled Document'} onSave={saveTitle} />
         <SaveStatus status={status} lastSavedAt={lastSavedAt} error={error} onRetry={handleRetry} />
       </div>

@@ -92,7 +92,7 @@ export function Editor({
     },
     editorProps: {
       attributes: {
-        class: `prose prose-lg max-w-none focus:outline-none min-h-[300px] p-6 lg:p-8 ${className}`,
+        class: `prose prose-lg max-w-none focus:outline-none h-full p-6 lg:p-8 ${className}`,
         style: 'font-family: var(--font-prose); color: var(--color-ink-primary);',
         role: 'textbox',
         'aria-label': 'Document editor',
@@ -166,17 +166,17 @@ export function Editor({
   return (
     <div
       data-testid="document-editor"
-      className="bg-[var(--color-surface)] rounded-[var(--radius-xl)] shadow-[var(--shadow-warm-lg)] overflow-hidden"
+      className="flex flex-col flex-1 bg-[var(--color-surface)] rounded-[var(--radius-xl)] shadow-[var(--shadow-warm-lg)] overflow-hidden"
     >
       {showToolbar && <Toolbar editor={editor} documentId={documentId} documentTitle={documentTitle} />}
-      <div className="bg-[var(--color-editor-bg)] relative">
-        <EditorContent editor={editor} />
+      <div className="flex-1 flex flex-col bg-[var(--color-editor-bg)] relative">
+        <EditorContent editor={editor} className="flex-1" />
         {enableAI && projectId && documentId && (
           <SelectionToolbar editor={editor} selection={selection} projectId={projectId} documentId={documentId} />
         )}
       </div>
       {showWordCount && (
-        <div className="px-4 py-2 border-t border-[var(--color-ink-faint)] bg-[var(--color-bg-secondary)]">
+        <div className="flex-shrink-0 px-4 py-2 border-t border-[var(--color-ink-faint)] bg-[var(--color-bg-secondary)]">
           <WordCount
             wordCount={wordCount}
             charCount={charCount}

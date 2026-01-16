@@ -176,6 +176,14 @@
 /* TipTap editor prose styles */
 .ProseMirror {
   outline: none;
+  height: 100%;
+}
+
+/* Ensure TipTap EditorContent fills available height */
+.tiptap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .ProseMirror p.is-editor-empty:first-child::before {
