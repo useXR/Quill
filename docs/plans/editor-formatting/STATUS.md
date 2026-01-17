@@ -2,10 +2,10 @@
 
 ## Current State
 
-- **Stage:** brainstorming (complete)
+- **Stage:** high-level-plan
 - **Scope:** large
 - **Last Updated:** 2026-01-16
-- **Last Action:** Brainstorming complete
+- **Last Action:** High-level plan written
 
 ## Sub-State (for review loops)
 
@@ -16,7 +16,7 @@
 ## Progress
 
 - [x] Brainstorming complete
-- [ ] High-level plan written
+- [x] High-level plan written
 - [ ] Plan review converged (round \_/3)
 - [ ] Tasks broken down
 - [ ] Domain review converged (round \_/3)
@@ -37,9 +37,9 @@ None
 
 ## Next Action
 
-Write high-level implementation plan
+Plan review
 
 ## Recovery Info
 
-- **Partial Progress:** Brainstorm document complete with validated design
-- **Resume Command:** Invoke `writing-plans` skill
+- **Partial Progress:** High-level plan complete
+- **Resume Command:** Invoke `reviewing-plans` skill
