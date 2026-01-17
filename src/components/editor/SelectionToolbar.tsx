@@ -97,6 +97,7 @@ export function SelectionToolbar({ editor, selection, projectId, documentId }: S
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const focusedIndexRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const operationInProgressRef = useRef(false);
   const [isAccepting, setIsAccepting] = useState(false);
   const [lastAction, setLastAction] = useState<AIAction | null>(null);
   const toast = useToast();
@@ -217,20 +218,28 @@ export function SelectionToolbar({ editor, selection, projectId, documentId }: S
     try {
       const chain = editor.chain();
       if (chain && typeof chain.focus === 'function') {
-        chain
+        const success = chain
           .focus()
           .insertContentAt({ from: selection.from, to: selection.to }, currentOperation.output, {
             contentType: 'markdown',
           })
           .run();
+
+        if (success) {
+          store.acceptOperation?.();
+        } else {
+          toast.addToast('Failed to insert content. Please try again.', { type: 'error' });
+        }
       }
-    } catch {
+    } catch (error) {
       // Handle mock editors or errors gracefully
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Editor command failed:', error);
+      }
+      toast.addToast('Failed to insert content. Please try again.', { type: 'error' });
     } finally {
       setIsAccepting(false);
     }
-
-    store.acceptOperation?.();
   }, [editor, selection, currentOperation, store, isAccepting, toast]);
 
   // Handle reject
@@ -300,15 +309,20 @@ export function SelectionToolbar({ editor, selection, projectId, documentId }: S
     };
   }, [currentOperation?.status, cancel, store]);
 
-  // Cleanup on document change
+  // Update ref when operation status changes
+  useEffect(() => {
+    operationInProgressRef.current = !!currentOperation;
+  }, [currentOperation]);
+
+  // Cleanup on document change - use ref to avoid stale closure
   useEffect(() => {
     return () => {
-      if (currentOperation) {
+      if (operationInProgressRef.current) {
         cancel();
         store.rejectOperation?.();
       }
     };
-  }, [documentId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [documentId, cancel, store]);
 
   // Global escape key handler
   useEffect(() => {
