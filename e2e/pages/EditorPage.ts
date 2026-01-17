@@ -26,6 +26,9 @@ export class EditorPage {
   readonly alignLeftButton: Locator;
   readonly alignCenterButton: Locator;
   readonly alignRightButton: Locator;
+  readonly blockquoteButton: Locator;
+  readonly codeBlockButton: Locator;
+  readonly horizontalRuleButton: Locator;
   readonly undoButton: Locator;
   readonly redoButton: Locator;
 
@@ -76,6 +79,9 @@ export class EditorPage {
     this.alignLeftButton = page.getByRole('button', { name: 'Align Left' });
     this.alignCenterButton = page.getByRole('button', { name: 'Align Center' });
     this.alignRightButton = page.getByRole('button', { name: 'Align Right' });
+    this.blockquoteButton = page.getByRole('button', { name: 'Blockquote' });
+    this.codeBlockButton = page.getByRole('button', { name: 'Code Block' });
+    this.horizontalRuleButton = page.getByRole('button', { name: 'Horizontal Rule' });
     this.undoButton = page.getByRole('button', { name: 'Undo' });
     this.redoButton = page.getByRole('button', { name: 'Redo' });
 
@@ -228,6 +234,27 @@ export class EditorPage {
   }
 
   /**
+   * Toggle blockquote formatting.
+   */
+  async toggleBlockquote() {
+    await this.blockquoteButton.click();
+  }
+
+  /**
+   * Toggle code block formatting.
+   */
+  async toggleCodeBlock() {
+    await this.codeBlockButton.click();
+  }
+
+  /**
+   * Insert horizontal rule.
+   */
+  async insertHorizontalRule() {
+    await this.horizontalRuleButton.click();
+  }
+
+  /**
    * Undo last action.
    */
   async undo() {
@@ -329,6 +356,30 @@ export class EditorPage {
   async containsNumberedList(): Promise<boolean> {
     const listElement = this.page.locator('.ProseMirror ol');
     return await listElement.isVisible().catch(() => false);
+  }
+
+  /**
+   * Check if editor contains a blockquote.
+   */
+  async containsBlockquote(): Promise<boolean> {
+    const blockquoteElement = this.page.locator('.ProseMirror blockquote');
+    return await blockquoteElement.isVisible().catch(() => false);
+  }
+
+  /**
+   * Check if editor contains a code block.
+   */
+  async containsCodeBlock(): Promise<boolean> {
+    const codeBlockElement = this.page.locator('.ProseMirror pre code');
+    return await codeBlockElement.isVisible().catch(() => false);
+  }
+
+  /**
+   * Check if editor contains a horizontal rule.
+   */
+  async containsHorizontalRule(): Promise<boolean> {
+    const hrElement = this.page.locator('.ProseMirror hr');
+    return await hrElement.isVisible().catch(() => false);
   }
 
   /**
