@@ -2,15 +2,15 @@
 
 ## Current State
 
-- **Stage:** high-level-plan
-- **Scope:** large
+- **Stage:** high-level-plan (under review)
+- **Scope:** large → medium (simplified)
 - **Last Updated:** 2026-01-16
-- **Last Action:** High-level plan written
+- **Last Action:** Plan review round 1 fixes applied
 
 ## Sub-State (for review loops)
 
-- **Review Round:** 0 of 3
-- **Critics Completed:** []
+- **Review Round:** 1 of 3
+- **Critics Completed:** [Feasibility, Completeness, Simplicity]
 - **Pending Critics:** []
 
 ## Progress
@@ -33,7 +33,7 @@ None
 
 ## User Overrides
 
-None
+- 2026-01-16: User chose @tiptap/markdown over custom parser (simplicity critic recommendation)
 
 ## Next Action
 
