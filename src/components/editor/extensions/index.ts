@@ -6,6 +6,7 @@ import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table
 import TextAlign from '@tiptap/extension-text-align';
 import Image from '@tiptap/extension-image';
 import Highlight from '@tiptap/extension-highlight';
+import { Markdown } from '@tiptap/markdown';
 import { SelectionTracker } from './selection-tracker';
 import { Citation } from './citation';
 
@@ -44,6 +45,7 @@ export function createExtensions(config: ExtensionConfig = {}) {
     Highlight.configure({
       multicolor: true,
     }),
+    Markdown,
     SelectionTracker,
     Citation,
   ];
