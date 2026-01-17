@@ -63,9 +63,11 @@ export interface MockChainCommands {
   toggleBulletList: MockFn;
   toggleOrderedList: MockFn;
   toggleBlockquote: MockFn;
+  toggleCodeBlock: MockFn;
   toggleHighlight: MockFn;
   setTextAlign: MockFn;
   setHardBreak: MockFn;
+  setHorizontalRule: MockFn;
   undo: MockFn;
   redo: MockFn;
   run: MockFn;
@@ -219,9 +221,11 @@ function createMockChainCommands(): MockChainCommands {
     toggleBulletList: vi.fn(),
     toggleOrderedList: vi.fn(),
     toggleBlockquote: vi.fn(),
+    toggleCodeBlock: vi.fn(),
     toggleHighlight: vi.fn(),
     setTextAlign: vi.fn(),
     setHardBreak: vi.fn(),
+    setHorizontalRule: vi.fn(),
     undo: vi.fn(),
     redo: vi.fn(),
     run: vi.fn(),

@@ -19,6 +19,9 @@ import {
   FileText,
   FileType,
   ChevronDown,
+  Quote,
+  Code2,
+  Minus,
 } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
 
@@ -34,6 +37,7 @@ interface ToolbarButton {
   action: () => boolean;
   isActive: () => boolean;
   group: string;
+  shortcut?: string;
 }
 
 function Divider() {
@@ -145,6 +149,32 @@ export function Toolbar({ editor, documentId, documentTitle }: ToolbarProps) {
     },
   ];
 
+  const blockButtons: ToolbarButton[] = [
+    {
+      icon: Quote,
+      label: 'Blockquote',
+      action: () => editor.chain().focus().toggleBlockquote().run(),
+      isActive: () => editor.isActive('blockquote'),
+      group: 'block',
+      shortcut: 'Ctrl+Shift+B',
+    },
+    {
+      icon: Code2,
+      label: 'Code Block',
+      action: () => editor.chain().focus().toggleCodeBlock().run(),
+      isActive: () => editor.isActive('codeBlock'),
+      group: 'block',
+      shortcut: 'Ctrl+Alt+C',
+    },
+    {
+      icon: Minus,
+      label: 'Horizontal Rule',
+      action: () => editor.chain().focus().setHorizontalRule().run(),
+      isActive: () => false,
+      group: 'block',
+    },
+  ];
+
   const alignmentButtons: ToolbarButton[] = [
     {
       icon: AlignLeft,
@@ -189,6 +219,7 @@ export function Toolbar({ editor, documentId, documentTitle }: ToolbarProps) {
   const renderButton = (button: ToolbarButton) => {
     const Icon = button.icon;
     const isActive = button.isActive();
+    const tooltip = button.shortcut ? `${button.label} (${button.shortcut})` : button.label;
 
     return (
       <button
@@ -197,6 +228,7 @@ export function Toolbar({ editor, documentId, documentTitle }: ToolbarProps) {
         onClick={button.action}
         aria-label={button.label}
         aria-pressed={isActive}
+        title={tooltip}
         className={`
           p-2 rounded-[var(--radius-md)]
           transition-all duration-150
@@ -224,6 +256,8 @@ export function Toolbar({ editor, documentId, documentTitle }: ToolbarProps) {
       <div className="flex items-center gap-0.5">{headingButtons.map(renderButton)}</div>
       <Divider />
       <div className="flex items-center gap-0.5">{listButtons.map(renderButton)}</div>
+      <Divider />
+      <div className="flex items-center gap-0.5">{blockButtons.map(renderButton)}</div>
       <Divider />
       <div className="flex items-center gap-0.5">{alignmentButtons.map(renderButton)}</div>
       <Divider />

@@ -52,6 +52,21 @@ describe('Toolbar', () => {
       expect(screen.getByRole('button', { name: /redo/i })).toBeInTheDocument();
     });
 
+    it('should render blockquote button', () => {
+      render(<Toolbar editor={mockEditor as unknown as import('@tiptap/react').Editor} />);
+      expect(screen.getByRole('button', { name: /blockquote/i })).toBeInTheDocument();
+    });
+
+    it('should render code block button', () => {
+      render(<Toolbar editor={mockEditor as unknown as import('@tiptap/react').Editor} />);
+      expect(screen.getByRole('button', { name: /code block/i })).toBeInTheDocument();
+    });
+
+    it('should render horizontal rule button', () => {
+      render(<Toolbar editor={mockEditor as unknown as import('@tiptap/react').Editor} />);
+      expect(screen.getByRole('button', { name: /horizontal rule/i })).toBeInTheDocument();
+    });
+
     it('should have ARIA labels on all buttons', () => {
       render(<Toolbar editor={mockEditor as unknown as import('@tiptap/react').Editor} />);
 
@@ -196,6 +211,39 @@ describe('Toolbar', () => {
       expect(mockEditor.chain).toHaveBeenCalled();
       expect(mockEditor.commands.redo).toHaveBeenCalled();
     });
+
+    it('should execute toggleBlockquote command when blockquote button is clicked', async () => {
+      const user = userEvent.setup();
+      render(<Toolbar editor={mockEditor as unknown as import('@tiptap/react').Editor} />);
+
+      const blockquoteButton = screen.getByRole('button', { name: /blockquote/i });
+      await user.click(blockquoteButton);
+
+      expect(mockEditor.chain).toHaveBeenCalled();
+      expect(mockEditor.commands.toggleBlockquote).toHaveBeenCalled();
+    });
+
+    it('should execute toggleCodeBlock command when code block button is clicked', async () => {
+      const user = userEvent.setup();
+      render(<Toolbar editor={mockEditor as unknown as import('@tiptap/react').Editor} />);
+
+      const codeBlockButton = screen.getByRole('button', { name: /code block/i });
+      await user.click(codeBlockButton);
+
+      expect(mockEditor.chain).toHaveBeenCalled();
+      expect(mockEditor.commands.toggleCodeBlock).toHaveBeenCalled();
+    });
+
+    it('should execute setHorizontalRule command when horizontal rule button is clicked', async () => {
+      const user = userEvent.setup();
+      render(<Toolbar editor={mockEditor as unknown as import('@tiptap/react').Editor} />);
+
+      const hrButton = screen.getByRole('button', { name: /horizontal rule/i });
+      await user.click(hrButton);
+
+      expect(mockEditor.chain).toHaveBeenCalled();
+      expect(mockEditor.commands.setHorizontalRule).toHaveBeenCalled();
+    });
   });
 
   describe('Active State Highlighting', () => {
@@ -270,6 +318,32 @@ describe('Toolbar', () => {
 
       const boldButton = screen.getByRole('button', { name: /bold/i });
       expect(boldButton).not.toHaveClass('bg-[var(--color-quill-light)]');
+    });
+
+    it('should apply active styling when blockquote is active', () => {
+      mockEditor.isActive.mockImplementation((name: string) => name === 'blockquote');
+      render(<Toolbar editor={mockEditor as unknown as import('@tiptap/react').Editor} />);
+
+      const blockquoteButton = screen.getByRole('button', { name: /blockquote/i });
+      expect(blockquoteButton).toHaveClass('bg-[var(--color-quill-light)]');
+    });
+
+    it('should apply active styling when code block is active', () => {
+      mockEditor.isActive.mockImplementation((name: string) => name === 'codeBlock');
+      render(<Toolbar editor={mockEditor as unknown as import('@tiptap/react').Editor} />);
+
+      const codeBlockButton = screen.getByRole('button', { name: /code block/i });
+      expect(codeBlockButton).toHaveClass('bg-[var(--color-quill-light)]');
+    });
+
+    it('should never apply active styling to horizontal rule button', () => {
+      // Even if isActive returns true for everything, HR should never be active
+      mockEditor.isActive.mockReturnValue(true);
+      render(<Toolbar editor={mockEditor as unknown as import('@tiptap/react').Editor} />);
+
+      const hrButton = screen.getByRole('button', { name: /horizontal rule/i });
+      expect(hrButton).toHaveAttribute('aria-pressed', 'false');
+      expect(hrButton).not.toHaveClass('bg-[var(--color-quill-light)]');
     });
   });
 
