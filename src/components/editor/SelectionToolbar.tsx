@@ -214,22 +214,22 @@ export function SelectionToolbar({ editor, selection, projectId, documentId }: S
 
     setIsAccepting(true);
 
-    // Replace selected text with AI output using markdown content type
+    // Replace selected text with AI output using markdown parsing
     try {
-      const chain = editor.chain();
-      if (chain && typeof chain.focus === 'function') {
-        const success = chain
-          .focus()
-          .insertContentAt({ from: selection.from, to: selection.to }, currentOperation.output, {
-            contentType: 'markdown',
-          })
-          .run();
+      editor.commands.focus();
 
-        if (success) {
-          store.acceptOperation?.();
-        } else {
-          toast.addToast('Failed to insert content. Please try again.', { type: 'error' });
-        }
+      // Parse markdown to TipTap JSON using the markdown manager
+      let content: Parameters<typeof editor.commands.insertContentAt>[1] = currentOperation.output;
+      if (editor.markdown) {
+        content = editor.markdown.parse(currentOperation.output);
+      }
+
+      const success = editor.commands.insertContentAt({ from: selection.from, to: selection.to }, content);
+
+      if (success) {
+        store.acceptOperation?.();
+      } else {
+        toast.addToast('Failed to insert content. Please try again.', { type: 'error' });
       }
     } catch (error) {
       // Handle mock editors or errors gracefully

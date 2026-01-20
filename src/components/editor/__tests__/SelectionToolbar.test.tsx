@@ -55,7 +55,10 @@ const mockEditor = {
       },
     },
   },
-  commands: { focus: vi.fn() },
+  commands: {
+    focus: vi.fn(),
+    insertContentAt: vi.fn().mockReturnValue(true),
+  },
 };
 
 const mockSelection = {
@@ -72,6 +75,9 @@ describe('SelectionToolbar', () => {
     mockChain = createMockChain();
     // Reset editor state
     mockEditor.state.doc.content.size = 100;
+    // Reset commands mocks
+    mockEditor.commands.insertContentAt.mockReturnValue(true);
+    mockEditor.commands.focus.mockReturnValue(true);
 
     vi.mocked(useAIStore).mockReturnValue({
       currentOperation: null,
@@ -526,8 +532,11 @@ describe('SelectionToolbar', () => {
   });
 
   describe('Markdown Integration', () => {
-    it('should call insertContentAt with contentType markdown when accepting', async () => {
+    it('should parse markdown and call insertContentAt when accepting', async () => {
       const acceptOperation = vi.fn();
+      const parsedContent = { type: 'doc', content: [{ type: 'paragraph' }] };
+      const mockMarkdown = { parse: vi.fn().mockReturnValue(parsedContent) };
+
       vi.mocked(useAIStore).mockReturnValue({
         currentOperation: { status: 'preview', output: '**Bold text** and *italic*' },
         acceptOperation,
@@ -536,9 +545,12 @@ describe('SelectionToolbar', () => {
 
       const user = userEvent.setup();
 
+      // Add markdown manager mock to editor
+      const editorWithMarkdown = { ...mockEditor, markdown: mockMarkdown };
+
       render(
         <SelectionToolbar
-          editor={mockEditor as unknown as import('@tiptap/react').Editor}
+          editor={editorWithMarkdown as unknown as import('@tiptap/react').Editor}
           selection={mockSelection}
           projectId="proj-1"
           documentId="doc-1"
@@ -548,10 +560,45 @@ describe('SelectionToolbar', () => {
       const acceptBtn = screen.getByRole('button', { name: /accept/i });
       await user.click(acceptBtn);
 
-      expect(mockChain.insertContentAt).toHaveBeenCalledWith(
+      // Should parse markdown first
+      expect(mockMarkdown.parse).toHaveBeenCalledWith('**Bold text** and *italic*');
+      // Then insert the parsed content
+      expect(editorWithMarkdown.commands.insertContentAt).toHaveBeenCalledWith(
         { from: mockSelection.from, to: mockSelection.to },
-        '**Bold text** and *italic*',
-        { contentType: 'markdown' }
+        parsedContent
+      );
+      expect(acceptOperation).toHaveBeenCalled();
+    });
+
+    it('should insert raw content if markdown manager is not available', async () => {
+      const acceptOperation = vi.fn();
+      vi.mocked(useAIStore).mockReturnValue({
+        currentOperation: { status: 'preview', output: '**Bold text**' },
+        acceptOperation,
+        rejectOperation: vi.fn(),
+      } as unknown as ReturnType<typeof useAIStore>);
+
+      const user = userEvent.setup();
+
+      // Editor without markdown manager
+      const editorWithoutMarkdown = { ...mockEditor, markdown: undefined };
+
+      render(
+        <SelectionToolbar
+          editor={editorWithoutMarkdown as unknown as import('@tiptap/react').Editor}
+          selection={mockSelection}
+          projectId="proj-1"
+          documentId="doc-1"
+        />
+      );
+
+      const acceptBtn = screen.getByRole('button', { name: /accept/i });
+      await user.click(acceptBtn);
+
+      // Should insert raw content
+      expect(editorWithoutMarkdown.commands.insertContentAt).toHaveBeenCalledWith(
+        { from: mockSelection.from, to: mockSelection.to },
+        '**Bold text**'
       );
       expect(acceptOperation).toHaveBeenCalled();
     });
@@ -648,7 +695,7 @@ describe('SelectionToolbar', () => {
       await user.click(acceptBtn);
 
       // The button should exist and insertContentAt should be called
-      expect(mockChain.insertContentAt).toHaveBeenCalledTimes(1);
+      expect(mockEditor.commands.insertContentAt).toHaveBeenCalledTimes(1);
       expect(acceptOperation).toHaveBeenCalledTimes(1);
     });
   });

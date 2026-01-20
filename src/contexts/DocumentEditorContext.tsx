@@ -61,7 +61,14 @@ export function DocumentEditorProvider({
   const applyContent = useCallback((content: string) => {
     if (!editorRef.current) return;
 
-    // Convert plain text to TipTap-compatible structure
+    // Use markdown parser if available, otherwise fall back to plain text handling
+    if (editorRef.current.markdown) {
+      const parsedContent = editorRef.current.markdown.parse(content);
+      editorRef.current.commands.setContent(parsedContent);
+      return;
+    }
+
+    // Fallback: Convert plain text to TipTap-compatible structure
     // Each paragraph is separated by double newlines, single newlines are soft breaks
     const paragraphs = content.split(/\n\n+/);
     const doc = {
