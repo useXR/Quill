@@ -21,7 +21,7 @@ interface ChatSidebarProps {
  *
  * Design System: Follows the Scholarly Craft aesthetic from docs/design-system.md
  *
- * Layout: Always renders as a flex child that transitions between w-96 (open) and w-0 (closed).
+ * Layout: Always renders as a flex child that transitions between w-[512px] (open) and w-0 (closed).
  * The FAB toggle button is now rendered by EditorCanvas, not this component.
  *
  * Features:
@@ -74,7 +74,7 @@ export function ChatSidebar({ documentId, projectId }: ChatSidebarProps) {
   /**
    * ChatSidebar always renders as a flex child.
    * When closed: w-0 with overflow-hidden (content not rendered)
-   * When open: w-96 with full panel content
+   * When open: w-[512px] with full panel content
    *
    * The width transition provides smooth open/close animation.
    */
@@ -84,7 +84,7 @@ export function ChatSidebar({ documentId, projectId }: ChatSidebarProps) {
         h-full overflow-hidden
         transition-[width] duration-200 ease-out
         motion-reduce:transition-none
-        ${state.isOpen ? 'w-96 border-l border-ink-faint' : 'w-0'}
+        ${state.isOpen ? 'w-[512px] border-l border-ink-faint' : 'w-0'}
       `}
       role="complementary"
       aria-label="Document chat"
@@ -92,7 +92,7 @@ export function ChatSidebar({ documentId, projectId }: ChatSidebarProps) {
       data-testid="chat-sidebar-wrapper"
     >
       {state.isOpen && (
-        <div ref={panelRef} className="w-96 h-full flex flex-col bg-surface" data-testid="chat-sidebar">
+        <div ref={panelRef} className="w-[512px] h-full flex flex-col bg-surface" data-testid="chat-sidebar">
           {/* Header - uses display font for scholarly title */}
           <div className="flex items-center justify-between p-4 border-b border-ink-faint">
             <h2 className="font-display font-semibold text-ink-primary">Document Chat</h2>
@@ -156,6 +156,9 @@ export function ChatSidebar({ documentId, projectId }: ChatSidebarProps) {
                   timestamp={msg.createdAt}
                   status={msg.status}
                   mode={msg.mode}
+                  thinking={msg.thinking}
+                  toolActivity={msg.toolActivity}
+                  stats={msg.stats}
                   onRetry={msg.status === 'error' ? retryLastMessage : undefined}
                 />
               ))

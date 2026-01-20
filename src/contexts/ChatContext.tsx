@@ -2,6 +2,28 @@
 
 import { createContext, useContext, useReducer, ReactNode } from 'react';
 
+/**
+ * Tool activity represents a single tool call or result during chat.
+ */
+export interface ToolActivity {
+  toolId: string;
+  toolName: string;
+  type: 'call' | 'result';
+  input?: unknown;
+  success?: boolean;
+  message?: string;
+  timestamp: Date;
+}
+
+/**
+ * Stats from CLI execution.
+ */
+export interface ChatStats {
+  inputTokens: number;
+  outputTokens: number;
+  durationMs: number;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -9,6 +31,12 @@ export interface ChatMessage {
   createdAt: Date;
   status: 'sending' | 'sent' | 'streaming' | 'error';
   mode?: 'discussion' | 'global_edit' | 'research';
+  /** Claude's reasoning/thinking process (from extended thinking) */
+  thinking?: string;
+  /** Tool calls and results during this message */
+  toolActivity?: ToolActivity[];
+  /** Completion stats (tokens, duration) */
+  stats?: ChatStats;
 }
 
 interface ChatState {
@@ -33,7 +61,10 @@ type ChatAction =
   | { type: 'SET_DOCUMENT'; documentId: string; projectId: string }
   | { type: 'CLEAR_MESSAGES' }
   | { type: 'SET_ERROR'; error: string | null }
-  | { type: 'LOAD_MESSAGES'; messages: ChatMessage[] };
+  | { type: 'LOAD_MESSAGES'; messages: ChatMessage[] }
+  | { type: 'SET_THINKING'; id: string; thinking: string }
+  | { type: 'ADD_TOOL_ACTIVITY'; id: string; activity: ToolActivity }
+  | { type: 'SET_STATS'; id: string; stats: ChatStats };
 
 const initialState: ChatState = {
   messages: [],
@@ -90,6 +121,23 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return {
         ...state,
         messages: state.messages.map((m) => (m.id === action.id ? { ...m, content: action.content } : m)),
+      };
+    case 'SET_THINKING':
+      return {
+        ...state,
+        messages: state.messages.map((m) => (m.id === action.id ? { ...m, thinking: action.thinking } : m)),
+      };
+    case 'ADD_TOOL_ACTIVITY':
+      return {
+        ...state,
+        messages: state.messages.map((m) =>
+          m.id === action.id ? { ...m, toolActivity: [...(m.toolActivity || []), action.activity] } : m
+        ),
+      };
+    case 'SET_STATS':
+      return {
+        ...state,
+        messages: state.messages.map((m) => (m.id === action.id ? { ...m, stats: action.stats } : m)),
       };
     default:
       return state;

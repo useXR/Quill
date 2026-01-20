@@ -15,9 +15,11 @@ type StreamEvent =
   | { type: 'done' }
   | { type: 'done'; operationId: string; modifiedContent: string; diff: DiffChange[] }
   | { type: 'error'; message: string }
-  | { type: 'tool_call'; tool: string; input: unknown }
-  | { type: 'tool_result'; tool: string; success: boolean; message: string }
-  | { type: 'document_updated'; content: string };
+  | { type: 'tool_call'; toolId: string; tool: string; input: unknown }
+  | { type: 'tool_result'; toolId: string; tool: string; success: boolean; message: string }
+  | { type: 'document_updated'; content: string }
+  | { type: 'thinking'; content: string }
+  | { type: 'stats'; inputTokens: number; outputTokens: number; durationMs: number };
 
 /**
  * Return type for the useStreamingChat hook.
@@ -166,19 +168,50 @@ export function useStreamingChat(): UseStreamingChatReturn {
                     id: assistantMessageId,
                     chunk: data.content,
                   });
-                } else if (data.type === 'tool_call') {
-                  // Show tool activity in the chat
+                } else if (data.type === 'thinking') {
+                  // Update thinking content
                   dispatch({
-                    type: 'APPEND_TO_STREAMING',
+                    type: 'SET_THINKING',
                     id: assistantMessageId,
-                    chunk: `\n*Using ${data.tool}...*\n`,
+                    thinking: data.content,
+                  });
+                } else if (data.type === 'tool_call') {
+                  // Add tool call to activity
+                  dispatch({
+                    type: 'ADD_TOOL_ACTIVITY',
+                    id: assistantMessageId,
+                    activity: {
+                      toolId: data.toolId,
+                      toolName: data.tool,
+                      type: 'call',
+                      input: data.input,
+                      timestamp: new Date(),
+                    },
                   });
                 } else if (data.type === 'tool_result') {
-                  // Show tool result in the chat
+                  // Add tool result to activity
                   dispatch({
-                    type: 'APPEND_TO_STREAMING',
+                    type: 'ADD_TOOL_ACTIVITY',
                     id: assistantMessageId,
-                    chunk: data.success ? `✓ ${data.message}\n` : `✗ ${data.message}\n`,
+                    activity: {
+                      toolId: data.toolId,
+                      toolName: data.tool,
+                      type: 'result',
+                      success: data.success,
+                      message: data.message,
+                      timestamp: new Date(),
+                    },
+                  });
+                } else if (data.type === 'stats') {
+                  // Set completion stats
+                  dispatch({
+                    type: 'SET_STATS',
+                    id: assistantMessageId,
+                    stats: {
+                      inputTokens: data.inputTokens,
+                      outputTokens: data.outputTokens,
+                      durationMs: data.durationMs,
+                    },
                   });
                 } else if (data.type === 'document_updated') {
                   // Document was modified - trigger editor refresh

@@ -2,6 +2,11 @@
 
 import { User, Bot, AlertCircle, RefreshCw } from 'lucide-react';
 import { ModeIndicator, ChatMode } from './ModeIndicator';
+import { MarkdownContent } from './MarkdownContent';
+import { ThinkingSection } from './ThinkingSection';
+import { ToolActivityTimeline } from './ToolActivityTimeline';
+import { StatsFooter } from './StatsFooter';
+import { ToolActivity, ChatStats } from '@/contexts/ChatContext';
 
 interface ChatMessageProps {
   id: string;
@@ -10,6 +15,9 @@ interface ChatMessageProps {
   timestamp: Date;
   status: 'sending' | 'sent' | 'streaming' | 'error';
   mode?: ChatMode;
+  thinking?: string;
+  toolActivity?: ToolActivity[];
+  stats?: ChatStats;
   onRetry?: () => void;
 }
 
@@ -22,10 +30,23 @@ interface ChatMessageProps {
  * - Typography: font-ui (Source Sans 3) for readability
  * - Icons: Lucide icons at --icon-sm (16px)
  */
-export function ChatMessage({ id, role, content, timestamp, status, mode, onRetry }: ChatMessageProps) {
+export function ChatMessage({
+  id: _id,
+  role,
+  content,
+  timestamp,
+  status,
+  mode,
+  thinking,
+  toolActivity,
+  stats,
+  onRetry,
+}: ChatMessageProps) {
+  void _id; // Used for key in parent, kept for interface consistency
   const isUser = role === 'user';
   const isError = status === 'error';
   const isStreaming = status === 'streaming';
+  const isComplete = status === 'sent';
 
   return (
     <div
@@ -57,26 +78,17 @@ export function ChatMessage({ id, role, content, timestamp, status, mode, onRetr
           <span className="font-ui text-xs text-ink-tertiary">{timestamp.toLocaleTimeString()}</span>
         </div>
 
-        {/* Message content with proper text colors */}
-        <div
-          className={`
-          font-ui text-sm whitespace-pre-wrap
-          ${isError ? 'text-error' : 'text-ink-secondary'}
-        `}
-        >
-          {content}
-          {/* Streaming cursor - uses quill brand color, respects reduced motion */}
-          {isStreaming && (
-            <span
-              className="
-              inline-block w-2 h-4 ml-1
-              bg-quill
-              animate-pulse
-              motion-reduce:animate-none motion-reduce:opacity-70
-            "
-            />
-          )}
-        </div>
+        {/* Thinking section - shows Claude's reasoning (collapsible) */}
+        {!isUser && thinking && <ThinkingSection thinking={thinking} isStreaming={isStreaming} />}
+
+        {/* Tool activity timeline - shows Read/Edit/Write operations */}
+        {!isUser && toolActivity && toolActivity.length > 0 && <ToolActivityTimeline activities={toolActivity} />}
+
+        {/* Message content with markdown rendering */}
+        <MarkdownContent content={content} isStreaming={isStreaming} isError={isError} />
+
+        {/* Stats footer - shows tokens and duration after completion */}
+        {!isUser && isComplete && stats && <StatsFooter stats={stats} />}
 
         {/* Error state with retry - follows alert pattern from design system */}
         {isError && (

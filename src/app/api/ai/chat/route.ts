@@ -132,13 +132,25 @@ export async function POST(request: NextRequest) {
           onTextChunk: (text) => {
             safeEnqueue(encoder.encode(`data: ${JSON.stringify({ type: 'content', content: text })}\n\n`));
           },
-          onToolCall: (toolName, input) => {
-            safeEnqueue(encoder.encode(`data: ${JSON.stringify({ type: 'tool_call', tool: toolName, input })}\n\n`));
+          onToolCall: (toolId, toolName, input) => {
+            safeEnqueue(
+              encoder.encode(`data: ${JSON.stringify({ type: 'tool_call', toolId, tool: toolName, input })}\n\n`)
+            );
           },
-          onToolResult: (toolName, toolResult) => {
+          onToolResult: (toolId, toolName, toolResult) => {
             safeEnqueue(
               encoder.encode(
-                `data: ${JSON.stringify({ type: 'tool_result', tool: toolName, success: toolResult.success, message: toolResult.message })}\n\n`
+                `data: ${JSON.stringify({ type: 'tool_result', toolId, tool: toolName, success: toolResult.success, message: toolResult.message })}\n\n`
+              )
+            );
+          },
+          onThinking: (thinking) => {
+            safeEnqueue(encoder.encode(`data: ${JSON.stringify({ type: 'thinking', content: thinking })}\n\n`));
+          },
+          onStats: (stats) => {
+            safeEnqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ type: 'stats', inputTokens: stats.inputTokens, outputTokens: stats.outputTokens, durationMs: stats.durationMs })}\n\n`
               )
             );
           },
